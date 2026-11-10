@@ -166,7 +166,7 @@ aggregates tests/failures/errors/skipped, compares them with the corresponding p
 console-log summaries (accounting for xpassed), and checks for unescaped placeholders,
 personal paths and malformed XML. A regression test covers all committed JUnit files.
 
-**Results:** `hardening-followup-junit-verify.txt`, exit 0, all **12** tracked JUnit files
+**Results:** `hardening-followup-junit-verify.txt`, exit 0, all **13** tracked JUnit files
 parse and match logs; `hardening-followup-junit-tests.txt`, exit 0, **2 passed**. No test
 result number was altered; only the placeholder was XML-escaped.
 
@@ -180,7 +180,7 @@ result number was altered; only the placeholder was XML-escaped.
 | Completion fault injection + normal completion | 19 | 0 | 0 | 0 |
 | Historical chain-head idempotence | 4 | 0 | 0 | 0 |
 | JUnit XML regression test | 2 | 0 | 0 | 0 |
-| JUnit XML verifier (12 tracked XML files vs logs) | all parsed/match | 0 | 0 | 0 |
+| JUnit XML verifier (13 tracked XML files vs logs) | all parsed/match | 0 | 0 | 0 |
 | Full default suite | **1015** | 4 | 0 | 0 |
 | Full suite + zero-model real ACP smoke | **1016** | 3 | 0 | 0 |
 | Real Harness integration (zero model calls) | 43 checks | — | 0 | 0 |

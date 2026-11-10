@@ -31,6 +31,7 @@ LOG_MAP = {
     "round2-evidence/raw/junit-followup-default.xml": "round2-evidence/raw/hardening-followup-full-default.txt",
     "round2-evidence/raw/junit-followup-with-real-acp.xml": "round2-evidence/raw/hardening-followup-full-with-real-acp.txt",
     "round2-evidence/raw/hardening-final-clone-junit.xml": "round2-evidence/raw/hardening-final-clone-tests.txt",
+    "round2-evidence/raw/hardening-followup-clean-clone-junit.xml": "round2-evidence/raw/hardening-followup-clean-clone-tests.txt",
 }
 
 _SUMMARY = re.compile(

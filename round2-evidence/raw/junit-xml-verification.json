@@ -84,6 +84,27 @@
       },
       "derived_passed": 1004
     },
+    "round2-evidence/raw/hardening-followup-clean-clone-junit.xml": {
+      "totals": {
+        "tests": 1019,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 4
+      },
+      "contains_raw_placeholder_markup": false,
+      "personal_home_remaining": false,
+      "log": "round2-evidence/raw/hardening-followup-clean-clone-tests.txt",
+      "log_summary": {
+        "passed": 1015,
+        "skipped": 4,
+        "failed": 0,
+        "errors": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "summary_line": "1015 passed, 4 skipped in 62.37s (0:01:02)"
+      },
+      "derived_passed": 1015
+    },
     "round2-evidence/raw/junit-followup-default.xml": {
       "totals": {
         "tests": 1019,

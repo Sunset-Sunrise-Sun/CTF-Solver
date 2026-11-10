@@ -1,9 +1,9 @@
-# Round 2 final Git-blob file manifest (final acceptance hardening tree)
+# Final acceptance follow-up Git-blob file manifest
 # sha256/size are computed from canonical Git blob bytes (LF checkout), not working-tree CRLF bytes.
 # This manifest is explicitly excluded from its own entries.
-# It cites only existing implementation commit(s); it never cites the commit that contains this file.
-implementation_commit=75838497b37750e713683f644e221773aa56242e
-entry_count=284
+# It cites only the existing follow-up implementation commit; it never cites the commit containing this file.
+implementation_commit=de6e6704f1848427258729164eb69423472493c8
+entry_count=310
 
 0a6ccdf71a7e78c64f9e38f316f7d852abae69cc97ce9c2d15595587b91da554       2853  .dsh/skills/ctf-crypto/SKILL.md
 e5d18dffc1a07b4287ea68ec090242621ce8616da998411cce1f72eba08c741c       2644  .dsh/skills/ctf-misc/SKILL.md
@@ -13,7 +13,7 @@ b6a7a849331e979f48cd0cec9c488e4cd8f7b25b9af5e406064888c8da8e95b2       3077  .ds
 654002e63e9424a5d25f0c3c0075623a8eb9cc058555a7d24dfadc06279a9066       2755  .dsh/skills/ctf-web/SKILL.md
 5c42c306acfde9c142cb81599406f18c9fab6275f13b04da01900abecc5045a9        567  .gitattributes
 7b1c0f3311e2ae6f32e31f154734b24246a8f1b0b607e2492702a58506e41cae       1229  .gitignore
-04d4fc33bd478c7b6ffee98a7d43f61027fb01175ba989acb7b639f4e7c29c94      11089  README.md
+7aab8c301f8fa08e4b9fc19aeb408b064babf1739b0dfb6146bffb4031c00c99      11247  README.md
 bad6fa99dc60cac4ba8e76ebd1c70b1d2051250613febc953f342a8887a7e71f       1209  config/acp/cordis.patch.yml
 5b27937a6fb409c22b2d1d88780d874b2528099552c74ee2afa0c8c18643c293        126  ctf_solver/__init__.py
 0c43eb45b78bfbcfb3da44e3b913d2f67bf525dd352e789bcc9145edbfed8f01        164  ctf_solver/__main__.py
@@ -42,16 +42,16 @@ f144f258df1d03567f67d2b095ad3677aadc5064cba8241a7fba306c68cf2baa       8771  ctf
 32929a694007bc96702082ae57dccd58c068999cc563502919754d2e5568db43      11911  ctf_solver/evidence/ingest.py
 0473591d71c3dd1e4c60eefbfeec92ae395e51ca291a5c0562e244796d1e8d47       9392  ctf_solver/evidence/manifest.py
 e0bd09ba780d47b9f5d8a08569153af082f9b8a204d3d11b429e8e7f3f466875      28159  ctf_solver/evidence/normalize.py
-f6aaff103f0f033768a461fcef339e5325e40f25778d92eba857015721d37167      37144  ctf_solver/evidence/store.py
+ee7c9676fab6a3b806b99fbfa0df31ba55a89acff6a826d41783e2eb76bb3387      38003  ctf_solver/evidence/store.py
 996e328b9fc504cac37bf78cba2836005851a83657e9b8e64ffbf51c51207f07      22043  ctf_solver/evidence/zstd_frames.py
 c748bbb279d688b9b38fddaa8df225dc0742f9c32981ce374d0e4a4c40c9cc59      18247  ctf_solver/intake.py
 dd4b3159127e372c2b157606b9c925a6056a1bceca19dc554315dbb03fe21b29         80  ctf_solver/manager/__init__.py
-42e2482b7b2876a9eb1b22cc709c48cc98ec3fda7501daa3398b429cc86ad564      41629  ctf_solver/manager/approval_grant_service.py
+31112e49b99cdab945dd22acefef27f85f91edea68f2918dd21f056b94288b63      41851  ctf_solver/manager/approval_grant_service.py
 38c89e0875ae72a04ee7267a8c2acd12ec0222de78ad6b6993d8abdcd3f93dc7       5499  ctf_solver/manager/ipc.py
 84df195a85fad8458fb43f47fb52db1e8eee2a7e0f2b99d2a6c5901324a4d9d4       1889  ctf_solver/manager/scheduler.py
-dde06f22c80bfbf15c58e18557df005dec13cc0a3850c17e6891f28d0c082fd0      72126  ctf_solver/manager/service.py
+c47bdbef41594e4fcb335a94a6fd4cb08a48e1b052ce48b572b26919a1a58853      75168  ctf_solver/manager/service.py
 8ab55b44de2bb6dec764da67ddd471595fbd0b890e15308430318176afa7b171      18395  ctf_solver/manager/session_logs.py
-060700b50aeb8cb3ce83c73bc86fdcea3bb95f8db9e310d57de62799f21b7b81      42112  ctf_solver/manager/store.py
+3d0d417e607fe50d696a0c620d91aba7f8df6148208ce812a97d2e2d2c4afb84      44918  ctf_solver/manager/store.py
 12a688e5d1a019c42949ff5b24712823e04cd13d4fa70efa7f911249f0229abc         70  ctf_solver/mcp/__init__.py
 a59ece3f199514436dec7d1ab55fb85b4a2294f13760a26d75001cd73ccd99da       4625  ctf_solver/mcp/bridge.py
 2948070784931898db69d2d96856fb9275a035442e9fa783d8a71bd245c4249e      11629  ctf_solver/mcp/client.py
@@ -90,6 +90,7 @@ c924d80cf15c9ec88323a34ef9d0fbf802c64d46f0174442e35709d4bacfb3cf      13207  ctf
 1a9b54e4539f2d8b9c586ad73629d82d8a86341308b2e0c2b945ba7883f3d073      10944  docs/ROUND_1_ARCHITECTURE_NOTES.md
 8e63434ad1dec65a119af9435c1068accc113f4a3b3ebe304b3a413f94533d91      18962  docs/ROUND_1_IMPLEMENTATION_TASK.md
 15c8353bfd5853a3169f8980975e2a7ffd7454a86898fe171617bdbd291b84a2      18326  docs/ROUND_2_ACCEPTANCE_REPORT.md
+0ccc0820abed8d6be0d8598f4765a298cf451baee66f49d189240b4a17a0043d      14436  docs/ROUND_2_FINAL_ACCEPTANCE_FOLLOWUP.md
 bcc858a4bebe51c704f07a05f8a130fdeb011e6a79669bd9cf392359e6352317      15715  docs/ROUND_2_FINAL_ACCEPTANCE_HARDENING.md
 22c417ef44108bb30cd864732d3a2130044c2f756716e06ef42bd17c8defe370      12008  docs/ROUND_2_HARNESS_INTEGRATION_NOTES.md
 b15c32b4bed9a7f04d14ca26e46fed99d346cbf66c239c194d437a489b056b77      11357  docs/ROUND_2_INTEGRATION_TASK.md
@@ -140,10 +141,10 @@ b2212b31b9acac73604c8eaeb9db7189de25150138bcd144a016e02cdb4769bf      12383  rou
 0c4b19a538f0847ee19fae19f1cec068035005fe1da388452f3ce402c345bd03      29714  round1-evidence/raw/verifier-report.md
 2f8ac5fbc1616629a7913a635375120f9f2d5d3c8974fb8593b3c89ba378b582       1384  round1-evidence/raw/verifier-tests-postfix.txt
 9a6d3c94895e0fd961201e86687d9ec4f2fac3d7753783b459b85916f40ed589      25528  round2-evidence/FILE_MANIFEST.txt
-2b19bf5c2ddcb69b3653811e01685b597a469be034a478df03c98f204fb27159      21872  round2-evidence/end-to-end/evidence.zip
-d6803009a0751bfc97fcfd81284e98ecae39704fd1b8624061a351c71f030043      37848  round2-evidence/end-to-end/screenshot.png
+991f844f5d1812baf631008516c8921e8f7e9e513da718bcd157449ff0ae03c4      21541  round2-evidence/end-to-end/evidence.zip
+7140f80e5fa6ba26a0862cbb1fd97becd9cfe037ed801fc002becccb420b5cce      37504  round2-evidence/end-to-end/screenshot.png
 e6c4cb05ecc136365c66d00c974aaaee6859b6f314b2d17f99616863f9ea5f7b        229  round2-evidence/end-to-end/synthetic_challenge_input.txt
-be9056011f85fd013c280819b4b3a03ba2cf120a9ef537506e5888b1dca1bacb       5906  round2-evidence/end-to-end/writeup.md
+f8297bb2459cdc3e224e976cd84bab52bafe6e827c126f8a0044531e8fd7408b       5906  round2-evidence/end-to-end/writeup.md
 01c0490c400755fd92953acc2a59723b7a873f3231da8737a15aca5153c9d618       2466  round2-evidence/raw/fresh-clone-20261110T114549Z.json
 807407019a2e6e5aff1269aa070efac49382cd87ea75005f0ff91e2b299f8f91      24254  round2-evidence/raw/fresh-clone-20261110T114549Z.log
 34d7d4daed84af0bad9e1b32b4cc37255a2b594d7cd361519e09ce391901acea       2760  round2-evidence/raw/fresh-clone-20261110T114752Z.json
@@ -158,39 +159,61 @@ bd0fe12356b640cf1a2ebc87e36b89d09ff18ee8c5445a8d4e7b91e533a9b088       2284  rou
 e04e47c64f07ece8126b5ef2c0e7474082b890a3a8c62d7986ccbc2792a3a790       7101  round2-evidence/raw/fresh-clone-20261110T130959Z.log
 605b36f325034d281bfb88b313ca24134c60238c6322483f25bf92cec323b85c       2284  round2-evidence/raw/fresh-clone-20261110T135304Z.json
 c500d58c00b81815a32442ae525de143c340ed8ce992c3217e6860cffaa36b2d       7101  round2-evidence/raw/fresh-clone-20261110T135304Z.log
+334ea468c6263775e500a99e75793050c467abd7303eae48d4355a5ba52b8f90       2272  round2-evidence/raw/fresh-clone-20261110T142552Z.json
+84ad8a7ac8c5d6272571a3419942819df875e662c42a5d374efad8f9bdc85280       7172  round2-evidence/raw/fresh-clone-20261110T142552Z.log
 98cdc72da5a3e92e316af3b657bcc275f4012753bea56225ca2f8e65227970f9       4223  round2-evidence/raw/fresh-clone-wheel-build-20261110T114549Z.json
 8e77eea41329ec398aa9a4836c3c7d3dfd8c2c80d9be9d7c5502431d3865505c       4225  round2-evidence/raw/fresh-clone-wheel-build-20261110T114752Z.json
 575f6f1efede63f0bedcccef6dd253fbebb131bb5eb4899b910b11196c1d8ac6       4224  round2-evidence/raw/fresh-clone-wheel-build-20261110T115032Z.json
 720f991f8013afc53efe3fb44e8370eea5c6199455312a9e7eec229397c7f474       4225  round2-evidence/raw/fresh-clone-wheel-build-20261110T120253Z.json
 5e1adb7b51049d7760403898784381703897f91f4c9c5581a9d53204053bb656       4227  round2-evidence/raw/fresh-clone-wheel-build-20261110T130959Z.json
 e4b063fd9e11df145b9693c53d1166015af4c9603734b181f7304020be70af09       4226  round2-evidence/raw/fresh-clone-wheel-build-20261110T135304Z.json
+3bc7bd0d707b84be2ad2058763c82442f42921d07b7b2738d01c33a91da518eb       4221  round2-evidence/raw/fresh-clone-wheel-build-20261110T142552Z.json
 aa408a0e036dfc9df4226a0d39472e8821e57723fc9adf37ae8b9e682c2d78d1       5558  round2-evidence/raw/hardening-acp-tests.txt
 fab2e281d51a222c1230fae45c426662b53ee4146ebc1acf92f1a93484988fe5       1894  round2-evidence/raw/hardening-approval-attacks.txt
 5a396f13bc5d76aa95b78321fc8a0024eaa9d6cb683af6407674ec0d21074007       4326  round2-evidence/raw/hardening-canonical-wheel-build.json
 c5f6749502880458011bcf1e00d76831b9ec84f69a8210fb3c9b43990092ca6e       2320  round2-evidence/raw/hardening-completion-tests.txt
 d2759048fbd209bfe476c45b198a60404acbdd4bbbfb4a1df0c311c817bf754b       4329  round2-evidence/raw/hardening-final-canonical-wheel-build.json
-6021aeacd0b3005cfbdf451d9a6f92560a75873d99ac729e2fc27497ebf03b39     122954  round2-evidence/raw/hardening-final-clone-junit.xml
+4cfae411a9fb42200192145c34a6caa3bbedd6d65a5c052529ab9f3c23aa6928     122978  round2-evidence/raw/hardening-final-clone-junit.xml
 a40f41a1de18ecee90844b7cff66b508266ff295e00f94d4238909247ce0e215       1647  round2-evidence/raw/hardening-final-clone-real-acp.txt
 a7db5b9da5407d74819fac16dc1360b0b700c50d3c75a9832cd639a1bc8c7b0a       1783  round2-evidence/raw/hardening-final-clone-tests.txt
+a4347ff4c0614e8aa435f945d8a8ce32835510bb9e10655a1cc9117fc666aba3       2346  round2-evidence/raw/hardening-followup-approval.txt
+d2bfdfd5eedf5803d07e311fa3dba8e26f33be2ec523f84786a92d4b4b6981d7       4343  round2-evidence/raw/hardening-followup-canonical-wheel-build.json
+d8d950be5d5017ce6a75eb19bed627a1cb82c3c430fddeb4a91f9afdb6b165c1        836  round2-evidence/raw/hardening-followup-chain.txt
+f2221e8e38293e854bdceb1fca44e0e6216a825ca39bcad7078c6c0797cc89b6     124491  round2-evidence/raw/hardening-followup-clean-clone-junit.xml
+4d243282948fd61e07ced307e61a8a3abd590c81a26ced92984a58cd3a0292d6       1727  round2-evidence/raw/hardening-followup-clean-clone-real-acp.txt
+bbf47560dbb7dbdeda584a87ddde4811dc7817bc3dabfc7b6e0a7800315ce2d5       1863  round2-evidence/raw/hardening-followup-clean-clone-tests.txt
+82364c71b2295912bf41f71893929dc130c1500f3178871257c72e6a4388566e       2433  round2-evidence/raw/hardening-followup-completion.txt
+b4d8fff109b6bf6b6d84775adb2c510d716b1d600a2d87a9b7f4776cf86f1060       4402  round2-evidence/raw/hardening-followup-final-canonical-wheel-build.json
+be5aebfc7778e6f1fb98dbb3bc8ccb3a2a3b1b6b98dae32f150cf32ed75df28a       7847  round2-evidence/raw/hardening-followup-fresh-clone-console.txt
+4e5340ed6413f60f5b6dabdb165ca144be816d58a26cebd6407bea414a3e1f89       1853  round2-evidence/raw/hardening-followup-full-default.txt
+cda84daa66c07ffdb99dbec4ccc0fe0e292cbb105e7ed7859d93befb0f8b4f83       1727  round2-evidence/raw/hardening-followup-full-with-real-acp.txt
+f9808b3171741ccf78adb9ebf8ca1c3e113fc51084226e5267d85e17299d6e04       7633  round2-evidence/raw/hardening-followup-integration.txt
+34ce7518c49d123adddc76159abb9e544350070a6b508a750f9ed0bafcd1de6b       1522  round2-evidence/raw/hardening-followup-junit-before.txt
+f4c61c0ac8f55c6c9a2d6c593731bf5f8c4a6c5bebbe514284fd4f899818f9e0         98  round2-evidence/raw/hardening-followup-junit-tests.txt
+f123c7e3a2b2a8f9f7e82987b8ec0cd704863c6f528346e747f5364e8e86fff2       2177  round2-evidence/raw/hardening-followup-junit-verify.txt
+bbe3df2bc6bfaeed658c552184b741f680cb0de1118c2fa3fd9ca764f78b793a        760  round2-evidence/raw/hardening-followup-repro-before.txt
 6a242a6c79574d4dab4bc53f97558a09b04cbe790a438eac8210aa777ab3bb09       7780  round2-evidence/raw/hardening-fresh-clone-console.txt
 2cdb4fe3d53003e53c9bde60db5854db2b41c70f9f40f553effdd6d599174524       1773  round2-evidence/raw/hardening-full-default.txt
 8343684804b1700e88bf05c6d3f55fd735a745ba0711f46c3dab77366ccf637d       1647  round2-evidence/raw/hardening-full-with-real-acp.txt
 370c22de097132ee31f480e0e1a22c03ce1e3e7f217950becdc4afb8eb8f3989       7632  round2-evidence/raw/hardening-integration-final.txt
 52ef6af8e64cf8dbfe02c2061471fdf913c8b0273ac2383151fc05a4b0c54288      17141  round2-evidence/raw/harness-entrypoint-scan.txt
 e9ff0eca03abd722a78c1f90b2f62dcecbf1320e8ac9f57f2d69242a249fdf9f        898  round2-evidence/raw/integrity-pytest.txt
+5ad9edd3f4e1ed2bef7e4d0ea11664e70ab9a372875d12705341f8df6bd51d14     124163  round2-evidence/raw/junit-followup-default.xml
+f6d94009d8d3c1ce2b2c67f05e9eecf1023c22834e431e36272fa4c4626a2e56     123878  round2-evidence/raw/junit-followup-with-real-acp.xml
 1f84d67f78430507ba3180fa1ce48fd599f940bcfd8784d925b0bb8fcf0919ab     122662  round2-evidence/raw/junit-hardening-default.xml
 2985cab5cb77f875dd7b6c9789613f02fb8e77619a9ac207e96fef17d42ea9be     122377  round2-evidence/raw/junit-hardening-with-real-acp.xml
 16c4dbd028fcaabbe8dc636d90682ebcd0152654e3f92134aeea395955eafb9b     119025  round2-evidence/raw/junit-remediation-default.xml
 2cbb3cd3a99f68c038240fc3ede74db6e456e5e9ab33ab06205082cdcffd562b     118740  round2-evidence/raw/junit-remediation-with-real-acp.xml
 9a111ed870eb4b7c3579279ecc3edc4552e1111d0dcd623c77f386ad734ab014     109741  round2-evidence/raw/junit-round2-default.xml
 40830d078546bd8e30bec2b053834ed4b1984a9bc6cee28909337d7f79fc50cf     109456  round2-evidence/raw/junit-round2-with-real-acp.xml
+13c3361873b192573e0661ecadc6db69fdce0b0eee661c98fd56ada6a132884c       7760  round2-evidence/raw/junit-xml-verification.json
 7e0ed193e89699728a5c0ca4cdd84e977c3e142c34f347e27c5037fa02cdc38c       8152  round2-evidence/raw/packaging-build-wheel-probe.txt
 1de2419750c0ee9d69eb8cb17c375d76df7a69f3908e7a57930ca800ee77f1c2       8174  round2-evidence/raw/packaging-build-wheel.txt
 aae9300bdecdad237bcfc01b983abc81f722930c94cdf74424eddc7f52f5127a      21100  round2-evidence/raw/packaging-fresh-clone-strict.txt
 26b80e66c4ca3f7cb2958598b1612778ac6a01ecb1526d5823288d31f0248d01      28204  round2-evidence/raw/packaging-fresh-clone.txt
 370c6e9dbae725c011e2dfdb6323d27d5895fb85ff1b36d137463a3b256aa12c        844  round2-evidence/raw/packaging-pytest.txt
 63884c83df3b167d9cfc23e6b5072f067da7fe812e55b4216568de2ad5625efb      13128  round2-evidence/raw/packaging-report.md
-629cd6aea9cba1bf999b1d8cee40c66937030636e56a799ef909ba22eeacf6c1        422  round2-evidence/raw/privacy-redaction-before.json
+3d746801bf42dfa3b2dca553af3db06c294be495af740bc838a298d4c7b8d32b       1597  round2-evidence/raw/privacy-redaction-before.json
 4707b0172c9ed6dd7e84ff7f254a5f2f949e2b46b93be43140f4bd99a0ac4401        133  round2-evidence/raw/privacy-scan-after.json
 c109181babbf78414571edf788828ece5f86341cff140ea706663173b9efe038        346  round2-evidence/raw/privacy-scan-before.json
 50c4bfc66ea5e9029dbf29734a8673e63458326e9ecf24120f96ee92fb57050f       4352  round2-evidence/raw/remediation-canonical-wheel-build.json
@@ -213,8 +236,8 @@ dc93357142d52528740ee85a3cd3ed76d6a0beb7e58cd82608da700c4f16de49      11141  rou
 636935e740bd88523f0264adcbc92743c5dbf8b8147b0cd9a1f35468637b57dd       1556  round2-evidence/raw/round2-full-suite-with-real-acp.txt
 4e9546f90a3836657f8a9bf1552fb86eb6726b3dd050e0bd057eb5ac002b74a9        729  round2-evidence/raw/round2-harness-analysis-console.txt
 7d389735703a947289881075d4fac351fc7d59d4fe86446ec8f6882da88e0bf2       3515  round2-evidence/raw/round2-harness-entrypoint-analysis.json
-6b26dc72234a6a553c077bca17ebd73188ff0651483789b3bb126203801ea3bb       9842  round2-evidence/raw/round2-integration-summary.json
-5383a094c89e1cdcce2b6493386821162ebe3af011242e59acb2db4aaa7f1494       7558  round2-evidence/raw/round2-integration.log
+719e620f3c040176cf0f69249f74e1e72d583231b240436d78224af683606a6e       9842  round2-evidence/raw/round2-integration-summary.json
+4c0ec9b3be2cce61f58ee0042088fd1e4656bbc128b37784bb7894fe5cc8cd72       7559  round2-evidence/raw/round2-integration.log
 3e3209f32df4d41a0974cbac243a70c9158f364e14033dad73c9defc2cb707f0      12380  round2-evidence/raw/round2-privacy-gate-dump-config.txt
 28ec1d4cbf97fca3430cfb626ba3df226f0a005baee9ffd0b648f1c622647c10        922  round2-evidence/raw/round2-privacy-gate-result.json
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855          0  round2-evidence/raw/round2-privacy-gate-stderr.txt
@@ -229,10 +252,11 @@ d5ba752deb702c7d6311ba85e5140226dd4ed0fb19656682ed8c892ecd88b7fd      21286  scr
 dd87e4e0f2e35ac22a50bf4048878694e6e6996c19d3285aa4d202e70ac82cfe       2227  scripts/mcp_probe_server.py
 0eb1dba8cd693975c59c5d5d7e151f197a83b6aed837e5976acb7aee37a190e7       7905  scripts/round2_harness_analysis.py
 f8a6dbbb5f8e91c4a2793fee81d3a8af6a11a99bb52e31b957ad45e355f54d95      34347  scripts/round2_integration.py
+74f5da62edf0eef7aa3ce0e8ce3b9dc07e9c051877089f95ad678406d40228a8       5959  scripts/verify_junit_xml.py
 9d37a1d8bec119060de5302a309e3f341227a4ed999c6ce649f5fdcb7a8c6295       2434  scripts/window_probe.py
 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b          1  tests/__init__.py
 7aac6cf42e9e92dbf938e1fff928772a72ffb11bdd434047f8ea2144b4ef0134         79  tests/support/__init__.py
-391c47549a9838e09d7b732c96b208a1dd3f709a474abf1d1366d928d8b29abc      11026  tests/support/fakes.py
+20fbc8587004e3862df37d880c1f3aa508b3292c5d663f10cbc7ab01041b5bfa      12280  tests/support/fakes.py
 2770ea31cad7eee88bdece5037c332ea148aefa9d7ca846e7a7047619add5c7c       8246  tests/support/manager_stub.py
 3fe9c4ef05a6b8abb04e4ceb492a4c170d3c3b50ffef37a5742a5b05abce2553       2614  tests/support/mcp_test_servers.py
 8cc9781e13a80adf3f19fe020de60cf9c25872e9c7ba50a22acd41a381067111       2284  tests/support/png.py
@@ -250,6 +274,7 @@ adf6a0b99a1b11613e5a4cf7b9a9954a7af3bcf4df45f0589c92fb847dc7902a      23804  tes
 b6f6496d6a369520861e9f3f3a6be9f15e664f37da2166a4d4c06b660c785149      37088  tests/test_broker_policy.py
 c55a67ab12ca26b8f927801765fda8feaac582320fa9b21c8793a838162f4cbc       2333  tests/test_cli.py
 d1c8e4f48ecd8a1540fea4b3a5653303738e8e8120a3e3da6cbb7c4f01358cac       7542  tests/test_core_contracts.py
+f88c9b29442b03aa5c2fbfea1d51e60efc08036eecf5dc8075b9050c6de2d4e4       2592  tests/test_delivery_junit_xml.py
 73e06307480381011e01a776d325ebf2c344b2a9c0b5297f62bdaeea04c01977       2917  tests/test_delivery_screenshot.py
 cc2b213dcc3ff936560fa2b9f54da8b8c80be918facff66c9b7c44bbbe50b30f      11595  tests/test_delivery_writeup_bundle.py
 384ffce73d566acaaba5fbcb2bd8c1267eb1cfb46b51fea16f3ba562a0af31c8       5008  tests/test_evidence_cas.py
@@ -269,8 +294,9 @@ c26675523581b011de6ef6a7dd8b1718cb8294f75ff1e18b5b3a956fec9b6f20       7243  tes
 bb4c628818837bfd03c8a02dc326d04f0e7a2742f2014adc2b05fd3c8984052f      16820  tests/test_mcp_schema.py
 b4ae6807353763d96a4b00023ca64b064d92db214bd9c11fbfb1f6d3d141924d       4365  tests/test_preflight.py
 42229c64b2c718b13692bf10a9676c5f8879dbbc5311ff29187c91818663d8cb       3584  tests/test_real_acp_smoke.py
-2fba58badd3ef014857459ba8c8d42fadd009ebb5fdc9cf845fff954b83fcc59      14623  tests/test_round2_acceptance_hardening.py
-bac1846420e5d29f47c3aecb944a8056117facfcabb7aaaf0b06abcab8a92dc3      14471  tests/test_round2_completion_faults.py
+6587fbd77879c0a2872dd3c108f3f8811b5b039b65ac3cecb5904bcd0aec5eba      18132  tests/test_round2_acceptance_hardening.py
+7c2ccc9f4bc21a97412d488c2ec8871b73a2f84ca28e5ea8b823f26bfa7bd211       6189  tests/test_round2_chain_snapshot.py
+7a700ad7dd612dd23d7ce8400e89f36c06294e4d64f5b987ed751dddd17e0092      18771  tests/test_round2_completion_faults.py
 387fd42f1ebcad34a0a438538c59506b13e84bf1258f043af78176018dea6e4c      14198  tests/test_round2_remediation_security.py
 a05ff8195cea055785e36137f78c6558c0b9cd71546b726866ae504d2f8d6efd      16145  tests/test_round2_security_integration.py
 4da1f7122164896cf6c47a93d16a786b10df6a9f5a7162ce16c1682b13aed1f9       9053  tests/test_runtime_catalog.py

@@ -61,7 +61,8 @@ A test is not passed because code exists or an agent says it should work. Record
 - [ ] tool/call and tool/result are correlated by callId.
 - [ ] seq order/gaps, job status, approvals, and command events are preserved.
 - [ ] Raw session-log bytes and original artifacts are retained in CAS.
-- [ ] evidence/events.jsonl is append-only.
+- [ ] SQLite is the single authoritative state/event store.
+- [ ] evidence/events.jsonl is deterministically derived from committed SQLite records; no independent dual-write exists.
 - [ ] SQLite evidence chain is idempotent and tamper-evident.
 - [ ] Missing/truncated frames create explicit evidence gaps.
 - [ ] Tampering with an event/artifact is detected.
@@ -86,7 +87,10 @@ A test is not passed because code exists or an agent says it should work. Record
 
 - [ ] Product preflight reports missing tools and versions.
 - [ ] Product does not silently install software.
-- [ ] Existing D:/CTF project and Harness profile/config are not modified without explicit authorization.
+- [ ] Existing D:/CTF project and protected D:/CTFworker imported files are untouched.
+- [ ] Harness global profile/config/plugin/MCP/Skill state is unchanged.
+- [ ] No software/package installation or upgrade occurs.
+- [ ] WSL/Ubuntu/Docker/containerd/gVisor are not deployed, started, or configured in either round.
 - [ ] CLI/headless is the primary execution path; GUI is auxiliary.
 - [ ] Cordis hooks remain thin/optional; no second agent loop is introduced.
 
@@ -112,6 +116,38 @@ Before running arbitrary challenge-provided code:
 - [ ] Cleanup is verified after success, timeout, and crash.
 - [ ] Escape and cross-Task access tests pass.
 - [ ] Toolchain versions and image digest are recorded.
+
+## J. Two-round execution and release gates
+
+### Round 1 — Complete Product Core
+- [ ] Manager ACP Client, Task registry, one-Task/one-session mapping, max-two FIFO scheduler, and persistence are implemented.
+- [ ] Manager control interface and Worker-facing typed ctf-exec MCP interface are implemented.
+- [ ] Broker approval/network-grant validation is implemented and fail-closed tests pass.
+- [ ] Core Skill and all five specialist Skills are present and discovered from project-local bundles.
+- [ ] Read-only preflight reports tool availability without installing or configuring anything.
+- [ ] Multi-frame zstd ingestion, SQLite hash chain, CAS, derived JSONL export, and idempotency tests pass.
+- [ ] Explicit screenshot association, Markdown Writeup, evidence ZIP, and manifest verification are implemented.
+- [ ] Fake ACP/MCP and synthetic end-to-end tests pass.
+- [ ] Zero-model-call real ACP lifecycle smoke test passes where the existing installation supports it.
+- [ ] Round 1 report clearly distinguishes implementation from real Harness/model integration.
+
+### Round 2 — Harness Integration
+- [ ] Project-level Skill discovery and actual /ctf-solver entry semantics are tested.
+- [ ] Main conversation can reach Manager tools without Harness global configuration changes.
+- [ ] Real ACP sessions and per-session Worker MCP mounting are verified.
+- [ ] Two active Tasks and a third FIFO Task are verified through the integrated Manager.
+- [ ] Session-log privacy gate is verified with a synthetic canary and negative outbound-delivery evidence.
+- [ ] Model-mediated Worker tool invocation is tested only if separately authorized after the privacy gate passes; otherwise marked BLOCKED.
+- [ ] A synthetic local end-to-end challenge produces evidence-backed Markdown and ZIP outputs.
+- [ ] No real target, Flag submission, or challenge-provided code execution occurs.
+- [ ] Final report provides PASS / FAIL / BLOCKED / NOT VERIFIED for every criterion.
+
+### Explicit non-goals of both rounds
+- [ ] No software/package installation or upgrades.
+- [ ] No Harness global profile/config/plugin/MCP/Skill modifications.
+- [ ] No WSL/Ubuntu/Docker/containerd/gVisor deployment, startup, or configuration.
+- [ ] No untrusted challenge-code execution on the host.
+- [ ] No real CTF target access or automatic Flag submission.
 
 ## Reporting rule
 

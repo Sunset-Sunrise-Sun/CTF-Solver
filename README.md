@@ -79,6 +79,7 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 - docs/ROUND_2_HARNESS_INTEGRATION_NOTES.md — real Harness integration evidence and remaining limits.
 - docs/ROUND_2_ACCEPTANCE_REPORT.md — Round 2 PASS/FAIL/BLOCKED/NOT VERIFIED acceptance report.
 - docs/ROUND_2_REMEDIATION_REPORT.md — final acceptance remediation (P0-1..P0-4) report and evidence.
+- docs/ROUND_2_FINAL_ACCEPTANCE_HARDENING.md — final acceptance hardening (dual-record approval, ACP boundary, completion evidence).
 - docs/ROUND_2_INTERFACES.md — Round 2 module/security interface contracts.
 - docs/LOCAL_OPERATION.md — no-install local operation, preflight, testing and data layout.
 - docs/REFERENCE_PROJECTS.md — external projects and what to learn from them.

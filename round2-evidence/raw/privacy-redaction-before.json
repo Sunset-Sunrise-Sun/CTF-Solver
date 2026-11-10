@@ -1,18 +1,16 @@
 {
   "scope": "all tracked and untracked non-binary text files at the final hardening working tree",
-  "before": {
-    "files_with_personal_home": 47,
-    "occurrences": 343,
-    "text_files_scanned": 256
-  },
-  "after": {
-    "scope": "all tracked and untracked non-binary text files",
-    "files_with_personal_home": 0,
-    "occurrences": 0,
-    "files": []
-  },
   "replacement": "personal Windows home paths -> <USER_HOME>; bare profile id -> <USER_ID>",
-  "redaction_passes": "first pass replaced 43 files / 331 occurrences (UTF-8 text); a second byte-level pass replaced 5 files / 13 occurrences in evidence logs that were not valid UTF-8; final scan has 0 remaining",
-  "secrets": "synthetic credential-pattern scan found 0 matches; test fixture token strings such as test-worker-token-123 are synthetic and not real credentials",
-  "method": "byte-level replacement preserves original line endings and non-UTF-8 log bytes; no test result or failure message was altered"
+  "passes": [
+    {
+      "files_redacted": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "files_redacted": 2,
+      "occurrences_replaced": 16
+    }
+  ],
+  "total_files_redacted": 2,
+  "total_occurrences_replaced": 16
 }

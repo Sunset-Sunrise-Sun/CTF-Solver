@@ -255,7 +255,7 @@ dc93357142d52528740ee85a3cd3ed76d6a0beb7e58cd82608da700c4f16de49      11141  rou
 0ac8661444faca0f05c1aa7e57ad5cc743d9f7f19b6831d752bfa15d26fe49c6       9842  round2-evidence/raw/round2-integration-summary.json
 18e0a2fc2bce2a7b043b4cb76238209d7e3e349fb0476bfd47587fb436a07a18       7560  round2-evidence/raw/round2-integration.log
 3e3209f32df4d41a0974cbac243a70c9158f364e14033dad73c9defc2cb707f0      12380  round2-evidence/raw/round2-privacy-gate-dump-config.txt
-d66d3da357d9ff97003c8109fda7daf601238e4b067665547214cbe84d36bb64        927  round2-evidence/raw/round2-privacy-gate-result.json
+28ec1d4cbf97fca3430cfb626ba3df226f0a005baee9ffd0b648f1c622647c10        922  round2-evidence/raw/round2-privacy-gate-result.json
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855          0  round2-evidence/raw/round2-privacy-gate-stderr.txt
 86a1d46cb1a7dd373cec652271697af339a9e0ee56e7ef4d6eb965d162f9c8af       2161  round2-evidence/raw/round2-skill-discovery-session.json
 557742e5048af785eed2479785c63ba6191d73f78ffd3aec09334365fd9037a2       3936  round2-evidence/raw/round2-wheel-build.txt

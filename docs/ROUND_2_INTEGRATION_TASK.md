@@ -22,6 +22,10 @@ Do not assume a Round 1 “PASS” is proof of real Harness integration. Re-test
 
 ## 1. Environment and authorization boundary
 
+**Clean-room requirement:** Continue the independent implementation. Do not import/reuse old CTF Workbench code, database, API, UI, service, or runtime components from `D:\\CTF` / `D:\\CTFworker`. Do not copy source from reference repositories without a separate license/provenance review and explicit owner approval.
+
+
+
 The owner's environment decision remains in force for Round 2:
 
 - Do not install, uninstall, upgrade, or configure software/packages.

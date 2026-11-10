@@ -254,20 +254,27 @@ class ManagerStore:
         return self.require_task(task_id)
 
     def update_evidence_head_if_not_completed(self, task_id: str, head_hash: str) -> bool:
-        """Conditionally refresh a non-completed Task's evidence head.
+        """Conditionally refresh a pre-completion Task's evidence head.
 
         A completed Task's ``evidence_head`` is an immutable historical snapshot
-        (its ``task_completed`` event anchor). Ordinary status/writeup/export
-        refreshes must never overwrite it with the advancing global chain head.
-        The condition is evaluated inside the same UPDATE statement, so a task
-        that completes between the caller's read and this write is still safe.
+        (its ``task_completed`` event anchor). A Task in ``completion_pending``
+        has already persisted that anchor while its final transaction is still
+        in flight, so ordinary refreshes must not touch it either. The exclusion
+        is evaluated atomically inside the single UPDATE, closing the race where
+        a caller read RUNNING before completion began.
         """
 
         with self._tx():
             cursor = self.conn.execute(
                 "UPDATE tasks SET evidence_head = ?, updated_at = ?"
-                " WHERE task_id = ? AND status != ?",
-                (str(head_hash), self.clock.now_ms(), task_id, TaskStatus.COMPLETED.value),
+                " WHERE task_id = ? AND status NOT IN (?, ?)",
+                (
+                    str(head_hash),
+                    self.clock.now_ms(),
+                    task_id,
+                    TaskStatus.COMPLETED.value,
+                    TaskStatus.COMPLETION_PENDING.value,
+                ),
             )
             return cursor.rowcount == 1
 

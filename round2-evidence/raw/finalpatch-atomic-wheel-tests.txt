@@ -1,0 +1,27 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.7, pytest-9.1.1, pluggy-1.6.0 -- <USER_HOME>\AppData\Local\Programs\Python\Python314\python.exe
+rootdir: D:\CTF-SOLVER
+configfile: pyproject.toml
+plugins: anyio-4.15.1, langsmith-0.12.4
+collecting ... collected 18 items
+
+tests/test_round2_evidence_head_immutability.py::test_ordinary_operations_do_not_overwrite_completed_anchor PASSED [  5%]
+tests/test_round2_evidence_head_immutability.py::test_conditional_refresh_never_writes_completed_task PASSED [ 11%]
+tests/test_round2_evidence_head_immutability.py::test_tampered_anchor_still_fails_after_operations PASSED [ 16%]
+tests/test_round2_evidence_head_immutability.py::test_completion_pending_anchor_survives_interleaved_refresh PASSED [ 22%]
+tests/test_round2_recovery_atomic.py::test_generic_recovery_task_failure_rolls_back_worker PASSED [ 27%]
+tests/test_round2_recovery_atomic.py::test_generic_recovery_worker_failure_rolls_back_task PASSED [ 33%]
+tests/test_round2_recovery_atomic.py::test_completion_pending_without_evidence_recovery_failure_keeps_slot PASSED [ 38%]
+tests/test_round2_recovery_atomic.py::test_recovery_failure_does_not_admit_fifo_task PASSED [ 44%]
+tests/test_round2_recovery_atomic.py::test_recovery_without_worker_interrupts_task_only PASSED [ 50%]
+tests/test_wheel_provenance.py::test_valid_sha256_record_passes PASSED   [ 55%]
+tests/test_wheel_provenance.py::test_wrong_digest_fails PASSED           [ 61%]
+tests/test_wheel_provenance.py::test_wrong_size_fails PASSED             [ 66%]
+tests/test_wheel_provenance.py::test_missing_record_member_fails PASSED  [ 72%]
+tests/test_wheel_provenance.py::test_extra_wheel_member_fails PASSED     [ 77%]
+tests/test_wheel_provenance.py::test_unsupported_or_malformed_hash_fails PASSED [ 83%]
+tests/test_wheel_provenance.py::test_record_self_entry_special_fields PASSED [ 88%]
+tests/test_wheel_provenance.py::test_tampered_wheel_content_is_detected PASSED [ 94%]
+tests/test_wheel_provenance.py::test_current_formal_wheel_all_members_validate PASSED [100%]
+
+============================= 18 passed in 1.00s ==============================

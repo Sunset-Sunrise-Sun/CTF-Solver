@@ -126,6 +126,48 @@
       },
       "derived_passed": 1023
     },
+    "round2-evidence/raw/junit-finalpatch-default.xml": {
+      "totals": {
+        "tests": 1037,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 4
+      },
+      "contains_raw_placeholder_markup": false,
+      "personal_home_remaining": false,
+      "log": "round2-evidence/raw/finalpatch-full-default.txt",
+      "log_summary": {
+        "passed": 1033,
+        "skipped": 4,
+        "failed": 0,
+        "errors": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "summary_line": "1033 passed, 4 skipped in 57.10s"
+      },
+      "derived_passed": 1033
+    },
+    "round2-evidence/raw/junit-finalpatch-with-real-acp.xml": {
+      "totals": {
+        "tests": 1037,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 3
+      },
+      "contains_raw_placeholder_markup": false,
+      "personal_home_remaining": false,
+      "log": "round2-evidence/raw/finalpatch-full-with-real-acp.txt",
+      "log_summary": {
+        "passed": 1034,
+        "skipped": 3,
+        "failed": 0,
+        "errors": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "summary_line": "1034 passed, 3 skipped in 59.12s"
+      },
+      "derived_passed": 1034
+    },
     "round2-evidence/raw/junit-followup-default.xml": {
       "totals": {
         "tests": 1019,

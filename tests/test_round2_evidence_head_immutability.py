@@ -7,6 +7,8 @@ Writeup and evidence-ZIP operations must not overwrite the historical
 
 from __future__ import annotations
 
+import threading
+
 import pytest
 
 from ctf_solver.core.errors import StateError, StorageError
@@ -98,6 +100,78 @@ def test_tampered_anchor_still_fails_after_operations(tmp_path) -> None:
         store.update_task_fields(task.task_id, evidence_head="d" * 64)
         with pytest.raises((StateError, StorageError)):
             _complete(service, task.task_id)
+    finally:
+        service.close()
+        store.close()
+
+
+def test_completion_pending_anchor_survives_interleaved_refresh(tmp_path) -> None:
+    service, store, evidence = _build_persistent(tmp_path)
+    try:
+        task_a = service.create_task(title="interleave-A", category="misc", conversation_id="c")
+        task_b = service.create_task(title="interleave-B", category="misc", conversation_id="c")
+        ready = threading.Event()
+        resume = threading.Event()
+        holder: dict[str, object] = {}
+        original_finalize = store.finalize_task_completion
+
+        def blocking_finalize(*args, **kwargs):
+            pending = store.require_task(task_a.task_id)
+            holder["status"] = pending.status.value
+            holder["anchor"] = pending.evidence_head
+            holder["events"] = service._completion_events(task_a.task_id)  # noqa: SLF001
+            ready.set()
+            if not resume.wait(30):
+                raise RuntimeError("interleaving test timed out")
+            return original_finalize(*args, **kwargs)
+
+        store.finalize_task_completion = blocking_finalize  # type: ignore[method-assign]
+        outcome: dict[str, object] = {}
+
+        def complete_thread() -> None:
+            outcome["value"] = _complete(service, task_a.task_id)
+
+        thread = threading.Thread(target=complete_thread)
+        thread.start()
+        try:
+            assert ready.wait(30), "completion did not reach the pending final transaction"
+            assert holder["status"] == "completion_pending"
+            anchor = str(holder["anchor"])
+            assert anchor
+            events = holder["events"]
+            assert isinstance(events, list) and len(events) == 1
+            assert events[0]["record_hash"] == anchor
+            # The global head advances while A is completion_pending.
+            evidence.append_event(
+                task_id=task_b.task_id,
+                source="test",
+                source_id="test:interleaved-global-head",
+                event_type="interleaved_probe",
+                payload={"probe": True},
+                timestamp=store.clock.now_ms(),
+            )
+            assert evidence.chain_head()[1] != anchor
+            # Ordinary operations must not overwrite the pending anchor.
+            service.get_task_status(task_a.task_id)
+            service.build_writeup(task_a.task_id)
+            service.export_evidence_zip(task_a.task_id)
+            assert store.require_task(task_a.task_id).evidence_head == anchor
+            assert store.update_evidence_head_if_not_completed(task_a.task_id, "e" * 64) is False
+            assert store.require_task(task_a.task_id).evidence_head == anchor
+        finally:
+            resume.set()
+            thread.join(30)
+        assert not thread.is_alive()
+        completed = outcome["value"]
+        assert completed["status"] == "completed"
+        assert store.require_task(task_a.task_id).status is TaskStatus.COMPLETED
+        assert store.require_task(task_a.task_id).evidence_head == anchor
+        completion_events = service._completion_events(task_a.task_id)  # noqa: SLF001
+        assert len(completion_events) == 1
+        assert completion_events[0]["record_hash"] == anchor
+        assert evidence.chain_status().ok is True
+        snapshot = _complete(service, task_a.task_id)
+        assert snapshot["already_completed"] is True
     finally:
         service.close()
         store.close()

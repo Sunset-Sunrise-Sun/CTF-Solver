@@ -4,22 +4,22 @@
 > authoritative store; this document is a deterministic derived view.
 > No tool output, screenshot or Flag in this document is fabricated; gaps are marked.
 
-- Task ID: `t-96cb751e79194ae3a257a59956b66e68`
+- Task ID: `t-1c6bbf462e334f7ab1a4ffa18a82c05d`
 - Category: `misc`
 - Status: `completed`
 - Result state: `solved_flag_candidate`
 - Source: synthetic-local
 - Scope profile: synthetic-local
-- Created: 2026-11-10T15:08:49.468Z
-- Started: 2026-11-10T15:08:49.917Z
-- Ended: 2026-11-10T15:08:51.374Z
-- Evidence chain head: `a22479ec42d4eab249448c54e83fddbd106f094bac70be7cb6768f3d75fd8f6f`
+- Created: 2026-11-10T15:45:28.365Z
+- Started: 2026-11-10T15:45:28.811Z
+- Ended: 2026-11-10T15:45:30.154Z
+- Evidence chain head: `bae013a92db9dff3868a822d6a276747363f8d18727b1ffde99d2b732efa2283`
 
 ## 1. Challenge metadata and supplied materials
 
 - Challenge title: Synthetic Round 2 end-to-end challenge
 - Challenge category: misc
-- Task workspace (runtime, outside Git): `D:\CTF-SOLVER\tasks\t-96cb751e79194ae3a257a59956b66e68\work`
+- Task workspace (runtime, outside Git): `D:\CTF-SOLVER\tasks\t-1c6bbf462e334f7ab1a4ffa18a82c05d\work`
 - Imported challenge materials (Manager-controlled intake, copied into the
   Task workspace; hashes are over the imported bytes):
 
@@ -51,11 +51,11 @@ Scope: analysis and permitted local operations only. Public research/documentati
 
 ## 4. Chronological steps
 
-### Step 1 — `ctf-exec` execution of `internal.file_hash` at 2026-11-10T15:08:50.100Z
+### Step 1 — `ctf-exec` execution of `internal.file_hash` at 2026-11-10T15:45:28.958Z
 
 - Reason/hypothesis: not separately recorded in the execution contract; the
   request is the Worker's proposed action (step `e2e-hash`).
-- Working directory: `D:\CTF-SOLVER\tasks\t-96cb751e79194ae3a257a59956b66e68\work`
+- Working directory: `D:\CTF-SOLVER\tasks\t-1c6bbf462e334f7ab1a4ffa18a82c05d\work`
 - Actual argv:
 
 ````json
@@ -76,11 +76,11 @@ Scope: analysis and permitted local operations only. Public research/documentati
 - stderr_sha256: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
 - Screenshot: _not captured for this step_ (no explicit capture was requested, or capture failed; see section 7).
 
-### Step 2 — `ctf-exec` execution of `internal.text_search` at 2026-11-10T15:08:50.132Z
+### Step 2 — `ctf-exec` execution of `internal.text_search` at 2026-11-10T15:45:28.966Z
 
 - Reason/hypothesis: not separately recorded in the execution contract; the
   request is the Worker's proposed action (step `e2e-search`).
-- Working directory: `D:\CTF-SOLVER\tasks\t-96cb751e79194ae3a257a59956b66e68\work`
+- Working directory: `D:\CTF-SOLVER\tasks\t-1c6bbf462e334f7ab1a4ffa18a82c05d\work`
 - Actual argv:
 
 ````json
@@ -99,9 +99,9 @@ Scope: analysis and permitted local operations only. Public research/documentati
 
 - stdout_sha256: `1eb49a9d026d2debaa86be8553d1199da0e6540085dbbc855e7c5b1edd457467`
 - stderr_sha256: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
-- Screenshot: `screenshots/shot-edc90994182e44c59bd1da609e533303.png` (sha256 `7140f80e5fa6ba26a0862cbb1fd97becd9cfe037ed801fc002becccb420b5cce`, 1104x689, captured 2026-11-10T15:08:50.430Z)
+- Screenshot: `screenshots/shot-70edc48f56d44650a51a3d592f472e9d.png` (sha256 `d6803009a0751bfc97fcfd81284e98ecae39704fd1b8624061a351c71f030043`, 1104x689, captured 2026-11-10T15:45:29.248Z)
 
-Task workspace: `D:\CTF-SOLVER\tasks\t-96cb751e79194ae3a257a59956b66e68\work`
+Task workspace: `D:\CTF-SOLVER\tasks\t-1c6bbf462e334f7ab1a4ffa18a82c05d\work`
 
 ## 5. Failed attempts and meaningful negative results
 
@@ -132,14 +132,14 @@ No unresolved, blocked or failed steps were recorded.
   - `sha256:2ca3233411e0f523f36eb477846967cfefcd6c038771c4ded2c1077c093e5a06`
   - `sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
 - Last evidence record hashes:
-  - seq 26 `execution_started` record `ev-a53697bb2992ac9ed6ef52d4`
-  - seq 27 `execution_completed` record `ev-acf5262b040435e496e22480`
-  - seq 28 `screenshot_captured` record `ev-bc927a9055964fae74f7d601`
-  - seq 29 `flag_candidate` record `ev-9918c9681f8f8606d307845e`
-  - seq 30 `passthrough` record `ev-b02fa91862bbcc2d6bd734f3`
-  - seq 31 `passthrough` record `ev-c75494d1e70a3fdf21b14899`
-  - seq 32 `passthrough` record `ev-9b2f584d7ed925b3691fd66e`
-  - seq 33 `passthrough` record `ev-01dfb1b1cd0d308edf813aa1`
-  - seq 34 `evidence_ingested` record `ev-d6972853bf00a47636b48db4`
-  - seq 35 `task_completed` record `ev-7aae003ebf7bf61ef9729566`
+  - seq 26 `execution_started` record `ev-88b0dcd0eb0837408082235b`
+  - seq 27 `execution_completed` record `ev-a40695f6caf04b7cedfeb85b`
+  - seq 28 `screenshot_captured` record `ev-ac1c24569ad9d26153afb545`
+  - seq 29 `flag_candidate` record `ev-e6eaf328837f18f45177c7e8`
+  - seq 30 `passthrough` record `ev-923f743f8f118c7c673d75cb`
+  - seq 31 `passthrough` record `ev-388447113d393aecd930456b`
+  - seq 32 `passthrough` record `ev-5b46e00ad5b52fe48b58655b`
+  - seq 33 `passthrough` record `ev-196d69508dbdee4f94cbc2a4`
+  - seq 34 `evidence_ingested` record `ev-dcfac1d4ef42f59022106758`
+  - seq 35 `task_completed` record `ev-974aa6b594f44a5e35f7c4ff`
 - Integrity: the ZIP manifest (`manifest.sha256`) lists every included file; the SQLite hash chain is tamper-evident relative to its protected chain head but is not a digital signature.

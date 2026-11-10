@@ -64,6 +64,7 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 - docs/ROUND_2_INTEGRATION_TASK.md — second-round Harness integration and end-to-end closure.
 - docs/INTERFACES.md — frozen Round 1 module contracts (implementation boundary record).
 - docs/ROUND_1_ARCHITECTURE_NOTES.md — what Round 1 proves and the remaining Harness integration limits.
+- docs/ROUND_1_ACCEPTANCE_REPORT.md — Round 1 PASS/FAIL/BLOCKED/NOT VERIFIED acceptance report.
 - docs/LOCAL_OPERATION.md — no-install local operation, preflight, testing and data layout.
 - docs/REFERENCE_PROJECTS.md — external projects and what to learn from them.
 - docs/HARNESS_INTEGRATION_AUDIT_SUMMARY.md — summary of the latest local capability audit.

@@ -129,3 +129,9 @@ Both rounds use synthetic challenge data only. No real CTF target access, Flag s
 **Status:** Accepted execution constraint
 
 The two-round development approval does not itself authorize ACP `session/prompt` calls or model usage. Round 1 uses fake servers and zero-model-call ACP lifecycle tests. Round 2 may test model-mediated Worker tool use only after the session-log privacy gate is proven and the owner separately authorizes a synthetic-only model-call test. Without that authorization, mark the model-mediated gate BLOCKED.
+
+
+### ADR-021 — Fully independent clean-room implementation
+**Status:** Accepted
+
+CTF-Solver is a fully independent implementation. Do not reuse or import code, database schemas/migrations, APIs, UI, services, or runtime components from the old CTF Workbench, `D:\CTF`, or `D:\CTFworker`. External GitHub repositories may be used as technical/design references; source-code copying requires a separate license/provenance review and explicit owner approval.

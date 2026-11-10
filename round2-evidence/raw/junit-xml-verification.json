@@ -147,6 +147,48 @@
       },
       "derived_passed": 1016
     },
+    "round2-evidence/raw/junit-followup2-default.xml": {
+      "totals": {
+        "tests": 1027,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 4
+      },
+      "contains_raw_placeholder_markup": false,
+      "personal_home_remaining": false,
+      "log": "round2-evidence/raw/hardening-followup2-full-default.txt",
+      "log_summary": {
+        "passed": 1023,
+        "skipped": 4,
+        "failed": 0,
+        "errors": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "summary_line": "1023 passed, 4 skipped in 60.98s (0:01:00)"
+      },
+      "derived_passed": 1023
+    },
+    "round2-evidence/raw/junit-followup2-with-real-acp.xml": {
+      "totals": {
+        "tests": 1027,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 3
+      },
+      "contains_raw_placeholder_markup": false,
+      "personal_home_remaining": false,
+      "log": "round2-evidence/raw/hardening-followup2-full-with-real-acp.txt",
+      "log_summary": {
+        "passed": 1024,
+        "skipped": 3,
+        "failed": 0,
+        "errors": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "summary_line": "1024 passed, 3 skipped in 61.75s (0:01:01)"
+      },
+      "derived_passed": 1024
+    },
     "round2-evidence/raw/junit-hardening-default.xml": {
       "totals": {
         "tests": 1008,

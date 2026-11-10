@@ -9,6 +9,8 @@ round2-evidence/raw/hardening-final-clone-junit.xml {'tests': 1008, 'failures': 
 round2-evidence/raw/hardening-followup-clean-clone-junit.xml {'tests': 1019, 'failures': 0, 'errors': 0, 'skipped': 4} log= round2-evidence/raw/hardening-followup-clean-clone-tests.txt
 round2-evidence/raw/junit-followup-default.xml {'tests': 1019, 'failures': 0, 'errors': 0, 'skipped': 4} log= round2-evidence/raw/hardening-followup-full-default.txt
 round2-evidence/raw/junit-followup-with-real-acp.xml {'tests': 1019, 'failures': 0, 'errors': 0, 'skipped': 3} log= round2-evidence/raw/hardening-followup-full-with-real-acp.txt
+round2-evidence/raw/junit-followup2-default.xml {'tests': 1027, 'failures': 0, 'errors': 0, 'skipped': 4} log= round2-evidence/raw/hardening-followup2-full-default.txt
+round2-evidence/raw/junit-followup2-with-real-acp.xml {'tests': 1027, 'failures': 0, 'errors': 0, 'skipped': 3} log= round2-evidence/raw/hardening-followup2-full-with-real-acp.txt
 round2-evidence/raw/junit-hardening-default.xml {'tests': 1008, 'failures': 0, 'errors': 0, 'skipped': 4} log= round2-evidence/raw/hardening-full-default.txt
 round2-evidence/raw/junit-hardening-with-real-acp.xml {'tests': 1008, 'failures': 0, 'errors': 0, 'skipped': 3} log= round2-evidence/raw/hardening-full-with-real-acp.txt
 round2-evidence/raw/junit-remediation-default.xml {'tests': 982, 'failures': 0, 'errors': 0, 'skipped': 4} log= round2-evidence/raw/remediation-full-default.txt

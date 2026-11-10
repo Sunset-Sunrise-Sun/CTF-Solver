@@ -1,0 +1,35 @@
+{
+  "wheel": {
+    "filename": "ctf_solver-0.1.0-py3-none-any.whl",
+    "path": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-followup2-wheel-1ef10b7344fc407d82dae6fa8bd90c80\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
+    "size": 223327,
+    "sha256": "b8e4d112a351a633e87c1db4c0101422ea34a6b35721d730b7dadc1d7b72bb21"
+  },
+  "build": {
+    "repo": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-followup2-wheel-1ef10b7344fc407d82dae6fa8bd90c80",
+    "head": "fe48330ce8170466ff455282b8f95a65193b6240",
+    "expected_commit": "fe48330ce8170466ff455282b8f95a65193b6240",
+    "branch": "fix/final-acceptance-followup-2",
+    "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+    "build_command": "python scripts/build_wheel.py",
+    "clean_checkout": true
+  },
+  "source": {
+    "tracked_python_sources": 60,
+    "wheel_python_sources": 60,
+    "sources_byte_identical": true
+  },
+  "record": {
+    "ok": true
+  },
+  "imports": {
+    "ok": true
+  },
+  "version": {
+    "ok": true,
+    "stdout": "ctf-solver 0.1.0"
+  },
+  "commit_reachable_from_final_bundle": null,
+  "problems": [],
+  "ok": true
+}

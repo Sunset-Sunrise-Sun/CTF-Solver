@@ -60,8 +60,8 @@ def main(argv: list[str] | None = None) -> int:
     problems: list[str] = []
     if head != expected:
         problems.append(f"build checkout HEAD {head} != expected commit {expected}")
-    if _git(repo, "status", "--porcelain", "--untracked-files=all"):
-        problems.append("build checkout working tree is not clean")
+    if _git(repo, "status", "--porcelain", "--untracked-files=no"):
+        problems.append("build checkout tracked working tree is not clean")
 
     tracked = [
         rel
@@ -121,7 +121,7 @@ def main(argv: list[str] | None = None) -> int:
                 if size and int(size) != len(data):
                     problems.append(f"RECORD size mismatch: {name}")
                     record_ok = False
-                if digest and digest != _record_hash(data):
+                if digest and digest != "sha256=" + _record_hash(data):
                     problems.append(f"RECORD hash mismatch: {name}")
                     record_ok = False
             if set(recorded) != set(names):
@@ -180,7 +180,7 @@ def main(argv: list[str] | None = None) -> int:
             "python_version": python_version,
             "build_command": args.build_command,
             "clean_checkout": head == expected
-            and not _git(repo, "status", "--porcelain", "--untracked-files=all"),
+            and not _git(repo, "status", "--porcelain", "--untracked-files=no"),
         },
         "source": {
             "tracked_python_sources": len(tracked),

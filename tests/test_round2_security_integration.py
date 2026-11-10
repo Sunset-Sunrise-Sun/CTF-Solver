@@ -243,6 +243,12 @@ def test_default_acp_launch_command_includes_profile(monkeypatch, tmp_path) -> N
     assert command, "AcpClient diagnostics must expose its launch argv for verification"
     assert "--profile" in command and "acp" in command
     assert command.index("--profile") < command.index("acp")
+    # Round 2 P0-3: the default Manager launch must compose the absolute project
+    # privacy patch, not just the profile.
+    assert "--patch" in command
+    patch_path = Path(command[command.index("--patch") + 1])
+    assert patch_path.is_absolute()
+    assert patch_path.is_file()
     # A .cmd launcher is wrapped in the COMSPEC, never executed as a shell string.
     assert Path(command[0]).name.lower() in {"cmd.exe", "cmd"}
 

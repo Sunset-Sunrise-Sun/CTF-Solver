@@ -224,6 +224,8 @@ def request_remote_approval(
     path: str = "/api/challenge",
     profile: str = SYNTHETIC_PROFILE,
     ttl_s: int | None = 600,
+    grant_ttl_s: int = 3600,
+    max_calls: int = 10,
 ):
     return environment.service.request_approval(
         task_id or environment.task.task_id,
@@ -234,9 +236,11 @@ def request_remote_approval(
                 "port": port,
                 "protocol": protocol,
                 "method": method,
-                "path": path,
+                "path_prefix": path,
             },
             "profile": profile,
+            "grant_ttl_s": grant_ttl_s,
+            "max_calls": max_calls,
         },
         ttl_s=ttl_s,
     )

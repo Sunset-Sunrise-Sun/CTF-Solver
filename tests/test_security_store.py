@@ -50,7 +50,7 @@ def _grant_record(env, decided, *, grant_id: str, task_id: str | None = None) ->
         port=target["port"],
         protocol=target["protocol"],
         method=target["method"],
-        path_prefix=target["path"],
+        path_prefix=target["path_prefix"],
         expires_at=now + 60_000,
         max_calls=2,
         approver=decided.confirmation_os_user,
@@ -390,9 +390,11 @@ def test_service_emits_frozen_events_into_real_evidence_store(tmp_path) -> None:
                     "port": PORT,
                     "protocol": "https",
                     "method": "POST",
-                    "path": PATH,
+                    "path_prefix": PATH,
                 },
                 "profile": SYNTHETIC_PROFILE,
+                "grant_ttl_s": 60,
+                "max_calls": 2,
             },
             ttl_s=600,
         )
@@ -405,7 +407,7 @@ def test_service_emits_frozen_events_into_real_evidence_store(tmp_path) -> None:
             port=decided.payload["target"]["port"],
             protocol=decided.payload["target"]["protocol"],
             method=decided.payload["target"]["method"],
-            path_prefix=decided.payload["target"]["path"],
+            path_prefix=decided.payload["target"]["path_prefix"],
         )
         service.revoke_grant(grant.grant_id)
 

@@ -134,37 +134,99 @@ def direct_exec(client, task, worker, step_id: str, tool: str, argv: list[str], 
     return payload
 
 
-def write_privacy_mechanism_evidence() -> dict:
-    """Isolated DSH_HOME mechanism check (configuration only, no model call)."""
+def _process_ancestor_pids(pid: int) -> set[int]:
+    """Return the process ancestor chain (best effort, read-only)."""
 
-    temp_home = Path(os.environ.get("TEMP", ".")) / f"ctf-solver-r2-privacy-{int(time.time())}"
-    temp_home.mkdir(parents=True, exist_ok=True)
+    script = (
+        "Get-CimInstance Win32_Process | "
+        "Select-Object ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+    )
+    try:
+        completed = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=60,
+        )
+    except Exception:  # noqa: BLE001
+        return set()
+    try:
+        rows = json.loads(completed.stdout or "[]")
+    except ValueError:
+        return set()
+    if isinstance(rows, dict):
+        rows = [rows]
+    parents = {int(row["ProcessId"]): int(row["ParentProcessId"]) for row in rows}
+    chain: set[int] = set()
+    current = int(pid)
+    for _ in range(16):
+        parent = parents.get(current)
+        if parent is None or parent in chain:
+            break
+        chain.add(parent)
+        current = parent
+    return chain
+
+
+def write_privacy_mechanism_evidence(acp_command: list[str], dsh_home: str) -> dict:
+    """Verify the *actual* Manager ACP argv and its effective isolated config.
+
+    Evidence A: the command reported by the live Manager ACP client contains
+    ``--profile acp --patch <absolute project patch>``.
+    Evidence B: running that same launcher argv (plus ``--dump-config``) in the
+    same isolated DSH_HOME composes a profile where the delivery plugin is
+    disabled. This is configuration proof, NOT the external-delivery canary
+    (which remains BLOCKED without a model request).
+    """
+
+    from ctf_solver.core.config import SolverConfig
+
+    config = SolverConfig(root=REPO, extra={"dsh_home": dsh_home})
+    patch_path = config.privacy_patch_path
+    command = list(acp_command)
+    evidence_a = {
+        "manager_argv": command,
+        "profile_args_present": "--profile" in command and "acp" in command,
+        "patch_arg_present": "--patch" in command,
+        "patch_path": command[command.index("--patch") + 1] if "--patch" in command else None,
+        "patch_is_absolute": bool(
+            "--patch" in command and Path(command[command.index("--patch") + 1]).is_absolute()
+        ),
+        "patch_is_project_file": bool(
+            "--patch" in command
+            and Path(command[command.index("--patch") + 1]).resolve() == patch_path.resolve()
+        ),
+    }
     dump = RAW / "round2-privacy-gate-dump-config.txt"
     err = RAW / "round2-privacy-gate-stderr.txt"
     env = dict(os.environ)
-    env["DSH_HOME"] = str(temp_home)
-    launcher = REPO / ".ctf-solver-data" / "nonexistent"  # placeholder, resolved below
-    from ctf_solver.core.config import discover_acp_command
-
-    found = discover_acp_command()
-    if not found:
-        return {"status": "launcher_missing"}
-    command = found + ["--profile", "acp", "--patch", str(REPO / "config" / "acp" / "cordis.patch.yml"), "--dump-config"]
-    if str(command[0]).lower().endswith((".cmd", ".bat")):
-        command = [os.environ.get("COMSPEC", "cmd.exe"), "/c", *command]
+    env["DSH_HOME"] = str(dsh_home)
     completed = subprocess.run(
-        command, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120
+        [*command, "--dump-config"],
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=120,
     )
     dump.write_text(completed.stdout, encoding="utf-8")
     err.write_text(completed.stderr, encoding="utf-8")
     composed = "- id: session-log-deepseek" in completed.stdout and "enabled: false" in completed.stdout
-    files = [str(p.relative_to(temp_home)) for p in temp_home.rglob("*") if p.is_file()]
     result = {
-        "exit_code": completed.returncode,
-        "composed_config_disables_delivery": composed,
-        "isolated_home": str(temp_home),
-        "isolated_home_files": files[:20],
+        "evidence_a_manager_argv": evidence_a,
+        "evidence_b": {
+            "exit_code": completed.returncode,
+            "composed_config_disables_delivery": composed,
+            "dump_config_stdout_sha256": __import__("hashlib").sha256(
+                completed.stdout.encode("utf-8")
+            ).hexdigest(),
+        },
+        "isolated_home": str(dsh_home),
         "negative_outbound_canary": "BLOCKED: requires a model request; no model call is authorized",
+        "can_be_called_delivery_verified": False,
     }
     (RAW / "round2-privacy-gate-result.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -217,7 +279,16 @@ def main(argv: list[str]) -> int:
         service.capturer = WindowCapturer(target_pid=probe_pid)
         status = service.start()
         check("real ACP client ready", status["acp"]["ready"] is True, json.dumps(status["acp"]["diagnostics"])[:300])
-        check("ACP launch uses --profile acp", "--profile" in status["acp"]["diagnostics"].get("command", []), str(status["acp"]["diagnostics"].get("command")))
+        acp_command = list(status["acp"]["diagnostics"].get("command") or [])
+        check("ACP launch uses --profile acp", "--profile" in acp_command and "acp" in acp_command, str(acp_command))
+        check(
+            "Manager ACP argv composes abs project privacy patch",
+            "--patch" in acp_command
+            and Path(acp_command[acp_command.index("--patch") + 1]).is_absolute()
+            and Path(acp_command[acp_command.index("--patch") + 1]).resolve()
+            == config.privacy_patch_path.resolve(),
+            str(acp_command),
+        )
         summary["steps"]["start"] = status
 
         # --- real sessions + FIFO -------------------------------------------------
@@ -240,17 +311,32 @@ def main(argv: list[str]) -> int:
             path = handshake_dir / f"{task.task_id}.json"
             handshakes[task.task_id] = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
         check(
-            "real ACP mounts per-session ctf-exec MCP server",
-            all(handshakes[task.task_id] for task in (t1, t2)),
-            json.dumps({k: bool(v) for k, v in handshakes.items()}),
+            "real ACP-spawned MCP child completed initialize + tools/list",
+            all(
+                handshakes[task.task_id]
+                and handshakes[task.task_id].get("initialize_received") is True
+                and handshakes[task.task_id].get("tools_list_received") is True
+                and handshakes[task.task_id].get("tool_names") == ["ctf_exec"]
+                for task in (t1, t2)
+            ),
+            json.dumps({k: v for k, v in handshakes.items() if v}, ensure_ascii=False)[:600],
         )
         worker1 = service.store.get_worker_for_task(t1.task_id)
         worker2 = service.store.get_worker_for_task(t2.task_id)
-        if handshakes.get(t1.task_id) and worker1:
-            import hashlib
+        import hashlib
 
-            expected = hashlib.sha256(worker1.worker_token.encode("utf-8")).hexdigest()
-            check("MCP handshake identity matches Worker token", handshakes[t1.task_id]["worker_token_sha256"] == expected)
+        expected = hashlib.sha256(worker1.worker_token.encode("utf-8")).hexdigest()
+        check("MCP handshake identity matches Worker token", handshakes[t1.task_id]["worker_token_sha256"] == expected)
+        check("MCP handshake records owning Task id", handshakes[t1.task_id].get("task_id") == t1.task_id)
+        check("MCP handshake protocol version recorded", bool(handshakes[t1.task_id].get("protocol_version")))
+        acp_pid = int(status["acp"]["diagnostics"].get("pid") or 0)
+        handshake_pid = int(handshakes[t1.task_id]["pid"])
+        ancestors = _process_ancestor_pids(handshake_pid)
+        check(
+            "handshake PID descends from the ACP server process",
+            acp_pid > 0 and (acp_pid == handshake_pid or acp_pid in ancestors),
+            json.dumps({"handshake_pid": handshake_pid, "acp_pid": acp_pid, "ancestors": sorted(ancestors)[:10]}),
+        )
 
         # --- direct MCP tools/call (same interface a model Worker uses) ----------
         synthetic = Path(t1.workspace_path) / "synthetic.txt"
@@ -328,7 +414,7 @@ def main(argv: list[str]) -> int:
         # free a slot for the synthetic end-to-end task
         service.cancel_task(t1.task_id, reason="round2 evidence complete for task A")
 
-        # --- synthetic end-to-end challenge --------------------------------------
+        # --- synthetic end-to-end challenge (normal completion lifecycle) --------
         intake_file = INTAKE / "round2_synthetic_challenge.txt"
         intake_file.write_text(
             "CTF-SOLVER ROUND 2 SYNTHETIC CHALLENGE\n"
@@ -351,6 +437,7 @@ def main(argv: list[str]) -> int:
         e2e_worker = service.store.get_worker_for_task(e2e.task_id)
         exec_client2 = start_exec_mcp_client(service.ipc_url, e2e_worker.worker_token)
         exec_clients.append(exec_client2)
+        independent_mcp_pid = exec_client2.pid
         e2e_input = Path(e2e.workspace_path) / "inputs" / "round2_synthetic_challenge.txt"
         check("imported challenge file exists in isolated Task workspace", e2e_input.is_file())
         hash_result = direct_exec(exec_client2, e2e, e2e_worker, "e2e-hash", "internal.file_hash", ["inputs/round2_synthetic_challenge.txt"])
@@ -362,17 +449,83 @@ def main(argv: list[str]) -> int:
         check("typed tools produced real evidence", hash_result["status"] == "completed" and "flag{" in preview, preview[:160])
         candidate = "flag{synthetic_round2_e2e}"
         check("candidate flag recovered from real tool output", candidate in preview)
+        handshake_e2e_path = handshake_dir / f"{e2e.task_id}.json"
+        deadline = time.time() + 30
+        while time.time() < deadline and not handshake_e2e_path.is_file():
+            time.sleep(0.3)
+        handshake_e2e = (
+            json.loads(handshake_e2e_path.read_text(encoding="utf-8"))
+            if handshake_e2e_path.is_file()
+            else {}
+        )
+        check(
+            "E2E ACP-spawned MCP child initialized and listed tools",
+            handshake_e2e.get("initialize_received") is True
+            and handshake_e2e.get("tools_list_received") is True
+            and handshake_e2e.get("tool_names") == ["ctf_exec"],
+            json.dumps(handshake_e2e, ensure_ascii=False)[:400],
+        )
+        check(
+            "E2E independent MCP tools/call process differs from ACP-spawned child",
+            bool(independent_mcp_pid) and independent_mcp_pid != handshake_e2e.get("pid"),
+            json.dumps({"independent_mcp_pid": independent_mcp_pid, "acp_child_pid": handshake_e2e.get("pid")}),
+        )
+        NOTES.append(
+            "tools/call for the synthetic E2E was executed by an independent MCP stdio "
+            "process (ctf-exec identity from the real Worker token), while initialize/"
+            "tools-list evidence comes from the actual ACP-spawned child. Under the "
+            "zero-model-call gate, same-child tools/call is NOT VERIFIED."
+        )
         banner = run_window_probe("Round 2 E2E | " + candidate)
         try:
             service.capturer.set_target_pid(banner.pid)
             e2e_shot = service.take_screenshot(e2e.task_id, step_id="e2e-search", scope="window")
             check("E2E screenshot of synthetic program window", e2e_shot.status.value == "ok" and bool(e2e_shot.sha256), f"{e2e_shot.status.value} {e2e_shot.width}x{e2e_shot.height}")
             service.record_candidate_flag(e2e.task_id, flag=candidate, source="internal.text_search output")
-            service.ingest_session_log(e2e.task_id)
+            ingest_e2e = service.ingest_session_log(e2e.task_id)
+            check("E2E real session log ingested before completion", int(ingest_e2e.get("frames", 0)) >= 1, json.dumps(ingest_e2e)[:300])
+            completion = service.complete_task(
+                e2e.task_id, result_state="solved_flag_candidate", note="synthetic E2E completed"
+            )
+            check(
+                "E2E Task reaches completed terminal state",
+                completion["status"] == "completed"
+                and completion["session_closed"] is True
+                and completion["slot_released"] is True
+                and completion["result_state"] == "solved_flag_candidate",
+                json.dumps(completion)[:400],
+            )
+            completed_task = service.get_task(e2e.task_id)
+            check(
+                "E2E completed Task has real ended_at and concrete result_state",
+                completed_task.status.value == "completed"
+                and bool(completed_task.ended_at)
+                and completed_task.result_state == "solved_flag_candidate",
+                json.dumps({"status": completed_task.status.value, "ended_at": completed_task.ended_at, "result_state": completed_task.result_state}),
+            )
             e2e_writeup = service.build_writeup(e2e.task_id)
             e2e_zip = service.export_evidence_zip(e2e.task_id)
+            writeup_text = Path(e2e_writeup.path).read_text(encoding="utf-8")
+            check(
+                "E2E Writeup shows completed status and concrete result_state",
+                "- Status: `completed`" in writeup_text
+                and "- Result state: `solved_flag_candidate`" in writeup_text
+                and "Result state: `unknown`" not in writeup_text
+                and "Status: `running`" not in writeup_text,
+                writeup_text[:400],
+            )
             verify_e2e = EvidenceBundleBuilder.verify_zip(e2e_zip.path, RUNTIME / "r2-e2e-zip-verify")
             check("E2E evidence ZIP verifies", verify_e2e["ok"], json.dumps(verify_e2e["problems"])[:300])
+            import zipfile
+
+            with zipfile.ZipFile(e2e_zip.path) as archive:
+                names = archive.namelist()
+            check(
+                "E2E ZIP contains final Writeup + manifest",
+                any(name.endswith("writeup.md") for name in names)
+                and any("manifest" in name.lower() for name in names),
+                json.dumps(names)[:400],
+            )
             # copy deliverables into the committed evidence directory
             shutil.copy2(e2e_writeup.path, END_TO_END / "writeup.md")
             shutil.copy2(e2e_zip.path, END_TO_END / "evidence.zip")
@@ -385,11 +538,21 @@ def main(argv: list[str]) -> int:
                     NOTES.append(f"could not export screenshot bytes: {exc}")
             summary["e2e"] = {
                 "task_id": e2e.task_id,
+                "final_status": completed_task.status.value,
+                "result_state": completed_task.result_state,
+                "ended_at": completed_task.ended_at,
                 "writeup": str(END_TO_END / "writeup.md"),
                 "zip": str(END_TO_END / "evidence.zip"),
                 "candidate_flag": candidate,
                 "screenshot_sha256": e2e_shot.sha256,
-                "note": "Worker tool calls were simulated through the same typed MCP ctf_exec interface; no model call.",
+                "acp_child_pid": handshake_e2e.get("pid"),
+                "independent_mcp_pid": independent_mcp_pid,
+                "note": (
+                    "Worker tool calls were executed through the typed MCP ctf_exec "
+                    "interface by an independent MCP process; no model call. ACP-spawned "
+                    "child initialize/tools-list is separately verified; same-child "
+                    "tools/call is NOT VERIFIED under the zero-model-call gate."
+                ),
             }
         finally:
             banner.terminate()
@@ -401,8 +564,11 @@ def main(argv: list[str]) -> int:
             banner.stderr.close() if banner.stderr else None
 
         # --- restart recovery without duplicate sessions --------------------------
-        active_before = [t for t in (promoted, e2e) if service.get_task(t.task_id).status.value == "running"]
+        # Normal E2E completion already happened above; only the still-running FIFO
+        # task may be marked interrupted by the restart.
+        active_before = [t for t in (promoted,) if service.get_task(t.task_id).status.value == "running"]
         session_ids_before = {t.task_id: service.get_task(t.task_id).acp_session_id for t in active_before}
+        completed_before_restart = service.get_task(e2e.task_id).status.value
         service.shutdown()
         service = None
         service2 = build_manager_service(config)
@@ -421,10 +587,30 @@ def main(argv: list[str]) -> int:
                 duplicate_created = True
         check("restart recovery creates no duplicate sessions", not duplicate_created)
         check("interrupted tasks are not reported complete", all(service2.get_task(t.task_id).status.value != "completed" for t in active_before))
+        check(
+            "restart keeps completed E2E Task completed (not interrupted)",
+            completed_before_restart == "completed"
+            and service2.get_task(e2e.task_id).status.value == "completed",
+            json.dumps({"before": completed_before_restart, "after": service2.get_task(e2e.task_id).status.value}),
+        )
 
-        # privacy mechanism evidence (configuration only; canary BLOCKED)
-        privacy = write_privacy_mechanism_evidence()
-        check("isolated-profile privacy mechanism verified (config only)", privacy.get("exit_code") == 0 and privacy.get("composed_config_disables_delivery") is True, json.dumps(privacy)[:300])
+        # privacy mechanism evidence (actual Manager argv + isolated effective config;
+        # the external-delivery canary remains BLOCKED without a model request)
+        privacy = write_privacy_mechanism_evidence(acp_command, config.extra["dsh_home"])
+        check(
+            "Manager ACP argv evidence A: --profile acp --patch <abs project patch>",
+            privacy["evidence_a_manager_argv"]["profile_args_present"]
+            and privacy["evidence_a_manager_argv"]["patch_arg_present"]
+            and privacy["evidence_a_manager_argv"]["patch_is_absolute"]
+            and privacy["evidence_a_manager_argv"]["patch_is_project_file"],
+            json.dumps(privacy["evidence_a_manager_argv"])[:400],
+        )
+        check(
+            "isolated effective config evidence B disables session-log delivery",
+            privacy["evidence_b"]["exit_code"] == 0
+            and privacy["evidence_b"]["composed_config_disables_delivery"] is True,
+            json.dumps(privacy["evidence_b"]),
+        )
         NOTES.append(privacy["negative_outbound_canary"])
 
         summary["steps"]["fifo"] = {
@@ -434,6 +620,19 @@ def main(argv: list[str]) -> int:
         summary["steps"]["session_logs"] = {"count": len(log_files), "root": str(worker_dir_hint)}
         summary["steps"]["privacy_gate"] = privacy
         summary["steps"]["restart_recovery"] = recovered
+        summary["steps"]["acp_child_mcp_mount"] = {
+            key: {k: value for k, value in handshake.items() if k != "worker_token_sha256"}
+            for key, handshake in handshakes.items()
+            if handshake
+        }
+        summary["steps"]["completion"] = {
+            "e2e_status": service2.get_task(e2e.task_id).status.value,
+            "result_state": service2.get_task(e2e.task_id).result_state,
+            "ended_at": service2.get_task(e2e.task_id).ended_at,
+            "independent_mcp_tools_call": independent_mcp_pid,
+            "acp_spawned_child_pid": handshake_e2e.get("pid"),
+            "same_child_tools_call": "NOT VERIFIED (zero-model-call gate)",
+        }
         summary["passed"] = [item["name"] for item in PASS]
         summary["failed"] = FAIL
         summary["notes"] = NOTES

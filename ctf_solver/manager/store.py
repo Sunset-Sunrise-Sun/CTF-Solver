@@ -827,6 +827,27 @@ class ManagerStore:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def count_unfinished_executions(self, task_id: str) -> int:
+        """Count executions that have not settled (still running/unknown)."""
+
+        terminal = ("completed", "failed", "timed_out", "denied", "blocked")
+        placeholders = ",".join("?" for _ in terminal)
+        with self._lock:
+            row = self.conn.execute(
+                f"SELECT COUNT(*) AS n FROM executions"
+                f" WHERE task_id = ? AND status NOT IN ({placeholders})",
+                (task_id, *terminal),
+            ).fetchone()
+        return int(row["n"])
+
+    def count_pending_approvals(self, task_id: str) -> int:
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT COUNT(*) AS n FROM approvals WHERE task_id = ? AND status = 'pending'",
+                (task_id,),
+            ).fetchone()
+        return int(row["n"])
+
     def record_screenshot(self, record: ScreenshotRecord) -> None:
         with self._tx():
             self.conn.execute(

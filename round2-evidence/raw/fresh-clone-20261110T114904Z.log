@@ -1,0 +1,131 @@
+===== git clone =====
+git clone --no-hardlinks --branch feat/round2-harness-integration D:\CTF-SOLVER C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone
+Cloning into 'C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone'...
+done.
+
+===== clone pytest =====
+C:\Users\28746\AppData\Local\Programs\Python\Python314\python.exe -m pytest tests -q -p no:cacheprovider (cwd=C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone)
+exit=1
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 32%]
+........................................................................ [ 43%]
+........................................................................ [ 54%]
+........................................................................ [ 65%]
+..............s......................................................... [ 76%]
+..................................................FFFFFF................ [ 87%]
+....................................................XXX................. [ 98%]
+..........                                                               [100%]
+================================== FAILURES ===================================
+_______ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-solver] ________
+
+name = 'ctf-solver'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x0000029CCF2EF690>('---\n')
+E        +    where <built-in method startswith of str object at 0x0000029CCF2EF690> = '---\r\nname: ctf-solver\r\ndescription: Use when the user explicitly invokes /ctf-solver to start or continue a CTF c...  the host.\r\n- Treat `D:\\CTFworker` imported files and the local audit report as read-only protected\r\n  data.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+_________ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-web] _________
+
+name = 'ctf-web'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x0000029CD2CC0AC0>('---\n')
+E        +    where <built-in method startswith of str object at 0x0000029CD2CC0AC0> = '---\r\nname: ctf-web\r\ndescription: Web challenge reasoning for CTF-Solver; source/configuration and protocol analys...he recorded\r\n  request/response evidence.\r\n- A candidate Flag is recorded as `candidate`; the user submits it.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+________ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-misc] _________
+
+name = 'ctf-misc'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x0000029CD2C90580>('---\n')
+E        +    where <built-in method startswith of str object at 0x0000029CD2C90580> = '---\r\nname: ctf-misc\r\ndescription: Misc challenge reasoning for CTF-Solver; file/archive metadata and format inspe...).\r\n- Do not fabricate an extracted flag; candidate Flag state is `candidate` and only the\r\n  user submits it.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+_______ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-crypto] ________
+
+name = 'ctf-crypto'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x0000029CD28FC520>('---\n')
+E        +    where <built-in method startswith of str object at 0x0000029CD28FC520> = '---\r\nname: ctf-crypto\r\ndescription: Crypto challenge reasoning for CTF-Solver; prefer mathematical structure and ...es or tools; if a required library is missing, report the\r\n  exact missing dependency as a blocked step instead.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+_______ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-reverse] _______
+
+name = 'ctf-reverse'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x0000029CD2ABEF80>('---\n')
+E        +    where <built-in method startswith of str object at 0x0000029CD2ABEF80> = '---\r\nname: ctf-reverse\r\ndescription: Reverse-engineering challenge reasoning for CTF-Solver; static analysis firs...bypass the execution boundary by using shell one-liners, installers or host\r\n  PowerShell to run challenge code.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+_________ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-pwn] _________
+
+name = 'ctf-pwn'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x0000029CD2741200>('---\n')
+E        +    where <built-in method startswith of str object at 0x0000029CD2741200> = '---\r\nname: ctf-pwn\r\ndescription: Pwn challenge reasoning for CTF-Solver; local static analysis and safe reasoning... recorded as `candidate`; the user confirms and submits.\r\n- Do not fabricate a shell, a leak, a crash or a Flag.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+=================================== XPASSES ===================================
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_real_acp_smoke.py:24: real ACP smoke test is opt-in (CTF_SOLVER_ENABLE_REAL_ACP=1); Round 1 default is fake-only
+XPASS tests/test_verification_round1.py::test_defect_execution_rows_lose_request_and_denied_result_json - DEFECT: ctf_solver/manager/store.py:556-557 reads row['request']/row['result'], but ctf_solver/runtime/pipeline.py:578-579 supplies 'request_json'/'result_json'; executions.request_json is always '{}' and a denied call's result_json is '{}' (the durable execution row loses the request document).
+XPASS tests/test_verification_round1.py::test_defect_task_evidence_head_is_never_persisted - DEFECT: PRODUCT_SPEC §4 requires the Task minimum fields to include the evidence-chain head, but no Manager code updates tasks.evidence_head (ManagerStore.update_task_fields supports it and ctf_solver/manager/service.py never calls it), so the Writeup renders 'Evidence chain head: `unknown`'.
+XPASS tests/test_verification_round1.py::test_defect_privacy_gate_evidence_files_are_not_empty - EVIDENCE DEFECT: docs claim round1-evidence/raw/privacy-gate-exit.txt and privacy-gate-home-path.txt are raw evidence for the privacy gate, but both files are empty (0 bytes); only privacy-gate-result.txt carries exit_code=0.
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-solver]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-web]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-misc]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-crypto]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-reverse]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-pwn]
+6 failed, 648 passed, 1 skipped, 3 xpassed in 40.67s
+
+===== ERROR =====
+clone has no scripts/build_wheel.py (branch HEAD does not contain the Round 2 packaging work; run with --overlay-working-tree or commit first): C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone\scripts\build_wheel.py

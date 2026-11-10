@@ -179,3 +179,24 @@ BLOCKED in Round 1. Do not process real CTF content until Round 2 proves it.
 See `docs/ROUND_1_ARCHITECTURE_NOTES.md`: main-conversation entrypoint to Manager tools
 is BLOCKED, session-log negative delivery test is BLOCKED, model-mediated Workers,
 live in-flight cancel/permission round trips, and real desktop capture are NOT VERIFIED.
+
+## 4c. Final acceptance remediation operations (Round 2 patch)
+
+- The Manager's default ACP launch is now
+  `dsh --profile acp --patch <project>/config/acp/cordis.patch.yml` with an isolated
+  project-local `DSH_HOME`. The launch fails closed if the project patch is missing; do
+  not edit the live global Harness profile.
+- Network grant TTL and call budget come from the human-approved approval payload. The
+  `--ttl-s/--max-calls` CLI flags are optional compatibility checks only and are rejected
+  if they differ from the approved values.
+- Normal Task completion goes through the Manager lifecycle (MCP `ctf_task_complete`,
+  or `ManagerService.complete_task`): it requires no unfinished execution, no pending
+  approval, an ingested session log and an intact evidence chain, closes the ACP session,
+  then releases the Worker slot, records `completed/result_state/ended_at`, writes a
+  `task_completed` event and promotes the FIFO queue. A failed session close keeps the
+  Task and slot.
+- Protocol-level MCP mount evidence: the ACP-spawned `ctf-exec` child writes
+  `CTF_SOLVER_MCP_HANDSHAKE_FILE` only after MCP `initialize` and updates it after
+  `tools/list`; the integration script checks its PID ancestry against the ACP server.
+  A separate MCP stdio process is used for `tools/call`; same-child `tools/call` remains
+  NOT VERIFIED without a model turn.

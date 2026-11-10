@@ -103,6 +103,19 @@ class StubManager:
         self._require_task(task_id)
         return {"task_id": task_id, "status": "cancel_requested"}
 
+    def complete_task(
+        self, task_id: str, *, result_state: str, note: str = ""
+    ) -> dict[str, Any]:
+        self._require_task(task_id)
+        return {
+            "task_id": task_id,
+            "status": "completed",
+            "result_state": result_state,
+            "session_closed": True,
+            "worker_stopped": True,
+            "already_completed": False,
+        }
+
     def request_approval(
         self, task_id: str, *, action_kind: str, details: dict[str, Any], ttl_s: int | None = None
     ) -> ApprovalRecord:

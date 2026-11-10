@@ -60,7 +60,7 @@ def _grant_args(approval) -> dict:
         "port": target["port"],
         "protocol": target["protocol"],
         "method": target["method"],
-        "path_prefix": target["path"],
+        "path_prefix": target["path_prefix"],
     }
 
 
@@ -96,16 +96,34 @@ def test_request_approval_is_pending_and_never_decided(tmp_path) -> None:
         assert approval.confirmation_channel is None
         assert approval.confirmation_id is None
         assert approval.confirmation_os_user is None
-        assert set(approval.payload) == {"target", "profile"}
-        assert approval.payload["target"] == TARGET
+        assert set(approval.payload) == {
+            "task_id",
+            "profile",
+            "target",
+            "grant_ttl_s",
+            "max_calls",
+        }
+        assert approval.payload["task_id"] == env.task.task_id
+        assert approval.payload["target"] == {
+            "host": TARGET["host"],
+            "port": TARGET["port"],
+            "protocol": TARGET["protocol"],
+            "method": TARGET["method"],
+            "path_prefix": TARGET["path"],
+        }
         assert approval.payload["profile"] == SYNTHETIC_PROFILE
+        assert approval.payload["grant_ttl_s"] == 3600
+        assert approval.payload["max_calls"] == 10
         expected_digest = remote_target_action_digest(
+            task_id=env.task.task_id,
             host=TARGET["host"],
             port=TARGET["port"],
             protocol=TARGET["protocol"],
             method=TARGET["method"],
-            path=TARGET["path"],
+            path_prefix=TARGET["path"],
             competition_profile=SYNTHETIC_PROFILE,
+            grant_ttl_s=3600,
+            max_calls=10,
         )
         assert approval.action_digest == expected_digest
 
@@ -355,7 +373,7 @@ def test_grant_creation_binds_task_target_profile_and_confirmation(tmp_path) -> 
         approval = request_remote_approval(env)
         decided = _approve(env, approval.approval_id)
         grant = env.service.create_grant_from_approval(
-            approval.approval_id, **_grant_args(decided), ttl_s=900, max_calls=4
+            approval.approval_id, **_grant_args(decided)
         )
         assert grant.task_id == env.task.task_id
         assert grant.competition_profile == SYNTHETIC_PROFILE
@@ -364,9 +382,10 @@ def test_grant_creation_binds_task_target_profile_and_confirmation(tmp_path) -> 
         assert grant.protocol == "https"
         assert grant.method == "POST"
         assert grant.path_prefix == "/api/challenge"
-        assert grant.max_calls == 4
+        # Round 2 P0-1: TTL and call budget come from the human-approved payload.
+        assert grant.max_calls == 10
         assert grant.calls_used == 0
-        assert grant.expires_at == env.clock.now_ms() + 900_000
+        assert grant.expires_at == env.clock.now_ms() + 3_600_000
         assert grant.status is GrantStatus.ACTIVE
         assert grant.approver == "human-owner"
         assert grant.approval_id == approval.approval_id
@@ -458,8 +477,11 @@ def test_tampered_approval_payload_or_digest_fails_closed(tmp_path) -> None:
         args = _grant_args(decided)
 
         tampered_payload = {
-            "target": {**TARGET, "port": 9999},
+            "task_id": decided.payload["task_id"],
+            "target": {**decided.payload["target"], "port": 9999},
             "profile": SYNTHETIC_PROFILE,
+            "grant_ttl_s": decided.payload["grant_ttl_s"],
+            "max_calls": decided.payload["max_calls"],
         }
         env.store.conn.execute(
             "UPDATE approvals SET payload_json = ? WHERE approval_id = ?",
@@ -497,7 +519,7 @@ def test_cross_task_approval_cannot_mint_another_tasks_grant(tmp_path) -> None:
             port=target["port"],
             protocol=target["protocol"],
             method=target["method"],
-            path_prefix=target["path"],
+            path_prefix=target["path_prefix"],
             expires_at=now + 60_000,
             max_calls=1,
             approver=decided.confirmation_os_user,
@@ -584,14 +606,26 @@ def test_request_approval_validation_is_fail_closed(tmp_path) -> None:
         bad_details = [
             {},
             {"target": TARGET},
-            {"target": TARGET, "profile": ""},
-            {"target": {**TARGET, "port": 0}, "profile": SYNTHETIC_PROFILE},
-            {"target": {**TARGET, "port": 70000}, "profile": SYNTHETIC_PROFILE},
-            {"target": {**TARGET, "host": ""}, "profile": SYNTHETIC_PROFILE},
-            {"target": {**TARGET, "protocol": "gopher"}, "profile": SYNTHETIC_PROFILE},
+            {"target": TARGET, "profile": "", "grant_ttl_s": 60, "max_calls": 1},
+            {"target": {**TARGET, "port": 0}, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": 60, "max_calls": 1},
+            {"target": {**TARGET, "port": 70000}, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": 60, "max_calls": 1},
+            {"target": {**TARGET, "host": ""}, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": 60, "max_calls": 1},
+            {"target": {**TARGET, "protocol": "gopher"}, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": 60, "max_calls": 1},
             # Non-string paths are rejected (a string path is normalised, see the
             # canonicalisation test below).
-            {"target": {**TARGET, "path": None}, "profile": SYNTHETIC_PROFILE},
+            {"target": {**TARGET, "path": None}, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": 60, "max_calls": 1},
+            # Round 2 P0-1: the network authorization scope must be explicit and
+            # strictly integral (bool/float/string/zero/negative/oversized fail).
+            {"target": TARGET, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": True, "max_calls": 1},
+            {"target": TARGET, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": 1.5, "max_calls": 1},
+            {"target": TARGET, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": "60", "max_calls": 1},
+            {"target": TARGET, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": 0, "max_calls": 1},
+            {"target": TARGET, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": -1, "max_calls": 1},
+            {"target": TARGET, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": 60, "max_calls": True},
+            {"target": TARGET, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": 60, "max_calls": 1.5},
+            {"target": TARGET, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": 60, "max_calls": "1"},
+            {"target": TARGET, "profile": SYNTHETIC_PROFILE, "grant_ttl_s": 60},
+            {"target": TARGET, "profile": SYNTHETIC_PROFILE, "max_calls": 1},
         ]
         for details in bad_details:
             with pytest.raises(ValidationError):
@@ -602,7 +636,12 @@ def test_request_approval_validation_is_fail_closed(tmp_path) -> None:
             env.service.request_approval(
                 env.task.task_id,
                 action_kind="remote_target",
-                details={"target": TARGET, "profile": SYNTHETIC_PROFILE},
+                details={
+                    "target": TARGET,
+                    "profile": SYNTHETIC_PROFILE,
+                    "grant_ttl_s": 60,
+                    "max_calls": 1,
+                },
                 ttl_s=0,
             )
         assert env.store.list_approvals() == []
@@ -616,19 +655,26 @@ def test_remote_target_details_are_canonicalized_before_digesting(tmp_path) -> N
         details = {
             "target": {
                 "host": "CTF-Target.Example.",
-                "port": "8443",
+                "port": 8443,
                 "protocol": "HTTPS",
                 "method": "post",
-                "path": "api/challenge",
+                "path_prefix": "api/challenge",
             },
             "profile": SYNTHETIC_PROFILE,
+            "grant_ttl_s": 120,
+            "max_calls": 3,
         }
-        canonical = canonical_approval_details("remote_target", details)
+        canonical = canonical_approval_details(
+            "remote_target", details, task_id=env.task.task_id
+        )
         assert canonical["target"]["host"] == SYNTHETIC_HOST
         assert canonical["target"]["port"] == 8443
         assert canonical["target"]["protocol"] == "https"
         assert canonical["target"]["method"] == "POST"
-        assert canonical["target"]["path"] == "/api/challenge"
+        assert canonical["target"]["path_prefix"] == "/api/challenge"
+        assert canonical["task_id"] == env.task.task_id
+        assert canonical["grant_ttl_s"] == 120
+        assert canonical["max_calls"] == 3
         approval = env.service.request_approval(
             env.task.task_id, action_kind="remote_target", details=details
         )

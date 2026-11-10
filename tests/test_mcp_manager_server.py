@@ -24,6 +24,7 @@ EXPECTED_TOOLS = {
     "ctf_task_continue",
     "ctf_task_pause",
     "ctf_task_cancel",
+    "ctf_task_complete",
     "ctf_approval_request",
     "ctf_approval_list",
     "ctf_grant_revoke",

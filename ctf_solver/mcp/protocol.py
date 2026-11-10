@@ -114,6 +114,8 @@ class McpServer:
         tools: list[McpTool] | None = None,
         instructions: str | None = None,
         max_workers: int = 4,
+        on_initialize: Any = None,
+        on_tools_list: Any = None,
     ) -> None:
         self.name = name
         self.version = version
@@ -127,6 +129,10 @@ class McpServer:
         self._in: TextIO | None = None
         self._pending = 0
         self._pending_lock = threading.Lock()
+        # Optional lifecycle hooks used to persist integration evidence from the
+        # real Harness-spawned MCP child (never to change protocol results).
+        self._on_initialize = on_initialize
+        self._on_tools_list = on_tools_list
 
     # -- registration -------------------------------------------------
 
@@ -227,16 +233,31 @@ class McpServer:
         if method in ("server/discover", "discover"):
             return self._discover_result()
         if method == "initialize":
-            return self._initialize_result(params)
+            result = self._initialize_result(params)
+            self._safe_hook(self._on_initialize, params, result)
+            return result
         if method == "ping":
             return {}
         if method == "tools/list":
-            return self._tools_list_result()
+            result = self._tools_list_result()
+            self._safe_hook(self._on_tools_list, result)
+            return result
         if method == "tools/call":
             return self._call_tool(params)
         if method == "notifications/initialized":
             return None
         raise JsonRpcProtocolError(METHOD_NOT_FOUND, f"method not found: {method}")
+
+    @staticmethod
+    def _safe_hook(hook: Any, *args: Any) -> None:
+        """Run an evidence hook without ever changing the protocol result."""
+
+        if hook is None:
+            return
+        try:
+            hook(*args)
+        except Exception:  # noqa: BLE001 - evidence must not break the server
+            return
 
     # -- IO -----------------------------------------------------------
 

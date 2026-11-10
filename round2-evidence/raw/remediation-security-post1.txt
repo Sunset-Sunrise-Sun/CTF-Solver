@@ -1,0 +1,540 @@
+.......................F.......F...............................FFFF..... [ 90%]
+........                                                                 [100%]
+================================== FAILURES ===================================
+_______ test_grant_creation_binds_task_target_profile_and_confirmation ________
+
+tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_grant_creation_binds_task0')
+
+    def test_grant_creation_binds_task_target_profile_and_confirmation(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        try:
+            approval = request_remote_approval(env)
+            decided = _approve(env, approval.approval_id)
+            grant = env.service.create_grant_from_approval(
+                approval.approval_id, **_grant_args(decided)
+            )
+            assert grant.task_id == env.task.task_id
+            assert grant.competition_profile == SYNTHETIC_PROFILE
+            assert grant.host == SYNTHETIC_HOST
+            assert grant.port == 8443
+            assert grant.protocol == "https"
+            assert grant.method == "POST"
+>           assert grant.path_prefix == "/api/challenge"
+E           AssertionError: assert '/' == '/api/challenge'
+E             
+E             - /api/challenge
+E             + /
+
+tests\test_security_approval_grant.py:384: AssertionError
+________ test_remote_target_details_are_canonicalized_before_digesting ________
+
+task_id = 't-security01', host = 'CTF-Target.Example.', port = 8443
+protocol = 'HTTPS', method = 'post', path_prefix = 'api/challenge'
+competition_profile = 'synthetic-local', grant_ttl_s = 120, max_calls = 3
+
+    def canonical_remote_target_details(
+        *,
+        task_id: str,
+        host: str,
+        port: int,
+        protocol: str = "tcp",
+        method: str = "GET",
+        path_prefix: str = "/",
+        competition_profile: str,
+        grant_ttl_s: int,
+        max_calls: int,
+    ) -> dict[str, Any]:
+        """Return the canonical, digest-bound ``remote_target`` approval details.
+    
+        Round 2 P0-1/P0-2: the human-approved scope includes the owning Task, the
+        competition profile, the exact destination, and the **network grant TTL and
+        call budget**. Every field participates in :func:`action_digest`, so a grant
+        cannot later widen its duration or call count.
+    
+        The mapping is::
+    
+            {"task_id", "profile",
+             "target": {"host", "port", "protocol", "method", "path_prefix"},
+             "grant_ttl_s", "max_calls"}
+    
+        All untrusted strings are normalized here (single-line, no C0/C1/ESC/ANSI/
+        bidi controls, bounded length, restricted grammar); the normalized mapping
+        is the only content that is hashed, displayed and stored. Raises
+        ``ValueError`` for invalid input (callers convert it to ``ValidationError``).
+        """
+    
+        try:
+            normalized_task_id = _require_task_id(task_id)
+            profile = _require_profile(competition_profile)
+            host_text = normalize_field(
+                host,
+                field="network target host",
+                max_length=253,
+                pattern=_HOST_PATTERN,
+                pattern_description="letters/digits/dot/dash/underscore/colon/percent",
+            )
+            protocol_text = normalize_field(
+                protocol,
+                field="network target protocol",
+                max_length=16,
+                pattern=_PROTOCOL_PATTERN,
+                pattern_description="protocol token",
+            )
+            if method is None:
+                method = ""
+            method_text = normalize_field(
+                method,
+                field="network target method",
+                max_length=16,
+                allow_empty=True,
+                pattern=_METHOD_PATTERN if str(method).strip() else None,
+                pattern_description="letters only",
+            )
+            if not isinstance(path_prefix, str):
+                raise ValueError("network target path_prefix must be a string")
+            # Reject traversal segments before/after normalization.
+            raw_path = path_prefix.strip(" ")
+            if any(segment == ".." for segment in raw_path.split("/")):
+                raise ValueError("network target path_prefix must not contain '..' segments")
+>           path_text = normalize_field(
+                raw_path,
+                field="network target path_prefix",
+                max_length=512,
+                pattern=_PATH_PREFIX_PATTERN,
+                pattern_description="absolute URL path without query/fragment/whitespace",
+            )
+
+ctf_solver\manager\approval_grant_service.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = 'api/challenge', field = 'network target path_prefix', max_length = 512
+allow_empty = False, pattern = "/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{0,511}"
+pattern_description = 'absolute URL path without query/fragment/whitespace'
+
+    def normalize_field(
+        value: Any,
+        *,
+        field: str,
+        max_length: int,
+        allow_empty: bool = False,
+        pattern: str | None = None,
+        pattern_description: str | None = None,
+    ) -> str:
+        """Validate and normalize one single-line untrusted token.
+    
+        Rejects non-strings, embedded NUL/C0/C1 controls (including ESC), CR/LF,
+        Unicode format/bidi controls, line/paragraph separators, over-long values
+        and values that do not match ``pattern``. Surrounding ASCII spaces are
+        stripped after the safety check (they cannot inject terminal control).
+        """
+    
+        if not isinstance(value, str):
+            raise UnsafeTextError(f"{field} must be a string")
+        unsafe = find_unsafe_char(value)
+        if unsafe is not None:
+            index, char = unsafe
+            raise UnsafeTextError(
+                f"{field} contains a forbidden control/format character "
+                f"(U+{ord(char):04X}) at index {index}; refusing to approve"
+            )
+        text = value.strip(" ")
+        if not text and not allow_empty:
+            raise UnsafeTextError(f"{field} must not be empty")
+        if len(text) > int(max_length):
+            raise UnsafeTextError(f"{field} exceeds {max_length} characters")
+        if pattern is not None and not re.fullmatch(pattern, text):
+>           raise UnsafeTextError(
+                f"{field} does not match the required format"
+                + (f" ({pattern_description})" if pattern_description else "")
+            )
+E           ctf_solver.security.textsafe.UnsafeTextError: network target path_prefix does not match the required format (absolute URL path without query/fragment/whitespace)
+
+ctf_solver\security\textsafe.py:102: UnsafeTextError
+
+The above exception was the direct cause of the following exception:
+
+action_kind = 'remote_target'
+details = {'target': {'host': 'CTF-Target.Example.', 'port': 8443, 'protocol': 'HTTPS', 'method': 'post', ...}, 'profile': 'synthetic-local', 'grant_ttl_s': 120, 'max_calls': 3}
+task_id = 't-security01'
+
+    def canonical_approval_details(
+        action_kind: str,
+        details: Mapping[str, Any],
+        *,
+        task_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Canonicalize caller-supplied approval details for the given action kind.
+    
+        ``remote_target`` has a frozen machine-checkable shape and always includes
+        the owning Task and the network grant TTL/call budget. Other action kinds
+        keep the caller's mapping verbatim (the Broker recomputes its own digest
+        from the typed execution request).
+        """
+    
+        if not isinstance(details, Mapping):
+            raise ValidationError("approval details must be a JSON object")
+        if action_kind != _REMOTE_TARGET:
+            return {str(key): value for key, value in details.items()}
+    
+        target = details.get("target")
+        profile = details.get("profile")
+        if not isinstance(target, Mapping):
+            raise ValidationError(
+                "a remote_target approval requires details={'target': {...}, 'profile': ..., "
+                "'grant_ttl_s': int, 'max_calls': int}"
+            )
+        if profile is None or not str(profile).strip():
+            raise ValidationError(
+                "a remote_target approval requires a non-empty competition profile"
+            )
+        payload_task_id = details.get("task_id")
+        if payload_task_id is not None and task_id is not None:
+            if str(payload_task_id) != str(task_id):
+                raise ValidationError(
+                    "remote_target approval details task_id does not match the owning Task"
+                )
+        effective_task_id = task_id if task_id is not None else payload_task_id
+        if effective_task_id is None:
+            raise ValidationError("a remote_target approval requires the owning Task ID")
+        try:
+>           return canonical_remote_target_details(
+                task_id=str(effective_task_id),
+                host=target.get("host"),  # type: ignore[arg-type]
+                port=target.get("port"),  # type: ignore[arg-type]
+                protocol=target.get("protocol", "tcp"),
+                method=target.get("method", "GET"),
+                path_prefix=target.get("path_prefix", target.get("path", "/")),  # type: ignore[arg-type]
+                competition_profile=str(profile),
+                grant_ttl_s=details.get("grant_ttl_s"),  # type: ignore[arg-type]
+                max_calls=details.get("max_calls"),  # type: ignore[arg-type]
+            )
+
+ctf_solver\manager\approval_grant_service.py:315: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+task_id = 't-security01', host = 'CTF-Target.Example.', port = 8443
+protocol = 'HTTPS', method = 'post', path_prefix = 'api/challenge'
+competition_profile = 'synthetic-local', grant_ttl_s = 120, max_calls = 3
+
+    def canonical_remote_target_details(
+        *,
+        task_id: str,
+        host: str,
+        port: int,
+        protocol: str = "tcp",
+        method: str = "GET",
+        path_prefix: str = "/",
+        competition_profile: str,
+        grant_ttl_s: int,
+        max_calls: int,
+    ) -> dict[str, Any]:
+        """Return the canonical, digest-bound ``remote_target`` approval details.
+    
+        Round 2 P0-1/P0-2: the human-approved scope includes the owning Task, the
+        competition profile, the exact destination, and the **network grant TTL and
+        call budget**. Every field participates in :func:`action_digest`, so a grant
+        cannot later widen its duration or call count.
+    
+        The mapping is::
+    
+            {"task_id", "profile",
+             "target": {"host", "port", "protocol", "method", "path_prefix"},
+             "grant_ttl_s", "max_calls"}
+    
+        All untrusted strings are normalized here (single-line, no C0/C1/ESC/ANSI/
+        bidi controls, bounded length, restricted grammar); the normalized mapping
+        is the only content that is hashed, displayed and stored. Raises
+        ``ValueError`` for invalid input (callers convert it to ``ValidationError``).
+        """
+    
+        try:
+            normalized_task_id = _require_task_id(task_id)
+            profile = _require_profile(competition_profile)
+            host_text = normalize_field(
+                host,
+                field="network target host",
+                max_length=253,
+                pattern=_HOST_PATTERN,
+                pattern_description="letters/digits/dot/dash/underscore/colon/percent",
+            )
+            protocol_text = normalize_field(
+                protocol,
+                field="network target protocol",
+                max_length=16,
+                pattern=_PROTOCOL_PATTERN,
+                pattern_description="protocol token",
+            )
+            if method is None:
+                method = ""
+            method_text = normalize_field(
+                method,
+                field="network target method",
+                max_length=16,
+                allow_empty=True,
+                pattern=_METHOD_PATTERN if str(method).strip() else None,
+                pattern_description="letters only",
+            )
+            if not isinstance(path_prefix, str):
+                raise ValueError("network target path_prefix must be a string")
+            # Reject traversal segments before/after normalization.
+            raw_path = path_prefix.strip(" ")
+            if any(segment == ".." for segment in raw_path.split("/")):
+                raise ValueError("network target path_prefix must not contain '..' segments")
+            path_text = normalize_field(
+                raw_path,
+                field="network target path_prefix",
+                max_length=512,
+                pattern=_PATH_PREFIX_PATTERN,
+                pattern_description="absolute URL path without query/fragment/whitespace",
+            )
+            if isinstance(port, bool) or not isinstance(port, int):
+                raise ValueError("network target port must be an integer")
+            port_int = int(port)
+            if not 1 <= port_int <= 65535:
+                raise ValueError("network target port must be within 1..65535")
+            ttl = _require_positive_int(grant_ttl_s, "grant_ttl_s", maximum=MAX_GRANT_TTL_S)
+            calls = _require_positive_int(max_calls, "max_calls", maximum=MAX_GRANT_CALLS)
+        except UnsafeTextError as exc:
+>           raise ValueError(exc.message) from exc
+E           ValueError: network target path_prefix does not match the required format (absolute URL path without query/fragment/whitespace)
+
+ctf_solver\manager\approval_grant_service.py:204: ValueError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_remote_target_details_are0')
+
+    def test_remote_target_details_are_canonicalized_before_digesting(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        try:
+            details = {
+                "target": {
+                    "host": "CTF-Target.Example.",
+                    "port": 8443,
+                    "protocol": "HTTPS",
+                    "method": "post",
+                    "path_prefix": "api/challenge",
+                },
+                "profile": SYNTHETIC_PROFILE,
+                "grant_ttl_s": 120,
+                "max_calls": 3,
+            }
+>           canonical = canonical_approval_details(
+                "remote_target", details, task_id=env.task.task_id
+            )
+
+tests\test_security_approval_grant.py:667: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+action_kind = 'remote_target'
+details = {'target': {'host': 'CTF-Target.Example.', 'port': 8443, 'protocol': 'HTTPS', 'method': 'post', ...}, 'profile': 'synthetic-local', 'grant_ttl_s': 120, 'max_calls': 3}
+task_id = 't-security01'
+
+    def canonical_approval_details(
+        action_kind: str,
+        details: Mapping[str, Any],
+        *,
+        task_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Canonicalize caller-supplied approval details for the given action kind.
+    
+        ``remote_target`` has a frozen machine-checkable shape and always includes
+        the owning Task and the network grant TTL/call budget. Other action kinds
+        keep the caller's mapping verbatim (the Broker recomputes its own digest
+        from the typed execution request).
+        """
+    
+        if not isinstance(details, Mapping):
+            raise ValidationError("approval details must be a JSON object")
+        if action_kind != _REMOTE_TARGET:
+            return {str(key): value for key, value in details.items()}
+    
+        target = details.get("target")
+        profile = details.get("profile")
+        if not isinstance(target, Mapping):
+            raise ValidationError(
+                "a remote_target approval requires details={'target': {...}, 'profile': ..., "
+                "'grant_ttl_s': int, 'max_calls': int}"
+            )
+        if profile is None or not str(profile).strip():
+            raise ValidationError(
+                "a remote_target approval requires a non-empty competition profile"
+            )
+        payload_task_id = details.get("task_id")
+        if payload_task_id is not None and task_id is not None:
+            if str(payload_task_id) != str(task_id):
+                raise ValidationError(
+                    "remote_target approval details task_id does not match the owning Task"
+                )
+        effective_task_id = task_id if task_id is not None else payload_task_id
+        if effective_task_id is None:
+            raise ValidationError("a remote_target approval requires the owning Task ID")
+        try:
+            return canonical_remote_target_details(
+                task_id=str(effective_task_id),
+                host=target.get("host"),  # type: ignore[arg-type]
+                port=target.get("port"),  # type: ignore[arg-type]
+                protocol=target.get("protocol", "tcp"),
+                method=target.get("method", "GET"),
+                path_prefix=target.get("path_prefix", target.get("path", "/")),  # type: ignore[arg-type]
+                competition_profile=str(profile),
+                grant_ttl_s=details.get("grant_ttl_s"),  # type: ignore[arg-type]
+                max_calls=details.get("max_calls"),  # type: ignore[arg-type]
+            )
+        except (TypeError, ValueError) as exc:
+>           raise ValidationError(f"invalid remote_target approval details: {exc}") from exc
+E           ctf_solver.core.errors.ValidationError: invalid remote_target approval details: network target path_prefix does not match the required format (absolute URL path without query/fragment/whitespace)
+
+ctf_solver\manager\approval_grant_service.py:327: ValidationError
+_________ test_unsafe_target_fields_rejected[path_prefix-/api\x1b[2J] _________
+
+tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_unsafe_target_fields_reje4')
+field = 'path_prefix', value = '/api\x1b[2J'
+
+    @pytest.mark.parametrize(
+        "field,value",
+        [
+            ("host", "evil\x1b[2J.example"),
+            ("host", "evil.example\r\nX"),
+            ("host", "evil/example"),
+            ("host", "a" * 300),
+            ("path_prefix", "/api\x1b[2J"),
+            ("path_prefix", "/api\r\nINJECTED"),
+            ("path_prefix", "/a/../b"),
+            ("path_prefix", "/api?x=1"),
+            ("method", "GET\nPOST"),
+            ("protocol", "http\x1b[31m"),
+        ],
+    )
+    def test_unsafe_target_fields_rejected(tmp_path, field: str, value: str) -> None:
+        env = build_environment(tmp_path)
+        try:
+            kwargs = {
+                "host": "ctf-target.example",
+                "port": 8443,
+                "protocol": "https",
+                "method": "POST",
+                "path": "/api/challenge",
+            }
+            kwargs[field] = value
+            with pytest.raises(ValidationError):
+>               request_remote_approval(env, **kwargs)
+E               TypeError: request_remote_approval() got an unexpected keyword argument 'path_prefix'
+
+tests\test_round2_remediation_security.py:279: TypeError
+______ test_unsafe_target_fields_rejected[path_prefix-/api\r\nINJECTED] _______
+
+tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_unsafe_target_fields_reje5')
+field = 'path_prefix', value = '/api\r\nINJECTED'
+
+    @pytest.mark.parametrize(
+        "field,value",
+        [
+            ("host", "evil\x1b[2J.example"),
+            ("host", "evil.example\r\nX"),
+            ("host", "evil/example"),
+            ("host", "a" * 300),
+            ("path_prefix", "/api\x1b[2J"),
+            ("path_prefix", "/api\r\nINJECTED"),
+            ("path_prefix", "/a/../b"),
+            ("path_prefix", "/api?x=1"),
+            ("method", "GET\nPOST"),
+            ("protocol", "http\x1b[31m"),
+        ],
+    )
+    def test_unsafe_target_fields_rejected(tmp_path, field: str, value: str) -> None:
+        env = build_environment(tmp_path)
+        try:
+            kwargs = {
+                "host": "ctf-target.example",
+                "port": 8443,
+                "protocol": "https",
+                "method": "POST",
+                "path": "/api/challenge",
+            }
+            kwargs[field] = value
+            with pytest.raises(ValidationError):
+>               request_remote_approval(env, **kwargs)
+E               TypeError: request_remote_approval() got an unexpected keyword argument 'path_prefix'
+
+tests\test_round2_remediation_security.py:279: TypeError
+___________ test_unsafe_target_fields_rejected[path_prefix-/a/../b] ___________
+
+tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_unsafe_target_fields_reje6')
+field = 'path_prefix', value = '/a/../b'
+
+    @pytest.mark.parametrize(
+        "field,value",
+        [
+            ("host", "evil\x1b[2J.example"),
+            ("host", "evil.example\r\nX"),
+            ("host", "evil/example"),
+            ("host", "a" * 300),
+            ("path_prefix", "/api\x1b[2J"),
+            ("path_prefix", "/api\r\nINJECTED"),
+            ("path_prefix", "/a/../b"),
+            ("path_prefix", "/api?x=1"),
+            ("method", "GET\nPOST"),
+            ("protocol", "http\x1b[31m"),
+        ],
+    )
+    def test_unsafe_target_fields_rejected(tmp_path, field: str, value: str) -> None:
+        env = build_environment(tmp_path)
+        try:
+            kwargs = {
+                "host": "ctf-target.example",
+                "port": 8443,
+                "protocol": "https",
+                "method": "POST",
+                "path": "/api/challenge",
+            }
+            kwargs[field] = value
+            with pytest.raises(ValidationError):
+>               request_remote_approval(env, **kwargs)
+E               TypeError: request_remote_approval() got an unexpected keyword argument 'path_prefix'
+
+tests\test_round2_remediation_security.py:279: TypeError
+__________ test_unsafe_target_fields_rejected[path_prefix-/api?x=1] ___________
+
+tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_unsafe_target_fields_reje7')
+field = 'path_prefix', value = '/api?x=1'
+
+    @pytest.mark.parametrize(
+        "field,value",
+        [
+            ("host", "evil\x1b[2J.example"),
+            ("host", "evil.example\r\nX"),
+            ("host", "evil/example"),
+            ("host", "a" * 300),
+            ("path_prefix", "/api\x1b[2J"),
+            ("path_prefix", "/api\r\nINJECTED"),
+            ("path_prefix", "/a/../b"),
+            ("path_prefix", "/api?x=1"),
+            ("method", "GET\nPOST"),
+            ("protocol", "http\x1b[31m"),
+        ],
+    )
+    def test_unsafe_target_fields_rejected(tmp_path, field: str, value: str) -> None:
+        env = build_environment(tmp_path)
+        try:
+            kwargs = {
+                "host": "ctf-target.example",
+                "port": 8443,
+                "protocol": "https",
+                "method": "POST",
+                "path": "/api/challenge",
+            }
+            kwargs[field] = value
+            with pytest.raises(ValidationError):
+>               request_remote_approval(env, **kwargs)
+E               TypeError: request_remote_approval() got an unexpected keyword argument 'path_prefix'
+
+tests\test_round2_remediation_security.py:279: TypeError
+=========================== short test summary info ===========================
+FAILED tests/test_security_approval_grant.py::test_grant_creation_binds_task_target_profile_and_confirmation
+FAILED tests/test_security_approval_grant.py::test_remote_target_details_are_canonicalized_before_digesting
+FAILED tests/test_round2_remediation_security.py::test_unsafe_target_fields_rejected[path_prefix-/api\x1b[2J]
+FAILED tests/test_round2_remediation_security.py::test_unsafe_target_fields_rejected[path_prefix-/api\r\nINJECTED]
+FAILED tests/test_round2_remediation_security.py::test_unsafe_target_fields_rejected[path_prefix-/a/../b]
+FAILED tests/test_round2_remediation_security.py::test_unsafe_target_fields_rejected[path_prefix-/api?x=1]
+6 failed, 74 passed in 4.41s

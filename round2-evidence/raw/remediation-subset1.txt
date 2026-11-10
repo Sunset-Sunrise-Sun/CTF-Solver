@@ -1,0 +1,214 @@
+...............................................................F........ [ 27%]
+........................................................................ [ 54%]
+........................................................................ [ 82%]
+...............................s..........F...                           [100%]
+================================== FAILURES ===================================
+_____________ test_manager_approvals_grants_flag_and_screenshots ______________
+
+action_kind = 'remote_target'
+details = {'target': {'host': '127.0.0.1', 'port': 8080, 'protocol': 'tcp', 'method': 'GET', ...}, 'profile': 'synthetic-local'}
+task_id = 't-14df9ad1fc284a4f9891cec75f3fdffd'
+
+    def canonical_approval_details(
+        action_kind: str,
+        details: Mapping[str, Any],
+        *,
+        task_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Canonicalize caller-supplied approval details for the given action kind.
+    
+        ``remote_target`` has a frozen machine-checkable shape and always includes
+        the owning Task and the network grant TTL/call budget. Other action kinds
+        keep the caller's mapping verbatim (the Broker recomputes its own digest
+        from the typed execution request).
+        """
+    
+        if not isinstance(details, Mapping):
+            raise ValidationError("approval details must be a JSON object")
+        if action_kind != _REMOTE_TARGET:
+            return {str(key): value for key, value in details.items()}
+    
+        target = details.get("target")
+        profile = details.get("profile")
+        if not isinstance(target, Mapping):
+            raise ValidationError(
+                "a remote_target approval requires details={'target': {...}, 'profile': ..., "
+                "'grant_ttl_s': int, 'max_calls': int}"
+            )
+        if profile is None or not str(profile).strip():
+            raise ValidationError(
+                "a remote_target approval requires a non-empty competition profile"
+            )
+        payload_task_id = details.get("task_id")
+        if payload_task_id is not None and task_id is not None:
+            if str(payload_task_id) != str(task_id):
+                raise ValidationError(
+                    "remote_target approval details task_id does not match the owning Task"
+                )
+        effective_task_id = task_id if task_id is not None else payload_task_id
+        if effective_task_id is None:
+            raise ValidationError("a remote_target approval requires the owning Task ID")
+        try:
+>           return canonical_remote_target_details(
+                task_id=str(effective_task_id),
+                host=target.get("host"),  # type: ignore[arg-type]
+                port=target.get("port"),  # type: ignore[arg-type]
+                protocol=target.get("protocol", "tcp"),
+                method=target.get("method", "GET"),
+                path_prefix=target.get("path_prefix", target.get("path", "/")),  # type: ignore[arg-type]
+                competition_profile=str(profile),
+                grant_ttl_s=details.get("grant_ttl_s"),  # type: ignore[arg-type]
+                max_calls=details.get("max_calls"),  # type: ignore[arg-type]
+            )
+
+ctf_solver\manager\approval_grant_service.py:317: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+ctf_solver\manager\approval_grant_service.py:203: in canonical_remote_target_details
+    ttl = _require_positive_int(grant_ttl_s, "grant_ttl_s", maximum=MAX_GRANT_TTL_S)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = None, field = 'grant_ttl_s', maximum = 604800
+
+    def _require_positive_int(value: Any, field: str, *, maximum: int) -> int:
+        """Strictly require a plain Python ``int`` in ``1..maximum``.
+    
+        ``bool`` is a subclass of ``int`` in Python but must never be accepted as a
+        TTL/call count; floats, numeric strings and other coercible values are also
+        rejected instead of being silently converted.
+        """
+    
+        if isinstance(value, bool) or not isinstance(value, int):
+>           raise ValueError(f"{field} must be an integer")
+E           ValueError: grant_ttl_s must be an integer
+
+ctf_solver\manager\approval_grant_service.py:88: ValueError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1813/test_manager_approvals_grants_0')
+
+    def test_manager_approvals_grants_flag_and_screenshots(tmp_path: Path) -> None:
+        service, fake, store, evidence, _config = _build_manager(tmp_path)
+        service.start()
+        try:
+            task = service.create_task(title="controls", category="misc", conversation_id="conv-1")
+>           approval = service.request_approval(
+                task.task_id,
+                action_kind="remote_target",
+                details={
+                    "target": {"host": "127.0.0.1", "port": 8080, "protocol": "tcp", "method": "GET", "path": "/"},
+                    "profile": "synthetic-local",
+                },
+                ttl_s=600,
+            )
+
+tests\test_verification_round1.py:1328: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+ctf_solver\manager\service.py:1005: in request_approval
+    return self.approval_service.request_approval(
+ctf_solver\manager\approval_grant_service.py:395: in request_approval
+    canonical = canonical_approval_details(kind.value, details, task_id=task.task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+action_kind = 'remote_target'
+details = {'target': {'host': '127.0.0.1', 'port': 8080, 'protocol': 'tcp', 'method': 'GET', ...}, 'profile': 'synthetic-local'}
+task_id = 't-14df9ad1fc284a4f9891cec75f3fdffd'
+
+    def canonical_approval_details(
+        action_kind: str,
+        details: Mapping[str, Any],
+        *,
+        task_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Canonicalize caller-supplied approval details for the given action kind.
+    
+        ``remote_target`` has a frozen machine-checkable shape and always includes
+        the owning Task and the network grant TTL/call budget. Other action kinds
+        keep the caller's mapping verbatim (the Broker recomputes its own digest
+        from the typed execution request).
+        """
+    
+        if not isinstance(details, Mapping):
+            raise ValidationError("approval details must be a JSON object")
+        if action_kind != _REMOTE_TARGET:
+            return {str(key): value for key, value in details.items()}
+    
+        target = details.get("target")
+        profile = details.get("profile")
+        if not isinstance(target, Mapping):
+            raise ValidationError(
+                "a remote_target approval requires details={'target': {...}, 'profile': ..., "
+                "'grant_ttl_s': int, 'max_calls': int}"
+            )
+        if profile is None or not str(profile).strip():
+            raise ValidationError(
+                "a remote_target approval requires a non-empty competition profile"
+            )
+        payload_task_id = details.get("task_id")
+        if payload_task_id is not None and task_id is not None:
+            if str(payload_task_id) != str(task_id):
+                raise ValidationError(
+                    "remote_target approval details task_id does not match the owning Task"
+                )
+        effective_task_id = task_id if task_id is not None else payload_task_id
+        if effective_task_id is None:
+            raise ValidationError("a remote_target approval requires the owning Task ID")
+        try:
+            return canonical_remote_target_details(
+                task_id=str(effective_task_id),
+                host=target.get("host"),  # type: ignore[arg-type]
+                port=target.get("port"),  # type: ignore[arg-type]
+                protocol=target.get("protocol", "tcp"),
+                method=target.get("method", "GET"),
+                path_prefix=target.get("path_prefix", target.get("path", "/")),  # type: ignore[arg-type]
+                competition_profile=str(profile),
+                grant_ttl_s=details.get("grant_ttl_s"),  # type: ignore[arg-type]
+                max_calls=details.get("max_calls"),  # type: ignore[arg-type]
+            )
+        except (TypeError, ValueError) as exc:
+>           raise ValidationError(f"invalid remote_target approval details: {exc}") from exc
+E           ctf_solver.core.errors.ValidationError: invalid remote_target approval details: grant_ttl_s must be an integer
+
+ctf_solver\manager\approval_grant_service.py:329: ValidationError
+______________ test_default_acp_launch_command_includes_profile _______________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001A47106D2B0>
+tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1813/test_default_acp_launch_comman0')
+
+    def test_default_acp_launch_command_includes_profile(monkeypatch, tmp_path) -> None:
+        from ctf_solver.core.config import SolverConfig
+        from ctf_solver.wiring import default_acp_factory
+    
+        launcher = tmp_path / "dsh.cmd"
+        launcher.write_text("@echo off\r\n", encoding="ascii")
+        monkeypatch.setattr("ctf_solver.wiring.discover_acp_command", lambda: [str(launcher)])
+        config = SolverConfig(root=tmp_path / "project")
+>       client = default_acp_factory(config)()
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_round2_security_integration.py:241: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def factory():
+        from .acp.client import AcpClient
+    
+        command = config.acp_command
+        if command is None:
+            # Round 2 P0-3: the Manager-managed default ACP launch must compose
+            # the project privacy patch. Missing/invalid patch fails closed.
+            patch_path = config.privacy_patch_path
+            if not patch_path.is_file():
+>               raise ConfigError(
+                    f"the project Harness privacy patch is missing: {patch_path}; "
+                    "refusing to launch an unprotected ACP Worker"
+                )
+E               ctf_solver.core.errors.ConfigError: the project Harness privacy patch is missing: D:\CTF-SOLVER\ctf_solver\config\acp\cordis.patch.yml; refusing to launch an unprotected ACP Worker
+
+ctf_solver\wiring.py:74: ConfigError
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_session_log_resolver.py:552: Windows symlink/junction creation unavailable in this environment (not elevated and/or Developer Mode off); link-escape case not exercised
+FAILED tests/test_verification_round1.py::test_manager_approvals_grants_flag_and_screenshots
+FAILED tests/test_round2_security_integration.py::test_default_acp_launch_command_includes_profile
+2 failed, 259 passed, 1 skipped in 14.56s

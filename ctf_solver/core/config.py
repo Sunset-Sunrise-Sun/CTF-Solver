@@ -154,6 +154,21 @@ class SolverConfig:
             return Path(os.path.abspath(configured))
         return self.paths.intake_dir()
 
+    @property
+    def privacy_patch_path(self) -> Path:
+        """Absolute path to the project-owned Harness privacy patch.
+
+        The Manager always launches its ACP Workers with
+        ``--profile acp --patch <this file>`` so the ``dsh-session-log-deepseek``
+        delivery plugin is disabled in the isolated managed profile. This is a
+        project file, not a global Harness configuration change.
+        """
+
+        configured = (self.extra.get("privacy_patch") or "").strip()
+        if configured:
+            return Path(os.path.abspath(os.path.expanduser(configured)))
+        return Path(__file__).resolve().parents[2] / "config" / "acp" / "cordis.patch.yml"
+
     def ensure_runtime_dirs(self) -> None:
         """Create runtime directories needed by the Manager (all git-ignored)."""
 

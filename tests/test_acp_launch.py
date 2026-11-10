@@ -233,3 +233,69 @@ def test_build_default_propagates_invalid_discovered_launcher(monkeypatch) -> No
     monkeypatch.setattr(launch, "discover_acp_command", lambda env=None: [])
     with pytest.raises(ConfigError):
         launch.build_default_acp_command({})
+
+
+# ---------------------------------------------------------------------------
+# Round 2 P0-3: project privacy patch composition (absolute --patch argument)
+# ---------------------------------------------------------------------------
+
+
+def _project_patch(tmp_path: Path) -> Path:
+    patch = tmp_path / "config" / "acp" / "cordis.patch.yml"
+    patch.parent.mkdir(parents=True, exist_ok=True)
+    patch.write_text("- id: session-log-deepseek\n  config:\n    enabled: false\n", encoding="utf-8")
+    return patch
+
+
+def test_privacy_patch_is_absolute_and_follows_profile(tmp_path: Path) -> None:
+    patch = _project_patch(tmp_path)
+    command = launch.build_acp_command(
+        [r"C:\tools\dsh.cmd"], privacy_patch=str(patch)
+    )
+    assert command == [
+        COMSPEC,
+        "/c",
+        r"C:\tools\dsh.cmd",
+        "--profile",
+        "acp",
+        "--patch",
+        str(patch.resolve()),
+    ]
+    patch_index = command.index("--patch")
+    assert command[patch_index - 2 : patch_index] == ["--profile", "acp"]
+    assert Path(command[patch_index + 1]).is_absolute()
+
+
+def test_privacy_patch_missing_fails_closed(tmp_path: Path) -> None:
+    missing = tmp_path / "missing-patch.yml"
+    with pytest.raises(ConfigError):
+        launch.build_acp_command(
+            [r"C:\tools\dsh.cmd"], privacy_patch=str(missing)
+        )
+    with pytest.raises(ConfigError):
+        launch.build_privacy_patch_args(missing)
+
+
+def test_privacy_patch_relative_path_is_rejected(tmp_path: Path, monkeypatch) -> None:
+    patch = _project_patch(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(ConfigError):
+        launch.build_privacy_patch_args("config/acp/cordis.patch.yml")
+    # Absolute input is accepted even from another cwd.
+    assert launch.build_privacy_patch_args(str(patch.resolve())) == [
+        "--patch",
+        str(patch.resolve()),
+    ]
+
+
+def test_build_default_composes_privacy_patch(tmp_path: Path, monkeypatch) -> None:
+    patch = _project_patch(tmp_path)
+    monkeypatch.setattr(launch, "discover_acp_command", lambda env=None: [r"C:\discovered\dsh.exe"])
+    command = launch.build_default_acp_command({}, privacy_patch=str(patch))
+    assert command == [
+        r"C:\discovered\dsh.exe",
+        "--profile",
+        "acp",
+        "--patch",
+        str(patch.resolve()),
+    ]

@@ -338,8 +338,18 @@ def build_parser() -> argparse.ArgumentParser:
     grant.add_argument("--protocol", default="tcp")
     grant.add_argument("--method", default="GET")
     grant.add_argument("--path-prefix", default="/")
-    grant.add_argument("--ttl-s", type=int, default=3600)
-    grant.add_argument("--max-calls", type=int, default=10)
+    grant.add_argument(
+        "--ttl-s",
+        type=int,
+        default=None,
+        help="Optional compatibility check: must equal the human-approved grant TTL, which is read from the approval payload.",
+    )
+    grant.add_argument(
+        "--max-calls",
+        type=int,
+        default=None,
+        help="Optional compatibility check: must equal the human-approved call budget, which is read from the approval payload.",
+    )
     grant.set_defaults(func=_cmd_grant)
 
     version = sub.add_parser("version", help="Print version")

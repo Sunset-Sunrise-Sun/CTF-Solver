@@ -139,3 +139,33 @@ control-tool response does not echo local paths.
 6. Real Skill-discovery proof inside a *model-driven* ACP Worker turn (discovery is
    proven by the live session log; without a model turn the ACP session log does not
    contain the catalog).
+
+---
+
+## 9. Final acceptance remediation evidence (2026-11-10)
+
+- **43/43** zero-model-call real-Harness integration checks PASS on the remediation
+  branch (2 Workers + FIFO, protocol-level MCP mount, real session-log ingestion,
+  project-owned window screenshot, Writeup/evidence ZIP, restart recovery, privacy
+  evidence, and a synthetic end-to-end Task that completes normally).
+- **Privacy patch is now in the actual Manager launch**: the live ACP argv is
+  `[COMSPEC, /c, dsh.cmd, --profile, acp, --patch, <D:\CTF-SOLVER\config\acp\cordis.patch.yml>]`
+  (evidence A), and running that same argv with `--dump-config` in the same isolated
+  `DSH_HOME` shows `dsh-session-log-deepseek` disabled (evidence B). The external-delivery
+  canary remains **BLOCKED** (requires a model request); config evidence is not reported
+  as delivery verification.
+- **MCP mount evidence is protocol-level**: the actual ACP-spawned `ctf-exec` child writes
+  a handshake only after answering MCP `initialize`, then records `tools/list` tool names
+  (`["ctf_exec"]`), PID, Task, Worker-token SHA-256 and protocol version. Integration
+  verifies the handshake PID's OS ancestor chain contains the ACP server PID. The
+  synthetic E2E `tools/call` is executed by an **independent** MCP stdio process using the
+  real Worker token; same-child `tools/call` remains **NOT VERIFIED** under the
+  zero-model-call gate and is not reported as such.
+- **Completion lifecycle**: the E2E Task final state is `completed` with a concrete
+  `result_state` (`solved_flag_candidate`), real `ended_at`, stopped Worker, closed
+  session, intact evidence and a Writeup that shows `Status: completed` (never `running`
+  or `unknown`). Normal completion and restart-recovery are separate checks; the
+  completed Task remains completed after restart, while the still-running FIFO Task is
+  interrupted without duplicate sessions.
+- Raw logs: `round2-evidence/raw/round2-integration.log`,
+  `round2-integration-summary.json`, `round2-privacy-gate-result.json`.

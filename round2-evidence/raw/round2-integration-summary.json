@@ -1,23 +1,25 @@
 {
-  "started_at": "2026-11-10T11:56:22.757083+00:00",
+  "started_at": "2026-11-10T13:06:30.227719+00:00",
   "steps": {
     "start": {
       "acp": {
         "diagnostics": {
           "state": "ready",
-          "pid": 36676,
+          "pid": 39072,
           "command": [
             "C:\\Windows\\system32\\cmd.exe",
             "/c",
             "C:\\Users\\28746\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
             "--profile",
-            "acp"
+            "acp",
+            "--patch",
+            "D:\\CTF-SOLVER\\config\\acp\\cordis.patch.yml"
           ],
           "protocol_version": 1,
           "pending_requests": 0,
           "last_error": null,
           "stderr_tail": "",
-          "started_at": 1794311783245,
+          "started_at": 1794315990638,
           "request_count": 1,
           "response_count": 1,
           "malformed_lines": 0,
@@ -50,7 +52,7 @@
         "error": "",
         "alive": true
       },
-      "ipc_url": "tcp://127.0.0.1:51593",
+      "ipc_url": "tcp://127.0.0.1:55204",
       "active_workers": 0,
       "queued_tasks": 0,
       "db_path": "D:\\CTF-SOLVER\\.ctf-solver-data\\manager.sqlite",
@@ -92,9 +94,9 @@
       "ctf-pwn": 0
     },
     "fifo": {
-      "t1": "t-27afb1669d444f6687add63472f1b105",
-      "t2": "t-2826c065654847128780f157d2e7bc25",
-      "t3": "t-9143f5499c384a409d3090b1f1671033",
+      "t1": "t-55b8933e2c764206abe8076a86e3cbff",
+      "t2": "t-221202fd67c34bef899a36bf92bea08c",
+      "t3": "t-8398e1546a2041f9af67b4d45963689a",
       "cancelled_t2": "cancelled",
       "promoted_t3": "running"
     },
@@ -103,38 +105,98 @@
       "root": "D:\\CTF-SOLVER\\.ctf-solver-data\\r2-dsh-home\\sessions"
     },
     "privacy_gate": {
-      "exit_code": 0,
-      "composed_config_disables_delivery": true,
-      "isolated_home": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-r2-privacy-1794311792",
-      "isolated_home_files": [
-        "profiles\\acp\\cordis.patch.yml",
-        "profiles\\acp\\cordis.yml",
-        "profiles\\acp\\package.json",
-        "profiles\\acp\\pnpm-workspace.yaml"
-      ],
-      "negative_outbound_canary": "BLOCKED: requires a model request; no model call is authorized"
+      "evidence_a_manager_argv": {
+        "manager_argv": [
+          "C:\\Windows\\system32\\cmd.exe",
+          "/c",
+          "C:\\Users\\28746\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
+          "--profile",
+          "acp",
+          "--patch",
+          "D:\\CTF-SOLVER\\config\\acp\\cordis.patch.yml"
+        ],
+        "profile_args_present": true,
+        "patch_arg_present": true,
+        "patch_path": "D:\\CTF-SOLVER\\config\\acp\\cordis.patch.yml",
+        "patch_is_absolute": true,
+        "patch_is_project_file": true
+      },
+      "evidence_b": {
+        "exit_code": 0,
+        "composed_config_disables_delivery": true,
+        "dump_config_stdout_sha256": "3e3209f32df4d41a0974cbac243a70c9158f364e14033dad73c9defc2cb707f0"
+      },
+      "isolated_home": "D:\\CTF-SOLVER\\.ctf-solver-data\\r2-dsh-home",
+      "negative_outbound_canary": "BLOCKED: requires a model request; no model call is authorized",
+      "can_be_called_delivery_verified": false
     },
     "restart_recovery": {
-      "t-9143f5499c384a409d3090b1f1671033": "interrupted",
-      "t-844191ca8cbe48b78d2f71d1fb3af4d2": "interrupted"
+      "t-8398e1546a2041f9af67b4d45963689a": "interrupted"
+    },
+    "acp_child_mcp_mount": {
+      "t-55b8933e2c764206abe8076a86e3cbff": {
+        "initialize_at_ms": 1794315993420,
+        "initialize_received": true,
+        "pid": 31368,
+        "protocol_version": "2025-06-18",
+        "server_name": "ctf-exec",
+        "server_version": "0.1.0",
+        "task_id": "t-55b8933e2c764206abe8076a86e3cbff",
+        "tool_names": [
+          "ctf_exec"
+        ],
+        "tools_list_at_ms": 1794315993426,
+        "tools_list_received": true
+      },
+      "t-221202fd67c34bef899a36bf92bea08c": {
+        "initialize_at_ms": 1794315993841,
+        "initialize_received": true,
+        "pid": 13720,
+        "protocol_version": "2025-06-18",
+        "server_name": "ctf-exec",
+        "server_version": "0.1.0",
+        "task_id": "t-221202fd67c34bef899a36bf92bea08c",
+        "tool_names": [
+          "ctf_exec"
+        ],
+        "tools_list_at_ms": 1794315993844,
+        "tools_list_received": true
+      }
+    },
+    "completion": {
+      "e2e_status": "completed",
+      "result_state": "solved_flag_candidate",
+      "ended_at": 1794315998718,
+      "independent_mcp_tools_call": 33740,
+      "acp_spawned_child_pid": 39092,
+      "same_child_tools_call": "NOT VERIFIED (zero-model-call gate)"
     }
   },
   "e2e": {
-    "task_id": "t-844191ca8cbe48b78d2f71d1fb3af4d2",
+    "task_id": "t-9946f14c12a84d0e8d836f1c11b74455",
+    "final_status": "completed",
+    "result_state": "solved_flag_candidate",
+    "ended_at": 1794315998718,
     "writeup": "D:\\CTF-SOLVER\\round2-evidence\\end-to-end\\writeup.md",
     "zip": "D:\\CTF-SOLVER\\round2-evidence\\end-to-end\\evidence.zip",
     "candidate_flag": "flag{synthetic_round2_e2e}",
-    "screenshot_sha256": "7140f80e5fa6ba26a0862cbb1fd97becd9cfe037ed801fc002becccb420b5cce",
-    "note": "Worker tool calls were simulated through the same typed MCP ctf_exec interface; no model call."
+    "screenshot_sha256": "d6803009a0751bfc97fcfd81284e98ecae39704fd1b8624061a351c71f030043",
+    "acp_child_pid": 39092,
+    "independent_mcp_pid": 33740,
+    "note": "Worker tool calls were executed through the typed MCP ctf_exec interface by an independent MCP process; no model call. ACP-spawned child initialize/tools-list is separately verified; same-child tools/call is NOT VERIFIED under the zero-model-call gate."
   },
   "passed": [
     "real ACP client ready",
     "ACP launch uses --profile acp",
+    "Manager ACP argv composes abs project privacy patch",
     "two Workers active and third queued",
     "distinct real ACP sessions",
     "distinct workspaces",
-    "real ACP mounts per-session ctf-exec MCP server",
+    "real ACP-spawned MCP child completed initialize + tools/list",
     "MCP handshake identity matches Worker token",
+    "MCP handshake records owning Task id",
+    "MCP handshake protocol version recorded",
+    "handshake PID descends from the ACP server process",
     "direct MCP tools/call executes typed trusted tool",
     "denied typed execution fails closed",
     "real Harness wrote session log(s)",
@@ -152,19 +214,29 @@
     "imported challenge file exists in isolated Task workspace",
     "typed tools produced real evidence",
     "candidate flag recovered from real tool output",
+    "E2E ACP-spawned MCP child initialized and listed tools",
+    "E2E independent MCP tools/call process differs from ACP-spawned child",
     "E2E screenshot of synthetic program window",
+    "E2E real session log ingested before completion",
+    "E2E Task reaches completed terminal state",
+    "E2E completed Task has real ended_at and concrete result_state",
+    "E2E Writeup shows completed status and concrete result_state",
     "E2E evidence ZIP verifies",
+    "E2E ZIP contains final Writeup + manifest",
     "restart recovery marks active tasks interrupted (never completed)",
     "restart recovery creates no duplicate sessions",
     "interrupted tasks are not reported complete",
-    "isolated-profile privacy mechanism verified (config only)"
+    "restart keeps completed E2E Task completed (not interrupted)",
+    "Manager ACP argv evidence A: --profile acp --patch <abs project patch>",
+    "isolated effective config evidence B disables session-log delivery"
   ],
   "failed": [],
   "notes": [
     "Skill catalog strings were not found in the real ACP session logs (no model turn); live discovery evidence remains the current interactive session log from Round 1 + format checks.",
+    "tools/call for the synthetic E2E was executed by an independent MCP stdio process (ctf-exec identity from the real Worker token), while initialize/tools-list evidence comes from the actual ACP-spawned child. Under the zero-model-call gate, same-child tools/call is NOT VERIFIED.",
     "BLOCKED: requires a model request; no model call is authorized"
   ],
-  "finished_at": "2026-11-10T11:56:33.029848+00:00",
+  "finished_at": "2026-11-10T13:06:41.764040+00:00",
   "model_calls": 0,
   "session_prompt_calls": 0,
   "real_ctf_targets": 0

@@ -114,6 +114,7 @@ EXPECTED_MANAGER_TOOLS = {
     "ctf_task_continue",
     "ctf_task_pause",
     "ctf_task_cancel",
+    "ctf_task_complete",
     "ctf_approval_request",
     "ctf_approval_list",
     "ctf_grant_revoke",
@@ -1328,8 +1329,16 @@ def test_manager_approvals_grants_flag_and_screenshots(tmp_path: Path) -> None:
             task.task_id,
             action_kind="remote_target",
             details={
-                "target": {"host": "127.0.0.1", "port": 8080, "protocol": "tcp", "method": "GET", "path": "/"},
+                "target": {
+                    "host": "127.0.0.1",
+                    "port": 8080,
+                    "protocol": "tcp",
+                    "method": "GET",
+                    "path_prefix": "/",
+                },
                 "profile": "synthetic-local",
+                "grant_ttl_s": 60,
+                "max_calls": 2,
             },
             ttl_s=600,
         )
@@ -1357,10 +1366,9 @@ def test_manager_approvals_grants_flag_and_screenshots(tmp_path: Path) -> None:
             protocol="tcp",
             method="GET",
             path_prefix="/",
-            ttl_s=60,
-            max_calls=2,
         )
         assert grant.task_id == task.task_id and grant.grant_digest
+        assert grant.max_calls == 2
         assert grant.approval_id == approval.approval_id
         revoked = service.revoke_grant(grant.grant_id)
         assert revoked.status is GrantStatus.REVOKED
@@ -1492,6 +1500,11 @@ class _FakeManagerControl:
 
     def cancel_task(self, task_id: str, reason: str = "") -> dict[str, object]:
         return {"task_id": task_id, "status": "cancelled"}
+
+    def complete_task(
+        self, task_id: str, *, result_state: str, note: str = ""
+    ) -> dict[str, object]:
+        return {"task_id": task_id, "status": "completed", "result_state": result_state}
 
     def request_approval(self, task_id: str, **kwargs: object) -> dict[str, object]:
         return {"task_id": task_id, **kwargs}

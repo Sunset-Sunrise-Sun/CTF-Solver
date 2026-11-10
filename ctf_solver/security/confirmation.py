@@ -164,12 +164,19 @@ class ConsoleConfirmationChannel:
         return digest
 
     def _require_summary(self, summary: Any) -> str:
-        text = str(summary or "").strip()
-        if not text:
+        # Round 2 P0-2: a summary is displayed on a real terminal. It must be
+        # exactly the canonical, digest-bound action description and may never
+        # contain control/format characters, CR/LF injection, ANSI/OSC escapes
+        # or bidi overrides. Unsafe summaries fail closed instead of being
+        # "cleaned" while an unnormalized payload is approved.
+        from .textsafe import UnsafeTextError, require_displayable
+
+        try:
+            return require_displayable(summary, field="confirmation summary")
+        except UnsafeTextError as exc:
             raise ConfirmationError(
-                "a human confirmation requires a non-empty action summary"
-            )
-        return text
+                f"{exc.message}; refusing to collect a human decision"
+            ) from exc
 
     def _resolve_os_user(self) -> str:
         if self._os_user is not None:
@@ -185,8 +192,12 @@ class ConsoleConfirmationChannel:
         return user
 
     def _say(self, text: str) -> None:
+        from .textsafe import terminal_safe
+
+        # Every line written to the terminal passes through the terminal-safe
+        # escaper; canonical summaries are validated before they reach here.
         try:
-            self._output_fn(text)
+            self._output_fn(terminal_safe(text))
         except Exception as exc:  # noqa: BLE001 - undisplayed consent is invalid
             raise ConfirmationError(
                 f"the confirmation prompt could not be displayed ({type(exc).__name__}); "

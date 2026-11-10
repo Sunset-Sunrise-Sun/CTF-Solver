@@ -42,6 +42,12 @@ credentials/
 *.tmp
 *.dump
 
+# Committed evidence logs: explicit, narrow exceptions to the local-runtime
+# *.log rule. These are audited test/integration logs referenced by the
+# acceptance reports, not transient debug output.
+!round1-evidence/raw/*.log
+!round2-evidence/raw/*.log
+
 # Python / test tooling
 __pycache__/
 *.py[cod]

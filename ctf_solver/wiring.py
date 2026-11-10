@@ -30,13 +30,15 @@ def default_isolated_dsh_home(root: str | os.PathLike[str]) -> str:
     return str(path)
 
 
-def _acp_launch_command(launcher: list[str]) -> list[str]:
+def _acp_launch_command(
+    launcher: list[str], *, privacy_patch: str | os.PathLike[str] | None = None
+) -> list[str]:
     """Build the audited ``dsh --profile acp`` launch command.
 
     Delegates to the audited launch helper (``ctf_solver.acp.launch``), which
-    wraps a Windows ``.cmd`` launcher in ``cmd.exe /c`` and always appends the
-    ``--profile acp`` arguments. Everything is an argv array (never a shell
-    string).
+    wraps a Windows ``.cmd`` launcher in ``cmd.exe /c``, always appends the
+    ``--profile acp`` arguments and (Round 2 P0-3) the absolute project privacy
+    ``--patch`` argument. Everything is an argv array (never a shell string).
     """
 
     try:
@@ -44,7 +46,12 @@ def _acp_launch_command(launcher: list[str]) -> list[str]:
     except ImportError:  # pragma: no cover - only before the Round 2 module lands
         build_acp_command = None  # type: ignore[assignment]
     if build_acp_command is not None:
-        return build_acp_command(launcher)
+        return build_acp_command(launcher, privacy_patch=privacy_patch)
+    if privacy_patch:
+        raise ConfigError(
+            "the ACP privacy patch requires the Round 2 launch helper; refusing to "
+            "launch an unprotected Harness ACP profile"
+        )
     if not launcher:
         raise ConfigError("empty ACP launcher command")
     executable = launcher[0]
@@ -60,13 +67,24 @@ def default_acp_factory(config: SolverConfig) -> AcpClientFactory:
 
         command = config.acp_command
         if command is None:
+            # Round 2 P0-3: the Manager-managed default ACP launch must compose
+            # the project privacy patch. Missing/invalid patch fails closed.
+            patch_path = config.privacy_patch_path
+            if not patch_path.is_file():
+                raise ConfigError(
+                    f"the project Harness privacy patch is missing: {patch_path}; "
+                    "refusing to launch an unprotected ACP Worker"
+                )
             launcher = discover_acp_command()
             if launcher is None:
                 raise ConfigError(
                     "the audited Harness ACP launcher (dsh) was not found; set "
                     "CTF_SOLVER_ACP_COMMAND or --acp-command to the exact launcher path"
                 )
-            command = _acp_launch_command(launcher)
+            command = _acp_launch_command(launcher, privacy_patch=str(patch_path))
+        # An explicit acp_command is treated as a complete caller-supplied argv
+        # (used by fake-ACP integration tests); the default real launch above is
+        # the path that must and does include --profile acp --patch <abs path>.
         env = build_acp_env(base=os.environ, dsh_home=config.extra.get("dsh_home"))
         env.setdefault("PYTHONPATH", str(Path(__file__).resolve().parent.parent))
         env.setdefault("PYTHONUTF8", "1")

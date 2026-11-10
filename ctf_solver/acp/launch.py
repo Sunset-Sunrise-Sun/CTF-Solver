@@ -16,6 +16,7 @@ never accepted: callers either get an argv list or :class:`ConfigError`.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Mapping
 
 from ..core.config import discover_acp_command
@@ -27,8 +28,43 @@ ACP_PROFILE = "acp"
 #: The two profile arguments every ACP launch command must contain.
 ACP_PROFILE_ARGS: tuple[str, str] = ("--profile", ACP_PROFILE)
 
+#: Project-level privacy patch argument (Round 2 P0-3).
+ACP_PATCH_ARG = "--patch"
+
 #: Launcher extensions that require the Windows command-processor wrapper.
 _CALL_SCRIPT_EXTENSIONS = (".cmd", ".bat")
+
+
+def build_privacy_patch_args(patch_path: str | os.PathLike[str]) -> list[str]:
+    """Return the exact ``["--patch", <absolute-project-patch>]`` arguments.
+
+    Round 2 P0-3 requires every Manager-managed ACP Worker session to compose
+    the project privacy patch. The path must be absolute and the file must
+    exist; otherwise the launch is refused (fail closed) rather than silently
+    running an unprotected Harness profile.
+    """
+
+    if not isinstance(patch_path, (str, os.PathLike)):
+        raise ConfigError("ACP privacy patch path must be a filesystem path")
+    try:
+        candidate = Path(os.fspath(patch_path)).expanduser()
+    except (OSError, ValueError) as exc:
+        raise ConfigError(f"invalid ACP privacy patch path: {patch_path!r}") from exc
+    if not candidate.is_absolute():
+        raise ConfigError(
+            f"ACP privacy patch path must be absolute (got {candidate}); refusing to "
+            "depend on the current working directory"
+        )
+    try:
+        path = candidate.resolve(strict=False)
+    except (OSError, ValueError) as exc:
+        raise ConfigError(f"invalid ACP privacy patch path: {patch_path!r}") from exc
+    if not path.is_file():
+        raise ConfigError(
+            f"ACP privacy patch is missing: {path}; refusing to launch an "
+            "unprotected Harness ACP session"
+        )
+    return [ACP_PATCH_ARG, str(path)]
 
 
 def _comspec(env: Mapping[str, str] | None = None) -> str:
@@ -56,27 +92,37 @@ def _validate_launcher(launcher: object) -> list[str]:
     return [str(entry) for entry in entries]
 
 
-def _build(launcher: object, *, comspec: str) -> list[str]:
+def _build(launcher: object, *, comspec: str, patch_args: list[str] | None = None) -> list[str]:
     entries = _validate_launcher(launcher)
     executable, rest = entries[0], entries[1:]
+    extra = list(patch_args or [])
     if executable.lower().endswith(_CALL_SCRIPT_EXTENSIONS):
-        return [comspec, "/c", executable, *ACP_PROFILE_ARGS, *rest]
-    return [executable, *ACP_PROFILE_ARGS, *rest]
+        return [comspec, "/c", executable, *ACP_PROFILE_ARGS, *extra, *rest]
+    return [executable, *ACP_PROFILE_ARGS, *extra, *rest]
 
 
-def build_acp_command(launcher: list[str]) -> list[str]:
+def build_acp_command(
+    launcher: list[str], *, privacy_patch: str | os.PathLike[str] | None = None
+) -> list[str]:
     """Return the exact argv for the audited ACP server ``dsh --profile acp``.
 
     ``.cmd``/``.bat`` launchers are wrapped as
     ``[COMSPEC, "/c", exe, "--profile", "acp", *rest]``; every other executable
-    as ``[exe, "--profile", "acp", *rest]``. Empty/invalid launchers raise
+    as ``[exe, "--profile", "acp", *rest]``. When ``privacy_patch`` is given,
+    the absolute ``--patch <path>`` arguments are appended after the profile and
+    the patch file must exist. Empty/invalid launchers raise
     :class:`~ctf_solver.core.errors.ConfigError`; a shell string is never built.
     """
 
-    return _build(launcher, comspec=_comspec())
+    patch_args = build_privacy_patch_args(privacy_patch) if privacy_patch else None
+    return _build(launcher, comspec=_comspec(), patch_args=patch_args)
 
 
-def build_default_acp_command(env: dict[str, str] | None = None) -> list[str] | None:
+def build_default_acp_command(
+    env: dict[str, str] | None = None,
+    *,
+    privacy_patch: str | os.PathLike[str] | None = None,
+) -> list[str] | None:
     """Discover the managed launcher and return the ACP launch argv.
 
     Returns ``None`` when no launcher can be discovered so callers report the
@@ -88,4 +134,5 @@ def build_default_acp_command(env: dict[str, str] | None = None) -> list[str] | 
     launcher = discover_acp_command(environ)
     if launcher is None:
         return None
-    return _build(launcher, comspec=_comspec(environ))
+    patch_args = build_privacy_patch_args(privacy_patch) if privacy_patch else None
+    return _build(launcher, comspec=_comspec(environ), patch_args=patch_args)

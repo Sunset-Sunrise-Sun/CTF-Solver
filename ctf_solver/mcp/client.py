@@ -81,6 +81,13 @@ class McpStdioClient:
 
     # -- lifecycle ----------------------------------------------------
 
+    @property
+    def pid(self) -> int | None:
+        """OS process id of the MCP child, once started (evidence/diagnostics)."""
+
+        proc = self._proc
+        return int(proc.pid) if proc is not None else None
+
     def start(self) -> None:
         if self._proc is not None:
             return

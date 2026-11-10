@@ -4,19 +4,25 @@
 
 CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skill and five specialist Skills, a Manager with an ACP Client, independent per-challenge Workers, a typed ctf-exec runtime interface, scoped approvals, durable evidence, and reproducible writeups. It is not a standalone CTF platform and does not introduce a second model loop.
 
-> **Status (2026-11-10, Round 2):** integration candidate on
-> `feat/round2-harness-integration`. Round 1 review defects are fixed: the previously
-> ignored `ctf_solver/evidence/` source is restored and tracked; approval decisions and
-> network grants now require a real local-console human confirmation (the model can only
-> request); session-log ingestion is registry-derived (no model-supplied paths); MCP
-> argument schemas are enforced; ACP launch uses the audited `dsh --profile acp`;
-> challenge files are imported only from the project intake root; and a stdlib PEP 517
-> wheel build/fresh-clone check exists. Real zero-model-call Harness integration passes
-> 30/30 checks (2 Workers + FIFO, per-session Worker MCP mount, real session-log
-> ingestion, real project-owned window screenshot, Writeup/evidence ZIP, restart
-> recovery, synthetic end-to-end challenge). The main-conversation `/ctf-solver` →
-> Manager tool entrypoint and the session-log negative-delivery canary remain
-> BLOCKED/NOT VERIFIED (see [Round 2 integration notes](docs/ROUND_2_HARNESS_INTEGRATION_NOTES.md)).
+> **Status (2026-11-10, Round 2 acceptance remediation):** final independent-acceptance
+> patch on `fix/round2-acceptance-remediation` (based on Round 2 `d388453`; Round 1 and
+> Round 2 branches untouched). It fixes the four P0 defects found by the independent
+> review: approvals now bind the **full** network scope (Task, profile, host/port/
+> protocol/method/path, granted TTL and call budget) and cannot be widened after the
+> human decision; human-confirmation text is normalized/rejected against terminal
+> injection (C0/C1/ESC/ANSI/OSC/CR/LF/bidi, bounded length) so the displayed content is
+> exactly the hashed content; every Manager-managed ACP Worker is launched with the
+> absolute project privacy patch (`--profile acp --patch <abs>`, fail-closed if missing)
+> with isolated `DSH_HOME`; and a normal Task-completion lifecycle (`ctf_task_complete`)
+> closes the ACP session first, only then releases the Worker slot, persists
+> `completed`/`result_state`/`ended_at`, verifies evidence, and promotes the FIFO queue.
+> MCP mount evidence is now protocol-level (`initialize` + `tools/list` from the actual
+> ACP-spawned child, PID ancestry checked), and evidence logs are committed under
+> explicit gitignore exceptions. Real zero-model-call Harness integration passes 43/43
+> checks, including a synthetic end-to-end Task that finishes `completed`. The
+> main-conversation `/ctf-solver` → Manager tool entrypoint and the session-log
+> negative-delivery canary remain BLOCKED (see
+> [remediation report](docs/ROUND_2_REMEDIATION_REPORT.md)).
 > This remains an integration candidate and does **not** claim final MVP acceptance.
 
 ## Product contract
@@ -78,19 +84,23 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 - docs/HARNESS_INTEGRATION_AUDIT_SUMMARY.md — summary of the latest local capability audit.
 - docs/ACCEPTANCE.md — objective implementation/release gates.
 
-## Current implementation status (Round 2 integration candidate)
+## Current implementation status (Round 2 acceptance remediation)
 
 | Area | Status |
 |---|---|
 | Round 1 evidence source recovery (.gitignore root-anchoring) | Fixed; `ctf_solver/evidence/` tracked and importable |
 | Human-confirmed approvals / grants (no MCP decision/create) | Implemented; negative tests; real physical TTY NOT VERIFIED |
+| Approval scope binding (Task/profile/target/TTL/max_calls in digest) | Fixed (remediation P0-1); widening/replay/tamper fail closed |
+| Terminal-injection-safe confirmation text | Fixed (remediation P0-2); control/format characters rejected, display == hashed payload |
 | Session-log ingestion (Manager registry only, no caller path) | Implemented; real Harness log ingestion verified |
 | MCP argument schema enforcement | Implemented; 154 integrity tests + protocol/exec negative tests |
 | ACP permission event session→Task mapping | Fixed; unknown sessions become diagnostics |
-| ACP launch `dsh --profile acp` | Fixed; real zero-model-call launch verified |
+| ACP launch `dsh --profile acp` + project privacy `--patch <abs>` | Fixed (remediation P0-3); real launch effective config verified in isolated DSH_HOME |
+| Normal Task completion lifecycle (human/Manager + `ctf_task_complete`) | Implemented (remediation P0-4); close-before-release, completed E2E verified |
+| Protocol-level MCP mount evidence (ACP child initialize/tools-list, PID ancestry) | Fixed (remediation P1); same-child tools/call NOT VERIFIED (no model call) |
 | Challenge-file controlled intake + hashes + Task isolation | Implemented; Writeup lists real materials |
-| Wheel build (stdlib PEP 517 backend, no installs) + fresh-clone check | Implemented; final wheel/fresh-clone evidence in acceptance report |
-| Real Harness integration (2 Workers + FIFO, per-session Worker MCP mount, restart recovery) | 30/30 checks PASS (zero model calls) |
+| Wheel build (stdlib PEP 517 backend, no installs) + fresh-clone check | Implemented; final wheel/fresh-clone evidence in remediation report |
+| Real Harness integration (2 Workers + FIFO, per-session Worker MCP mount, completion, restart recovery) | 43/43 checks PASS (zero model calls) |
 | Real project-owned window screenshot, Writeup, evidence ZIP | PASS (synthetic end-to-end run committed under `round2-evidence/end-to-end/`) |
 | Main-conversation `/ctf-solver` → Manager tools | **BLOCKED** (no supported project-scoped MCP registration; owner decision needed) |
 | Session-log negative delivery canary | **BLOCKED** (requires a model request; mechanism verified in isolated profile only) |

@@ -150,3 +150,61 @@ receiving isolated copies (modifying one cannot affect the other).
 - Integrity modules: 154 passed, 1 documented Windows-symlink skip.
 - Intake/packaging: 60 passed, 2 documented Windows-symlink skips.
 - Full suite and real-Harness integration evidence are recorded in the acceptance report.
+
+---
+
+## 9. Final acceptance remediation (2026-11-10)
+
+The independent acceptance review found four P0 defects; the final remediation patch
+(fix/round2-acceptance-remediation) fixes them without changing the frozen architecture.
+
+### P0-1 Full authorization scope binding
+
+`remote_target` approval payloads are now canonicalized as::
+
+    {"task_id", "profile",
+     "target": {"host", "port", "protocol", "method", "path_prefix"},
+     "grant_ttl_s", "max_calls"}
+
+All fields participate in `action_digest`; the human summary shows all of them. Grant
+creation reads the approved TTL/call budget from the immutable payload. Optional
+`ttl_s`/`max_calls` parameters are only compatibility checks and must be strict positive
+integers equal to the approved values, otherwise the request fails closed before
+consumption. `bool`, float, numeric strings, zero/negative and oversized values are
+rejected. Tampered SQLite payloads (including TTL/call widening) are detected by
+re-deriving the digest and Task binding. Concurrency still has exactly one winner via
+atomic approval consumption.
+
+### P0-2 Terminal-injection-safe human confirmation
+
+New `ctf_solver/security/textsafe.py` normalizes every untrusted approval field before it
+enters the payload: rejects C0/C1/DEL/surrogates, ESC/ANSI/OSC sequences, CR/LF, Unicode
+bidi/format controls, line/paragraph separators, over-long values and out-of-grammar
+host/profile/path/method/protocol. The same normalized values are hashed, stored,
+summarized and displayed; nothing is silently deleted while an unnormalized payload is
+approved. The console channel re-rejects unsafe summaries, applies length limits and runs
+all output through a terminal-safe escaper. Real physical TTY interaction is NOT VERIFIED
+(tests use an injected TTY; non-TTY/MCP contexts fail closed).
+
+### P0-3 Privacy patch in the real ACP launch path
+
+`default_acp_factory()` now builds the Manager launch as the absolute
+`dsh --profile acp --patch <project>/config/acp/cordis.patch.yml` argv, refuses to launch
+when the patch is missing/relative, and keeps the isolated temporary `DSH_HOME`. Explicit
+`--acp-command` values are treated as complete caller-supplied argv (fake-ACP tests only).
+Real integration records (A) the live Manager argv and (B) the effective isolated config
+(`--dump-config` shows `dsh-session-log-deepseek` disabled). This is configuration
+evidence, not the external-delivery canary (which remains BLOCKED without a model call).
+
+### P0-4 Normal Task completion lifecycle
+
+`ManagerService.complete_task()` and MCP `ctf_task_complete` implement:
+status prechecks; no unfinished execution; no pending approval; ingested session log;
+intact evidence chain + persisted evidence head; Worker/session ownership validation;
+no unresolved ACP security/evidence errors. The Manager stops accepting new
+execution/candidate requests, closes the ACP session, and **only after confirmed close**
+stops the Worker, revokes active grants, persists `completed`/`result_state`/`ended_at`,
+emits `task_completed` and promotes FIFO. A close failure keeps the Task status and Worker
+slot, records a diagnostic and returns a structured `AcpError`; repeated completion is
+idempotent. Terminal Tasks refuse new executions/flags and are never marked interrupted
+by restart recovery.

@@ -174,6 +174,10 @@ class ManagerControl(Protocol):
 
     def cancel_task(self, task_id: str, reason: str = "") -> dict[str, Any]: ...
 
+    def complete_task(
+        self, task_id: str, *, result_state: str, note: str = ""
+    ) -> dict[str, Any]: ...
+
     def request_approval(
         self,
         task_id: str,

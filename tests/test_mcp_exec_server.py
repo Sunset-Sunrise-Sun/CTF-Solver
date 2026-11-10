@@ -130,6 +130,47 @@ def _exec_client(url: str, token: str = GOOD_TOKEN) -> McpStdioClient:
     )
 
 
+def test_exec_server_writes_handshake_only_after_mcp_initialize(fake_ipc: FakeManagerIpc, tmp_path) -> None:
+    handshake = tmp_path / "handshake.json"
+    env = child_env(
+        CTF_SOLVER_IPC_URL=fake_ipc.url,
+        CTF_SOLVER_WORKER_TOKEN=GOOD_TOKEN,
+        CTF_SOLVER_TASK_ID="t-handshake",
+        CTF_SOLVER_MCP_HANDSHAKE_FILE=str(handshake),
+    )
+    client = McpStdioClient(
+        [__import__("sys").executable, "-m", "ctf_solver.mcp.exec_server"],
+        env=env,
+        cwd=str(PROJECT_ROOT),
+        request_timeout=30.0,
+    )
+    client.start()
+    try:
+        # Spawning the process alone must NOT produce protocol-mount evidence.
+        time.sleep(0.4)
+        assert not handshake.exists()
+        client.initialize()
+        time.sleep(0.3)
+        first = json.loads(handshake.read_text(encoding="utf-8"))
+        assert first["initialize_received"] is True
+        assert first["tools_list_received"] is False
+        assert first["pid"] == client.pid
+        assert first["task_id"] == "t-handshake"
+        assert first["protocol_version"]
+        assert first["worker_token_sha256"] == __import__("hashlib").sha256(
+            GOOD_TOKEN.encode("utf-8")
+        ).hexdigest()
+        client.list_tools()
+        time.sleep(0.3)
+        second = json.loads(handshake.read_text(encoding="utf-8"))
+        assert second["tools_list_received"] is True
+        assert second["tool_names"] == ["ctf_exec"]
+        assert second["pid"] == client.pid
+        assert second["initialize_at_ms"] <= second["tools_list_at_ms"]
+    finally:
+        client.close()
+
+
 def test_parse_ipc_url() -> None:
     assert parse_ipc_url("tcp://127.0.0.1:1234") == ("127.0.0.1", 1234)
     assert parse_ipc_url("localhost:9") == ("localhost", 9)

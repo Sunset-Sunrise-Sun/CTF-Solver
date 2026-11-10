@@ -174,6 +174,36 @@ def build_manager_tools(manager: ManagerControl) -> list[McpTool]:
             handler=_wrap(lambda task_id, reason="": manager.cancel_task(task_id, reason)),
         ),
         McpTool(
+            name="ctf_task_complete",
+            description=(
+                "Submit a completion request for an active Task. The Manager verifies the "
+                "lifecycle preconditions (no unfinished execution, no pending approval, "
+                "session-log evidence ingested, intact evidence chain), closes the ACP "
+                "session, then persists the completed terminal state. Completion cannot "
+                "bypass these checks; a failed session close keeps the Task and its slot."
+            ),
+            input_schema=_schema(
+                {
+                    "task_id": {"type": "string"},
+                    "result_state": {
+                        "type": "string",
+                        "description": (
+                            "Concrete outcome token (e.g. solved_flag_candidate, no_flag, "
+                            "partial_analysis); 'unknown' is rejected."
+                        ),
+                    },
+                    "note": {"type": "string"},
+                },
+                ["task_id", "result_state"],
+                "Complete an active Task through the Manager lifecycle.",
+            ),
+            handler=_wrap(
+                lambda task_id, result_state, note="": manager.complete_task(
+                    task_id, result_state=result_state, note=note
+                )
+            ),
+        ),
+        McpTool(
             name="ctf_approval_request",
             description=(
                 "Request a Task-scoped human approval for a sensitive proposed action "

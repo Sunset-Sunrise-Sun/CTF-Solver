@@ -44,6 +44,7 @@ from ..policy.models import (
     normalize_host,
     normalize_method,
     normalize_path,
+    normalize_path_prefix,
     normalize_protocol,
     target_digest,
 )
@@ -53,9 +54,64 @@ from ..security.confirmation import (
     ConsoleConfirmationChannel,
     HumanConfirmation,
 )
+from ..security.textsafe import (
+    UnsafeTextError,
+    normalize_field,
+    require_displayable,
+)
 from .store import ManagerStore
 
 _REMOTE_TARGET = ApprovalAction.REMOTE_TARGET.value
+
+#: Bounds for the human-approved network authorization scope.
+MAX_GRANT_TTL_S = 7 * 24 * 3600
+MAX_GRANT_CALLS = 10_000
+
+_PROFILE_PATTERN = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
+_TASK_ID_PATTERN = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
+_HOST_PATTERN = r"[A-Za-z0-9._:%-]{1,253}"
+_PROTOCOL_PATTERN = r"[A-Za-z][A-Za-z0-9+.-]{0,15}"
+_METHOD_PATTERN = r"[A-Za-z]{1,16}"
+#: URL path-prefix grammar: absolute path, no query/fragment/whitespace.
+_PATH_PREFIX_PATTERN = r"/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{0,511}"
+
+
+def _require_positive_int(value: Any, field: str, *, maximum: int) -> int:
+    """Strictly require a plain Python ``int`` in ``1..maximum``.
+
+    ``bool`` is a subclass of ``int`` in Python but must never be accepted as a
+    TTL/call count; floats, numeric strings and other coercible values are also
+    rejected instead of being silently converted.
+    """
+
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{field} must be an integer")
+    number = int(value)
+    if number <= 0:
+        raise ValueError(f"{field} must be a positive integer")
+    if number > int(maximum):
+        raise ValueError(f"{field} must be <= {maximum}")
+    return number
+
+
+def _require_task_id(value: Any) -> str:
+    return normalize_field(
+        value,
+        field="task_id",
+        max_length=64,
+        pattern=_TASK_ID_PATTERN,
+        pattern_description="Task ID token",
+    )
+
+
+def _require_profile(value: Any) -> str:
+    return normalize_field(
+        value,
+        field="competition_profile",
+        max_length=64,
+        pattern=_PROFILE_PATTERN,
+        pattern_description="letters/digits/dot/dash/underscore",
+    )
 
 #: Maximum number of payload characters echoed in a human-readable summary.
 _SUMMARY_DETAIL_CHARS = 400
@@ -68,110 +124,168 @@ _SUMMARY_DETAIL_CHARS = 400
 
 def canonical_remote_target_details(
     *,
+    task_id: str,
     host: str,
     port: int,
     protocol: str = "tcp",
     method: str = "GET",
-    path: str = "/",
+    path_prefix: str = "/",
     competition_profile: str,
+    grant_ttl_s: int,
+    max_calls: int,
 ) -> dict[str, Any]:
-    """Return the canonical ``remote_target`` approval details mapping.
+    """Return the canonical, digest-bound ``remote_target`` approval details.
+
+    Round 2 P0-1/P0-2: the human-approved scope includes the owning Task, the
+    competition profile, the exact destination, and the **network grant TTL and
+    call budget**. Every field participates in :func:`action_digest`, so a grant
+    cannot later widen its duration or call count.
 
     The mapping is::
 
-        {"target": {"host", "port", "protocol", "method", "path"}, "profile": str}
+        {"task_id", "profile",
+         "target": {"host", "port", "protocol", "method", "path_prefix"},
+         "grant_ttl_s", "max_calls"}
 
-    This is the exact shape requested through :meth:`request_approval` and the
-    exact shape re-derived from grant arguments when a grant is created, so an
-    independent verifier reproduces the same digest. Raises ``ValueError`` for
-    an invalid destination/profile (callers convert it to ``ValidationError``).
+    All untrusted strings are normalized here (single-line, no C0/C1/ESC/ANSI/
+    bidi controls, bounded length, restricted grammar); the normalized mapping
+    is the only content that is hashed, displayed and stored. Raises
+    ``ValueError`` for invalid input (callers convert it to ``ValidationError``).
     """
 
-    profile = str(competition_profile or "").strip()
-    if not profile:
-        raise ValueError("a remote_target approval requires a competition profile")
-    if not isinstance(host, str) or not host.strip():
-        raise ValueError("network target host must be a non-empty string")
-    if not isinstance(protocol, str) or not protocol.strip():
-        raise ValueError("network target protocol must be a non-empty string")
-    if method is None:
-        method = ""
-    if not isinstance(method, str):
-        raise ValueError("network target method must be a string")
-    if not isinstance(path, str):
-        raise ValueError("network target path must be a string")
-    if isinstance(port, bool):
-        raise ValueError("network target port must be an integer")
     try:
+        normalized_task_id = _require_task_id(task_id)
+        profile = _require_profile(competition_profile)
+        host_text = normalize_field(
+            host,
+            field="network target host",
+            max_length=253,
+            pattern=_HOST_PATTERN,
+            pattern_description="letters/digits/dot/dash/underscore/colon/percent",
+        )
+        protocol_text = normalize_field(
+            protocol,
+            field="network target protocol",
+            max_length=16,
+            pattern=_PROTOCOL_PATTERN,
+            pattern_description="protocol token",
+        )
+        if method is None:
+            method = ""
+        method_text = normalize_field(
+            method,
+            field="network target method",
+            max_length=16,
+            allow_empty=True,
+            pattern=_METHOD_PATTERN if str(method).strip() else None,
+            pattern_description="letters only",
+        )
+        if not isinstance(path_prefix, str):
+            raise ValueError("network target path_prefix must be a string")
+        # Reject traversal segments before/after normalization.
+        raw_path = path_prefix.strip(" ")
+        if raw_path and not raw_path.startswith("/"):
+            raw_path = "/" + raw_path
+        if any(segment == ".." for segment in raw_path.split("/")):
+            raise ValueError("network target path_prefix must not contain '..' segments")
+        path_text = normalize_field(
+            raw_path,
+            field="network target path_prefix",
+            max_length=512,
+            pattern=_PATH_PREFIX_PATTERN,
+            pattern_description="absolute URL path without query/fragment/whitespace",
+        )
+        if isinstance(port, bool) or not isinstance(port, int):
+            raise ValueError("network target port must be an integer")
         port_int = int(port)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("network target port must be an integer") from exc
+        if not 1 <= port_int <= 65535:
+            raise ValueError("network target port must be within 1..65535")
+        ttl = _require_positive_int(grant_ttl_s, "grant_ttl_s", maximum=MAX_GRANT_TTL_S)
+        calls = _require_positive_int(max_calls, "max_calls", maximum=MAX_GRANT_CALLS)
+    except UnsafeTextError as exc:
+        raise ValueError(exc.message) from exc
+
     try:
         target = NetworkTarget.from_mapping(
             {
-                "host": host,
+                "host": host_text,
                 "port": port_int,
-                "protocol": protocol,
-                "method": method,
-                "path": normalize_path(path),
+                "protocol": protocol_text,
+                "method": method_text,
+                "path": normalize_path(path_text),
             }
         )
     except ValueError as exc:  # pragma: no cover - message varies by Python version
         raise ValueError(f"invalid network target: {exc}") from exc
-    if not 1 <= int(target.port) <= 65535:
-        raise ValueError("network target port must be within 1..65535")
     normalized_protocol = normalize_protocol(target.protocol)
     if normalized_protocol not in ALLOWED_NETWORK_PROTOCOLS:
         raise ValueError(f"unsupported network protocol: {target.protocol!r}")
     normalized_method = normalize_method(target.method)
-    if len(normalized_method) > 64:
+    if len(normalized_method) > 16:
         raise ValueError("network target method is too long")
     if normalized_protocol in METHOD_REQUIRED_PROTOCOLS and not normalized_method:
         raise ValueError(f"protocol {normalized_protocol!r} requires an action/method")
+    normalized_host = normalize_host(target.host)
+    if not normalized_host:
+        raise ValueError("network target host must not be empty after normalization")
+    normalized_path = normalize_path_prefix(target.path)
     return {
+        "task_id": normalized_task_id,
+        "profile": profile,
         "target": {
-            "host": normalize_host(target.host),
+            "host": normalized_host,
             "port": int(target.port),
             "protocol": normalized_protocol,
             "method": normalized_method,
-            "path": normalize_path(target.path),
+            "path_prefix": normalized_path,
         },
-        "profile": profile,
+        "grant_ttl_s": ttl,
+        "max_calls": calls,
     }
 
 
 def remote_target_action_digest(
     *,
+    task_id: str,
     host: str,
     port: int,
     protocol: str = "tcp",
     method: str = "GET",
-    path: str = "/",
+    path_prefix: str = "/",
     competition_profile: str,
+    grant_ttl_s: int,
+    max_calls: int,
 ) -> str:
-    """Digest binding one concrete network destination/profile to an approval."""
+    """Digest binding one full network authorization scope to an approval Task."""
 
     return action_digest(
         _REMOTE_TARGET,
         canonical_remote_target_details(
+            task_id=task_id,
             host=host,
             port=port,
             protocol=protocol,
             method=method,
-            path=path,
+            path_prefix=path_prefix,
             competition_profile=competition_profile,
+            grant_ttl_s=grant_ttl_s,
+            max_calls=max_calls,
         ),
     )
 
 
 def canonical_approval_details(
-    action_kind: str, details: Mapping[str, Any]
+    action_kind: str,
+    details: Mapping[str, Any],
+    *,
+    task_id: str | None = None,
 ) -> dict[str, Any]:
     """Canonicalize caller-supplied approval details for the given action kind.
 
-    Only ``remote_target`` has a frozen machine-checkable shape today; every
-    other action kind keeps the caller's mapping verbatim (the Broker recomputes
-    its own digest from the typed execution request).
+    ``remote_target`` has a frozen machine-checkable shape and always includes
+    the owning Task and the network grant TTL/call budget. Other action kinds
+    keep the caller's mapping verbatim (the Broker recomputes its own digest
+    from the typed execution request).
     """
 
     if not isinstance(details, Mapping):
@@ -183,20 +297,33 @@ def canonical_approval_details(
     profile = details.get("profile")
     if not isinstance(target, Mapping):
         raise ValidationError(
-            "a remote_target approval requires details={'target': {...}, 'profile': ...}"
+            "a remote_target approval requires details={'target': {...}, 'profile': ..., "
+            "'grant_ttl_s': int, 'max_calls': int}"
         )
     if profile is None or not str(profile).strip():
         raise ValidationError(
             "a remote_target approval requires a non-empty competition profile"
         )
+    payload_task_id = details.get("task_id")
+    if payload_task_id is not None and task_id is not None:
+        if str(payload_task_id) != str(task_id):
+            raise ValidationError(
+                "remote_target approval details task_id does not match the owning Task"
+            )
+    effective_task_id = task_id if task_id is not None else payload_task_id
+    if effective_task_id is None:
+        raise ValidationError("a remote_target approval requires the owning Task ID")
     try:
         return canonical_remote_target_details(
+            task_id=str(effective_task_id),
             host=target.get("host"),  # type: ignore[arg-type]
             port=target.get("port"),  # type: ignore[arg-type]
             protocol=target.get("protocol", "tcp"),
             method=target.get("method", "GET"),
-            path=target.get("path", "/"),
+            path_prefix=target.get("path_prefix", target.get("path", "/")),  # type: ignore[arg-type]
             competition_profile=str(profile),
+            grant_ttl_s=details.get("grant_ttl_s"),  # type: ignore[arg-type]
+            max_calls=details.get("max_calls"),  # type: ignore[arg-type]
         )
     except (TypeError, ValueError) as exc:
         raise ValidationError(f"invalid remote_target approval details: {exc}") from exc
@@ -265,16 +392,14 @@ class ApprovalGrantService:
             raise ValidationError(f"unknown approval action_kind: {action_kind!r}") from exc
         if not isinstance(details, Mapping):
             raise ValidationError("approval details must be a JSON object")
-        canonical = canonical_approval_details(kind.value, details)
+        canonical = canonical_approval_details(kind.value, details, task_id=task.task_id)
 
         expires_at: int | None = None
         if ttl_s is not None:
             try:
-                ttl = int(ttl_s)
-            except (TypeError, ValueError) as exc:
-                raise ValidationError("approval ttl_s must be a positive integer") from exc
-            if ttl <= 0:
-                raise ValidationError("approval ttl_s must be a positive integer")
+                ttl = _require_positive_int(ttl_s, "approval ttl_s", maximum=MAX_GRANT_TTL_S)
+            except ValueError as exc:
+                raise ValidationError(str(exc)) from exc
             expires_at = self.clock.now_ms() + ttl * 1000
 
         now = int(self.clock.now_ms())
@@ -347,6 +472,10 @@ class ApprovalGrantService:
             raise StateError(f"approval {approval_id} has expired")
 
         summary = self.summarize(record)
+        # The summary is built from the canonical stored payload; make sure a
+        # tampered payload (SQLite manipulation) can never reach the human or be
+        # confirmed: re-derive the digest before asking for a decision.
+        self._verified_payload(record, require_approved=False)
         confirmation = decision_method(
             approval_digest=record.action_digest, summary=summary
         )
@@ -392,6 +521,50 @@ class ApprovalGrantService:
     # Grant creation (only from a confirmed approval)
     # ------------------------------------------------------------------
 
+    def _verified_payload(
+        self, record: ApprovalRecord, *, require_approved: bool
+    ) -> dict[str, Any]:
+        """Re-derive the canonical payload/digest and fail closed on tampering.
+
+        Round 2 P0-1: the stored approval row is not trusted. The payload is
+        canonicalized again (including Task, target, TTL and call budget) and
+        must reproduce the recorded digest. A tampered SQLite row therefore can
+        neither be displayed to a human nor mint a grant.
+        """
+
+        if record.action_kind != _REMOTE_TARGET:
+            raise StateError(
+                f"approval {record.approval_id} is {record.action_kind!r}; only a "
+                "remote_target approval can authorize a network grant"
+            )
+        try:
+            payload = canonical_approval_details(
+                _REMOTE_TARGET, record.payload or {}, task_id=record.task_id
+            )
+        except ValidationError as exc:
+            raise StateError(
+                "the stored approval payload is not a valid remote_target action; "
+                f"refusing to use a tampered approval ({exc.message})"
+            ) from exc
+        recomputed = action_digest(_REMOTE_TARGET, payload)
+        stored_digest = str(record.action_digest or "").strip().lower()
+        if not stored_digest or recomputed != stored_digest:
+            raise StateError(
+                "approval payload does not match its recorded digest; refusing to "
+                "use a tampered approval"
+            )
+        if str(payload.get("task_id")) != str(record.task_id):
+            raise StateError(
+                "approval payload Task does not match the approval Task; refusing to "
+                "use a cross-Task approval"
+            )
+        if require_approved and record.status is not ApprovalStatus.APPROVED:
+            raise StateError(
+                f"approval {record.approval_id} is {record.status.value}; a network "
+                "grant requires an APPROVED human-confirmed approval"
+            )
+        return payload
+
     def create_grant_from_approval(
         self,
         approval_id: str,
@@ -402,29 +575,21 @@ class ApprovalGrantService:
         protocol: str = "tcp",
         method: str = "GET",
         path_prefix: str = "/",
-        ttl_s: int = 3600,
-        max_calls: int = 10,
+        ttl_s: int | None = None,
+        max_calls: int | None = None,
     ) -> GrantRecord:
         """Mint one Task-scoped network grant from a human-confirmed approval.
 
-        The requested destination/profile must reproduce exactly the target the
-        human approved; any mismatch, expiry, prior consumption, missing
-        confirmation or tampered payload fails closed *before* consumption.
+        Round 2 P0-1: the grant TTL and call budget are read from the immutable
+        human-approved payload. Optional ``ttl_s``/``max_calls`` parameters are
+        accepted only for explicit compatibility checking: if supplied they must
+        be strict positive integers **equal** to the approved values, otherwise
+        the request is rejected before consumption.
         """
 
         approval = self.store.get_approval(approval_id)
         if approval is None:
             raise NotFoundError(f"unknown approval: {approval_id}")
-        if approval.action_kind != _REMOTE_TARGET:
-            raise StateError(
-                f"approval {approval_id} is {approval.action_kind!r}, not a "
-                "'remote_target' approval; it cannot authorize a network grant"
-            )
-        if approval.status is not ApprovalStatus.APPROVED:
-            raise StateError(
-                f"approval {approval_id} is {approval.status.value}; a network grant "
-                "requires an APPROVED human-confirmed approval"
-            )
         if approval.consumed_at is not None:
             raise StateError(
                 f"approval {approval_id} has already been consumed; it cannot mint "
@@ -445,64 +610,79 @@ class ApprovalGrantService:
             )
         self.store.require_task(approval.task_id)
 
-        # 1. Validate the requested grant target and profile.
+        # 1. Re-derive the approved, immutable payload and verify its digest.
+        payload = self._verified_payload(approval, require_approved=True)
+        approved_ttl = payload["grant_ttl_s"]
+        approved_calls = payload["max_calls"]
+
+        # 2. Compatible callers may repeat the approved values, never widen them.
+        if ttl_s is not None:
+            try:
+                supplied_ttl = _require_positive_int(
+                    ttl_s, "grant ttl_s", maximum=MAX_GRANT_TTL_S
+                )
+            except ValueError as exc:
+                raise ValidationError(str(exc)) from exc
+            if supplied_ttl != approved_ttl:
+                raise StateError(
+                    "the requested grant TTL differs from the human-approved TTL; "
+                    "the approval scope cannot be widened after approval"
+                )
+        if max_calls is not None:
+            try:
+                supplied_calls = _require_positive_int(
+                    max_calls, "max_calls", maximum=MAX_GRANT_CALLS
+                )
+            except ValueError as exc:
+                raise ValidationError(str(exc)) from exc
+            if supplied_calls != approved_calls:
+                raise StateError(
+                    "the requested max_calls differs from the human-approved call "
+                    "budget; the approval scope cannot be widened after approval"
+                )
+
+        # 3. Re-validate the caller's requested destination/profile against the
+        #    approved scope (including TTL/call budget).
         try:
             requested = canonical_remote_target_details(
+                task_id=approval.task_id,
                 host=host,
                 port=port,
                 protocol=protocol,
                 method=method,
-                path=path_prefix,
+                path_prefix=path_prefix,
                 competition_profile=competition_profile,
+                grant_ttl_s=approved_ttl,
+                max_calls=approved_calls,
             )
         except (TypeError, ValueError) as exc:
             raise ValidationError(f"invalid network grant target/profile: {exc}") from exc
-        try:
-            ttl = int(ttl_s)
-            calls = int(max_calls)
-        except (TypeError, ValueError) as exc:
-            raise ValidationError("grant ttl_s and max_calls must be positive integers") from exc
-        if ttl <= 0 or calls <= 0:
-            raise ValidationError("grant ttl_s and max_calls must be positive integers")
-
-        # 2. Re-derive the approved target from the stored payload and require it
-        #    to reproduce the recorded approval digest (tamper detection).
-        try:
-            payload_details = canonical_approval_details(
-                _REMOTE_TARGET, approval.payload or {}
-            )
-        except ValidationError as exc:
-            raise StateError(
-                "the stored approval payload is not a valid remote_target action; "
-                "refusing to create a grant from a tampered approval"
-            ) from exc
-        recomputed = action_digest(_REMOTE_TARGET, payload_details)
-        stored_digest = str(approval.action_digest or "").strip().lower()
-        if not stored_digest or recomputed != stored_digest:
-            raise StateError(
-                "approval payload does not match its recorded digest; refusing to "
-                "create a grant from a tampered approval"
-            )
-
-        # 3. Require the requested destination/profile to equal the approved one.
-        if requested != payload_details:
+        if requested != payload:
             raise StateError(
                 "the requested network target/profile does not match the human-approved "
-                "target; the grant was NOT created"
+                "scope; the grant was NOT created"
             )
-        approved_target = NetworkTarget.from_mapping(payload_details["target"])
+        approved_target = NetworkTarget.from_mapping(
+            {
+                "host": payload["target"]["host"],
+                "port": payload["target"]["port"],
+                "protocol": payload["target"]["protocol"],
+                "method": payload["target"]["method"],
+                "path": payload["target"]["path_prefix"],
+            }
+        )
 
         grant = GrantRecord(
             grant_id=new_id("grant"),
             task_id=approval.task_id,
-            competition_profile=requested["profile"],
+            competition_profile=payload["profile"],
             host=approved_target.host,
             port=int(approved_target.port),
             protocol=approved_target.protocol,
             method=approved_target.method,
             path_prefix=normalize_path(approved_target.path),
-            expires_at=now + ttl * 1000,
-            max_calls=calls,
+            expires_at=now + int(approved_ttl) * 1000,
+            max_calls=int(approved_calls),
             approver=approval.confirmation_os_user,
             created_at=now,
             status=GrantStatus.ACTIVE,
@@ -588,7 +768,14 @@ class ApprovalGrantService:
 
     @staticmethod
     def summarize(record: ApprovalRecord) -> str:
-        """Deterministic one-line description of exactly what is being approved."""
+        """Deterministic description of exactly what the human is approving.
+
+        Round 2 P0-1: for a network authorization the human must see the full
+        scope (destination, port, protocol, action, path prefix, competition
+        profile, grant duration and maximum calls), not just a hostname. Every
+        field comes from the same normalized payload that participates in the
+        action digest; unsafe/raw caller text cannot reach this summary.
+        """
 
         parts = [
             f"approval={record.approval_id}",
@@ -604,20 +791,23 @@ class ApprovalGrantService:
                     f"{target.get('host')}:{target.get('port')} "
                     f"{str(target.get('protocol', '')).lower()} "
                     f"{str(target.get('method', '')).upper()} "
-                    f"{target.get('path', '/')}"
+                    f"{target.get('path_prefix', '/')}"
                 )
             profile = payload.get("profile")
             if profile is not None:
                 parts.append(f"profile={profile}")
+            parts.append(f"grant_ttl_s={payload.get('grant_ttl_s')}")
+            parts.append(f"max_calls={payload.get('max_calls')}")
         else:
-            details = canonical_json(payload)
+            from ..security.textsafe import terminal_safe
+
+            details = terminal_safe(canonical_json(payload), max_length=_SUMMARY_DETAIL_CHARS)
             if len(details) > _SUMMARY_DETAIL_CHARS:
                 details = details[:_SUMMARY_DETAIL_CHARS] + "..."
             parts.append(f"details={details}")
         if record.expires_at is not None:
-            parts.append(f"expires_at={record.expires_at}")
+            parts.append(f"approval_expires_at={record.expires_at}")
         return "  ".join(parts)
-
 
 def _grant_digest(grant: GrantRecord, approval: ApprovalRecord) -> str:
     """Integrity digest binding a grant to its Task, scope and human approval."""

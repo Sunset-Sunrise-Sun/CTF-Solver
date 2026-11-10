@@ -316,8 +316,16 @@ class FakeHumanChannel:
 
 def _remote_target_details(host: str = "127.0.0.1", port: int = 31337, profile: str = "synthetic-local"):
     return {
-        "target": {"host": host, "port": port, "protocol": "tcp", "method": "GET", "path": "/"},
+        "target": {
+            "host": host,
+            "port": port,
+            "protocol": "tcp",
+            "method": "GET",
+            "path_prefix": "/",
+        },
         "profile": profile,
+        "grant_ttl_s": 600,
+        "max_calls": 3,
     }
 
 
@@ -354,11 +362,10 @@ def test_approvals_grants_and_candidate_flag(tmp_path) -> None:
             protocol="tcp",
             method="GET",
             path_prefix="/",
-            ttl_s=600,
-            max_calls=3,
         )
         assert grant.grant_digest
         assert grant.calls_used == 0
+        assert grant.max_calls == 3
         assert grant.approval_id == approval.approval_id
         assert grant.confirmation_os_user == "human-test"
         # Replaying the approval for a second grant fails closed.
@@ -368,8 +375,6 @@ def test_approvals_grants_and_candidate_flag(tmp_path) -> None:
                 competition_profile="synthetic-local",
                 host="127.0.0.1",
                 port=31337,
-                ttl_s=600,
-                max_calls=1,
             )
         revoked = service.revoke_grant(grant.grant_id)
         assert revoked.status.value == "revoked"

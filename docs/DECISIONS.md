@@ -57,7 +57,7 @@ The latest audit found dsh-session-log-deepseek enabled by default and observed 
 ### ADR-010 — Manager owns evidence: SQLite + CAS + append-only event contract
 **Status:** Accepted
 
-Ingest Harness session events/logs into Manager-owned SQLite state/events and a per-record hash chain; store raw outputs/files in SHA-256 CAS. Also maintain append-only evidence/events.jsonl, screenshot directory, and manifest.sha256. Preserve raw source bytes, decode every concatenated zstd frame, correlate calls/results by callId, preserve seq/job/approval state, and record explicit gaps. Hash chain is tamper-evident bookkeeping, not a digital signature.
+Ingest Harness session events/logs into Manager-owned SQLite state/events and a per-record hash chain; store raw outputs/files in SHA-256 CAS. SQLite is the single authoritative Manager state/event store. Generate evidence/events.jsonl deterministically from committed SQLite records; do not independently dual-write SQLite and JSONL as two authorities. Preserve raw source bytes, decode every concatenated zstd frame, correlate calls/results by callId, preserve seq/job/approval state, and record explicit gaps. Hash chain is tamper-evident bookkeeping, not a digital signature.
 
 ### ADR-011 — MCP is the unified local-tool interface; no arbitrary host Shell
 **Status:** Accepted
@@ -108,3 +108,30 @@ External repositories are design references. Source reuse requires checking lice
 10. Screenshot behavior for Java/Qt/GPU applications.
 
 Resolve these without silently changing the accepted product contract.
+
+### ADR-018 — Exactly two concentrated implementation rounds
+**Status:** Accepted by project owner
+
+Implementation is organized into exactly two planned rounds:
+1. Round 1 implements the complete product core (Manager/ACP, Task scheduler, Manager and Worker MCP interfaces, typed ctf-exec, Broker/policy contracts, six Skills, preflight, evidence pipeline, screenshots, Writeup/ZIP, and deterministic tests).
+2. Round 2 integrates with the existing Harness installation, validates the real entrypoint and Worker sessions, completes the synthetic end-to-end workflow, and fixes Round 1 defects.
+
+The former Phase 1–7 development cadence is superseded. This decision changes development sequencing only; it does not change the approved product scope or architecture. After Round 2, stop for independent acceptance. Further work must be a narrowly scoped fix tied to a concrete acceptance finding.
+
+### ADR-019 — Existing-environment-only boundary for both rounds
+**Status:** Accepted by project owner
+
+Neither round may install, uninstall, upgrade, or configure software/packages; modify Harness global profile/config/plugin/MCP/Skill state; or deploy, install, start, or configure WSL/Ubuntu/Docker/containerd/gVisor. Use existing installed dependencies only. Project-local source, Skills, tests, and sample configuration may be created in the CTF-Solver repository. Missing dependencies or capabilities are reported BLOCKED; agents must not install or bypass them.
+
+Both rounds use synthetic challenge data only. No real CTF target access, Flag submission, or host execution of challenge-provided code is authorized. Tier 2 isolation remains a separate future environment workstream.
+
+### ADR-020 — No model prompt without separate authorization
+**Status:** Accepted execution constraint
+
+The two-round development approval does not itself authorize ACP `session/prompt` calls or model usage. Round 1 uses fake servers and zero-model-call ACP lifecycle tests. Round 2 may test model-mediated Worker tool use only after the session-log privacy gate is proven and the owner separately authorizes a synthetic-only model-call test. Without that authorization, mark the model-mediated gate BLOCKED.
+
+
+### ADR-021 — Fully independent clean-room implementation
+**Status:** Accepted
+
+CTF-Solver is a fully independent implementation. Do not reuse or import code, database schemas/migrations, APIs, UI, services, or runtime components from the old CTF Workbench, `D:\CTF`, or `D:\CTFworker`. External GitHub repositories may be used as technical/design references; source-code copying requires a separate license/provenance review and explicit owner approval.

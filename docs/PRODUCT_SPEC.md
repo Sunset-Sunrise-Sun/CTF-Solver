@@ -128,6 +128,7 @@ PDF conversion is a later handoff to another Agent, not part of the CTF-Solver c
 
 ## 10. Out of scope
 
+- Reuse of old CTF Workbench code, database, API, UI, services, or runtime components; CTF-Solver is a clean-room independent implementation.
 - First Blood scanning/monitoring.
 - New standalone frontend/dashboard.
 - Replacement LLM runtime or second agent loop.

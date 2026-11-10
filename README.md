@@ -27,7 +27,7 @@ Worker → typed ctf-exec MCP tool → Manager/Broker → Runtime → approved C
 
 Manager stores authoritative state/events in SQLite, raw bytes in CAS, and produces a Markdown Writeup plus evidence ZIP. Five specialist Skills cover Web, Misc, Crypto, Reverse, and Pwn. Cordis Host Plugin provides lightweight optional hooks; it is not a second runtime.
 
-See [Product Spec](docs/PRODUCT_SPEC.md), [Architecture](docs/ARCHITECTURE.md), and [Execution Contract](docs/EXECUTION_CONTRACT.md).
+See [Product Spec](docs/PRODUCT_SPEC.md), [Architecture](docs/ARCHITECTURE.md), and [Execution Contract](docs/EXECUTION_CONTRACT.md). The owner-approved implementation cadence is exactly two rounds: [Two-Round Execution Plan](docs/TWO_ROUND_EXECUTION_PLAN.md), [Round 1 — Complete Product Core](docs/ROUND_1_IMPLEMENTATION_TASK.md), and [Round 2 — Harness Integration](docs/ROUND_2_INTEGRATION_TASK.md).
 
 ## Safety and execution boundary
 
@@ -49,7 +49,10 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 - docs/EXECUTION_CONTRACT.md — typed ctf-exec interface; no arbitrary Shell.
 - docs/DECISIONS.md — accepted decisions and unresolved implementation details.
 - docs/SECURITY.md — trust boundaries, approvals, network scope, and execution tiers.
-- docs/ROADMAP.md — phased implementation plan and separate environment track.
+- docs/ROADMAP.md — exactly two implementation rounds and separate environment boundary.
+- docs/TWO_ROUND_EXECUTION_PLAN.md — canonical execution index.
+- docs/ROUND_1_IMPLEMENTATION_TASK.md — complete first-round product implementation.
+- docs/ROUND_2_INTEGRATION_TASK.md — second-round Harness integration and end-to-end closure.
 - docs/REFERENCE_PROJECTS.md — external projects and what to learn from them.
 - docs/HARNESS_INTEGRATION_AUDIT_SUMMARY.md — summary of the latest local capability audit.
 - docs/ACCEPTANCE.md — objective implementation/release gates.
@@ -73,11 +76,13 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 
 ## Development rules
 
+0. CTF-Solver is a clean-room independent implementation. Do not reuse code, databases/migrations, APIs, UI, services, or runtime components from the old CTF Workbench / D:/CTF / D:/CTFworker. Reference repositories are for technical ideas; copying source requires license/provenance review and owner approval.
+
 1. Do not change the product contract or decisions silently. Update docs/DECISIONS.md first.
 2. Do not expose arbitrary host Shell or Docker Socket to a Worker.
 3. Do not automatically submit a Flag; the user verifies and submits it.
 4. Keep challenge files, logs, credentials, screenshots, databases, and CAS data out of Git.
-5. Keep environment/toolchain setup separate from product development. Do not modify the existing D:/CTF project or Harness profile/config, or install software, without explicit authorization.
+5. Follow the owner-approved two-round plan. Do not install software, modify Harness global configuration, or deploy/start WSL/Docker. Do not touch the existing D:/CTF project or protected D:/CTFworker imported files.
 6. Do not copy third-party source code without checking its license and recording provenance.
 7. Never report a flag, exploit, screenshot, test, or completion state that was not actually verified.
 

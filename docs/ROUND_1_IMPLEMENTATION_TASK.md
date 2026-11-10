@@ -31,6 +31,10 @@ If any task instruction conflicts with the accepted Product Spec, Architecture, 
 
 ## 1. Approved development and environment boundary
 
+**Clean-room requirement:** CTF-Solver is a fully independent implementation. Do not reuse or import code, database schemas/migrations, APIs, UI, services, or runtime components from the old CTF Workbench / `D:\\CTF` project or `D:\\CTFworker`. Do not copy code from reference repositories. Technical ideas and public protocol knowledge may inform the design; any proposed source reuse requires a separate license/provenance review and explicit owner approval.
+
+
+
 The owner has approved a strict two-round development plan with the following environment boundary:
 
 **Allowed**

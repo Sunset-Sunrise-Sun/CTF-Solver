@@ -253,6 +253,91 @@ class ManagerStore:
                 )
         return self.require_task(task_id)
 
+    def update_evidence_head_if_not_completed(self, task_id: str, head_hash: str) -> bool:
+        """Conditionally refresh a non-completed Task's evidence head.
+
+        A completed Task's ``evidence_head`` is an immutable historical snapshot
+        (its ``task_completed`` event anchor). Ordinary status/writeup/export
+        refreshes must never overwrite it with the advancing global chain head.
+        The condition is evaluated inside the same UPDATE statement, so a task
+        that completes between the caller's read and this write is still safe.
+        """
+
+        with self._tx():
+            cursor = self.conn.execute(
+                "UPDATE tasks SET evidence_head = ?, updated_at = ?"
+                " WHERE task_id = ? AND status != ?",
+                (str(head_hash), self.clock.now_ms(), task_id, TaskStatus.COMPLETED.value),
+            )
+            return cursor.rowcount == 1
+
+    def finalize_task_interruption(
+        self,
+        task_id: str,
+        *,
+        expected_status: TaskStatus,
+        result_state: str,
+        ended_at: int,
+        notes: str = "",
+        worker_id: str | None = None,
+    ) -> TaskRecord:
+        """Atomically mark an active Task interrupted and its Worker stopped.
+
+        Task and Worker are updated in one SQLite transaction with the Task's
+        current status as a compare-and-set precondition. If either UPDATE does
+        not affect exactly one row, the whole transaction rolls back: the Task
+        keeps its previous status and the Worker keeps its occupied slot, so
+        FIFO cannot admit another Task early. A Task with no Worker is handled
+        explicitly as a Task-only recovery; no Worker row is invented.
+        """
+
+        with self._tx():
+            task = self.require_task(task_id)
+            if task.status is not expected_status:
+                raise StateError(
+                    f"Task {task_id} status changed from {expected_status.value} to "
+                    f"{task.status.value}; refusing interruption"
+                )
+            cursor = self.conn.execute(
+                "UPDATE tasks SET status = ?, result_state = ?, ended_at = ?, notes = ?,"
+                " updated_at = ? WHERE task_id = ? AND status = ?",
+                (
+                    TaskStatus.INTERRUPTED.value,
+                    result_state,
+                    int(ended_at),
+                    (notes or "")[:2000],
+                    self.clock.now_ms(),
+                    task_id,
+                    expected_status.value,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise StateError(
+                    f"Task {task_id} interruption compare-and-set failed"
+                )
+            worker = self.get_worker_for_task(task_id)
+            if worker is None:
+                return self.require_task(task_id)
+            if worker_id is not None and worker.worker_id != worker_id:
+                raise StateError(
+                    "Worker does not belong to the Task being interrupted"
+                )
+            worker_cursor = self.conn.execute(
+                "UPDATE workers SET status = ?, updated_at = ?"
+                " WHERE worker_id = ? AND task_id = ?",
+                (
+                    WorkerStatus.STOPPED.value,
+                    self.clock.now_ms(),
+                    worker.worker_id,
+                    task_id,
+                ),
+            )
+            if worker_cursor.rowcount != 1:
+                raise StateError(
+                    f"Worker {worker.worker_id} interruption compare-and-set failed"
+                )
+        return self.require_task(task_id)
+
     def activate_task(
         self,
         task_id: str,

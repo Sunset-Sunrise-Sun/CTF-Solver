@@ -298,7 +298,14 @@ class ManagerService(ManagerControl):
         self._refresh_evidence_head(task_id)
 
     def _refresh_evidence_head(self, task_id: str) -> None:
-        """Persist the current evidence-chain head on the durable Task row."""
+        """Persist the current evidence-chain head on a non-completed Task row.
+
+        A completed Task's ``evidence_head`` is its immutable historical
+        ``task_completed`` anchor. Ordinary queries/writeup/export refresh the
+        head only through ``update_evidence_head_if_not_completed``, whose
+        condition is evaluated atomically inside the SQL UPDATE; a refresh can
+        therefore never overwrite a completion snapshot, even under a race.
+        """
 
         try:
             chain_head = self.evidence.chain_head()
@@ -308,8 +315,18 @@ class ManagerService(ManagerControl):
         if not head_hash:
             return
         try:
+            conditional = getattr(self.store, "update_evidence_head_if_not_completed", None)
+            if callable(conditional):
+                conditional(task_id, head_hash)
+                return
+            # Fallback for non-production repository doubles: never touch a
+            # completed Task, and still attempt a read-check-update.
             task = self.store.get_task(task_id)
-            if task is not None and task.evidence_head != head_hash:
+            if (
+                task is not None
+                and task.status is not TaskStatus.COMPLETED
+                and task.evidence_head != head_hash
+            ):
                 self.store.update_task_fields(task_id, evidence_head=head_hash)
         except Exception as exc:  # noqa: BLE001
             self._event_errors.append(f"evidence_head {task_id}: {exc}")
@@ -486,21 +503,17 @@ class ManagerService(ManagerControl):
                             }
                         )
                     continue
-                if worker is not None:
-                    try:
-                        self.store.set_worker_status(worker.worker_id, WorkerStatus.STOPPED)
-                    except Exception:  # noqa: BLE001
-                        pass
                 try:
-                    self.store.set_task_status(
+                    interrupted = self.store.finalize_task_interruption(
                         task.task_id,
-                        TaskStatus.INTERRUPTED,
+                        expected_status=task.status,
                         result_state="recovered_interrupted",
                         ended_at=self.clock.now_ms(),
                         notes=(
                             "Manager restart: the previous ACP server process no longer exists; "
-                            "the Task was NOT resumed or duplicated in Round 1."
+                            "the Task was NOT resumed or duplicated."
                         ),
+                        worker_id=worker.worker_id if worker else None,
                     )
                     self._emit(
                         task.task_id,
@@ -508,16 +521,34 @@ class ManagerService(ManagerControl):
                         {"reason": "manager_restart", "previous_status": previous, "resumed": False},
                         worker_id=worker.worker_id if worker else None,
                     )
-                except StateError as exc:
-                    self._event_errors.append(f"recover {task.task_id}: {exc}")
-                recovered.append(
-                    {
-                        "task_id": task.task_id,
-                        "previous_status": previous,
-                        "status": TaskStatus.INTERRUPTED.value,
-                        "session_duplicate_created": False,
-                    }
-                )
+                    recovered.append(
+                        {
+                            "task_id": task.task_id,
+                            "previous_status": previous,
+                            "status": interrupted.status.value,
+                            "session_duplicate_created": False,
+                        }
+                    )
+                except Exception as exc:  # noqa: BLE001 - preserve real state, report failure
+                    self._diagnostic(
+                        "recovery_interruption_failed",
+                        str(exc),
+                        task_id=task.task_id,
+                        worker_id=worker.worker_id if worker else None,
+                    )
+                    self._event_errors.append(
+                        f"recover {task.task_id}: {type(exc).__name__}: {exc}"
+                    )
+                    current = self.store.require_task(task.task_id)
+                    recovered.append(
+                        {
+                            "task_id": task.task_id,
+                            "previous_status": previous,
+                            "status": current.status.value,
+                            "session_duplicate_created": False,
+                            "error": f"{type(exc).__name__}: {exc}",
+                        }
+                    )
             queued = [task.task_id for task in self.store.list_queued()]
         return {"interrupted": recovered, "queued": queued}
 
@@ -601,23 +632,39 @@ class ManagerService(ManagerControl):
             finally:
                 pass
 
-        # No trustworthy completion evidence: never report completed. Release the
-        # slot only as part of a clearly interrupted/aborted outcome.
-        if worker is not None:
-            try:
-                self.store.set_worker_status(worker.worker_id, WorkerStatus.STOPPED)
-            except Exception:  # noqa: BLE001
-                pass
-        interrupted = self.store.set_task_status(
-            task_id,
-            TaskStatus.INTERRUPTED,
-            result_state="completion_interrupted",
-            ended_at=self.clock.now_ms(),
-            notes=(
-                "Manager restart during completion: completion evidence was missing or "
-                "invalid; the Task was NOT marked completed and can be investigated."
-            ),
-        )
+        # No trustworthy completion evidence: never report completed. Task and
+        # Worker are interrupted/stopped atomically; any failure keeps the pending
+        # Task and its occupied slot untouched and is reported honestly.
+        try:
+            interrupted = self.store.finalize_task_interruption(
+                task_id,
+                expected_status=TaskStatus.COMPLETION_PENDING,
+                result_state="completion_interrupted",
+                ended_at=self.clock.now_ms(),
+                notes=(
+                    "Manager restart during completion: completion evidence was missing or "
+                    "invalid; the Task was NOT marked completed and can be investigated."
+                ),
+                worker_id=worker.worker_id if worker else None,
+            )
+        except Exception as exc:  # noqa: BLE001 - keep pending + slot protection
+            self._diagnostic(
+                "completion_recovery_interruption_failed",
+                str(exc),
+                task_id=task_id,
+            )
+            self._event_errors.append(
+                f"recover completion interruption {task_id}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            return {
+                "task_id": task_id,
+                "previous_status": previous,
+                "status": TaskStatus.COMPLETION_PENDING.value,
+                "session_duplicate_created": False,
+                "recovered_completion": False,
+                "error": f"{type(exc).__name__}: {exc}",
+            }
         self._emit(
             task_id,
             "task_interrupted",

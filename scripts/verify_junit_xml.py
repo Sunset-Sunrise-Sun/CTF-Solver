@@ -30,6 +30,8 @@ LOG_MAP = {
     "round2-evidence/raw/junit-hardening-with-real-acp.xml": "round2-evidence/raw/hardening-full-with-real-acp.txt",
     "round2-evidence/raw/junit-followup-default.xml": "round2-evidence/raw/hardening-followup-full-default.txt",
     "round2-evidence/raw/junit-followup-with-real-acp.xml": "round2-evidence/raw/hardening-followup-full-with-real-acp.txt",
+    "round2-evidence/raw/junit-followup2-default.xml": "round2-evidence/raw/hardening-followup2-full-default.txt",
+    "round2-evidence/raw/junit-followup2-with-real-acp.xml": "round2-evidence/raw/hardening-followup2-full-with-real-acp.txt",
     "round2-evidence/raw/hardening-final-clone-junit.xml": "round2-evidence/raw/hardening-final-clone-tests.txt",
     "round2-evidence/raw/hardening-followup-clean-clone-junit.xml": "round2-evidence/raw/hardening-followup-clean-clone-tests.txt",
 }

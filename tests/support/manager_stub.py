@@ -177,9 +177,9 @@ class StubManager:
             height=64,
         )
 
-    def ingest_session_log(self, task_id: str, *, path: str, worker_id: str | None = None) -> dict[str, Any]:
+    def ingest_session_log(self, task_id: str, *, worker_id: str | None = None) -> dict[str, Any]:
         self._require_task(task_id)
-        return {"task_id": task_id, "path": path, "appended": 0, "skipped_duplicates": 0, "gaps": []}
+        return {"task_id": task_id, "appended": 0, "skipped_duplicates": 0, "gaps": []}
 
     def export_events(self, task_id: str) -> ExportInfo:
         self._require_task(task_id)
@@ -197,7 +197,16 @@ class StubManager:
         return {"recovered": 0}
 
     def runtime_status(self) -> dict[str, Any]:
-        return {"acp": {"state": "ready"}, "active_workers": 1, "queued_tasks": 0}
+        return {
+            "acp": {"state": "ready"},
+            "active_workers": 1,
+            "queued_tasks": 0,
+            "security": {
+                "approval_decide_via_mcp": "removed (model can only request approval)",
+                "grant_create_via_mcp": "removed (requires a human-confirmed approval via local console)",
+                "session_log_ingest": "manager registry only (no model-supplied file path)",
+            },
+        }
 
     def shutdown(self) -> None:
         pass

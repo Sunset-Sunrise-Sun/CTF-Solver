@@ -1,0 +1,12 @@
+{
+  "exit_code": 0,
+  "composed_config_disables_delivery": true,
+  "isolated_home": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-r2-privacy-1794311792",
+  "isolated_home_files": [
+    "profiles\\acp\\cordis.patch.yml",
+    "profiles\\acp\\cordis.yml",
+    "profiles\\acp\\package.json",
+    "profiles\\acp\\pnpm-workspace.yaml"
+  ],
+  "negative_outbound_canary": "BLOCKED: requires a model request; no model call is authorized"
+}

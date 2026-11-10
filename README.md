@@ -4,16 +4,20 @@
 
 CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skill and five specialist Skills, a Manager with an ACP Client, independent per-challenge Workers, a typed ctf-exec runtime interface, scoped approvals, durable evidence, and reproducible writeups. It is not a standalone CTF platform and does not introduce a second model loop.
 
-> **Status (2026-11-10):** Round 1 implementation candidate on branch
-> `feat/round1-complete-product-core` (based on the frozen documentation commit
-> `960252a`). The complete product core (Manager/ACP Client, FIFO scheduler, Manager and
-> Worker MCP interfaces, typed `ctf-exec`, Broker/Runtime, six Skills, preflight,
-> multi-frame zstd evidence pipeline with SQLite hash chain + CAS, screenshots,
-> Writeup/ZIP) is implemented with deterministic tests and a zero-model-call real ACP
-> lifecycle smoke test. Round 1 does **not** claim final MVP acceptance: the
-> main-conversation `/ctf-solver` → Manager tool path and the session-log negative
-> delivery test remain BLOCKED/NOT VERIFIED for Round 2 (see
-> [Round 1 architecture notes](docs/ROUND_1_ARCHITECTURE_NOTES.md)).
+> **Status (2026-11-10, Round 2):** integration candidate on
+> `feat/round2-harness-integration`. Round 1 review defects are fixed: the previously
+> ignored `ctf_solver/evidence/` source is restored and tracked; approval decisions and
+> network grants now require a real local-console human confirmation (the model can only
+> request); session-log ingestion is registry-derived (no model-supplied paths); MCP
+> argument schemas are enforced; ACP launch uses the audited `dsh --profile acp`;
+> challenge files are imported only from the project intake root; and a stdlib PEP 517
+> wheel build/fresh-clone check exists. Real zero-model-call Harness integration passes
+> 30/30 checks (2 Workers + FIFO, per-session Worker MCP mount, real session-log
+> ingestion, real project-owned window screenshot, Writeup/evidence ZIP, restart
+> recovery, synthetic end-to-end challenge). The main-conversation `/ctf-solver` →
+> Manager tool entrypoint and the session-log negative-delivery canary remain
+> BLOCKED/NOT VERIFIED (see [Round 2 integration notes](docs/ROUND_2_HARNESS_INTEGRATION_NOTES.md)).
+> This remains an integration candidate and does **not** claim final MVP acceptance.
 
 ## Product contract
 
@@ -65,29 +69,30 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 - docs/INTERFACES.md — frozen Round 1 module contracts (implementation boundary record).
 - docs/ROUND_1_ARCHITECTURE_NOTES.md — what Round 1 proves and the remaining Harness integration limits.
 - docs/ROUND_1_ACCEPTANCE_REPORT.md — Round 1 PASS/FAIL/BLOCKED/NOT VERIFIED acceptance report.
+- docs/ROUND_2_SECURITY_CHANGES.md — Round 2 approval/grant/session-ingest/MCP security remediation.
+- docs/ROUND_2_HARNESS_INTEGRATION_NOTES.md — real Harness integration evidence and remaining limits.
+- docs/ROUND_2_INTERFACES.md — Round 2 module/security interface contracts.
 - docs/LOCAL_OPERATION.md — no-install local operation, preflight, testing and data layout.
 - docs/REFERENCE_PROJECTS.md — external projects and what to learn from them.
 - docs/HARNESS_INTEGRATION_AUDIT_SUMMARY.md — summary of the latest local capability audit.
 - docs/ACCEPTANCE.md — objective implementation/release gates.
 
-## Current implementation status (Round 1 candidate)
+## Current implementation status (Round 2 integration candidate)
 
 | Area | Status |
 |---|---|
-| Manager control MCP server + loopback IPC | Implemented; deterministic tests + end-to-end fake-ACP stack test |
-| ACP Client (stdio ND-JSON JSON-RPC 2.0) | Implemented; fake-server matrix + zero-model-call real ACP smoke test PASS |
-| Task/Worker registry, one session/workspace per Task | Implemented; SQLite persisted before ready; recovery without duplicate sessions |
-| Two-Worker FIFO scheduler | Implemented; 2 active + 3rd queued + promotion + failure isolation tested |
-| Worker MCP `ctf-exec` (typed argv, env identity) | Implemented; stdio MCP tests + Manager IPC chain tested |
-| Broker approvals/network grants, fail-closed | Implemented with deny/allow matrix, redirect/DNS revalidation logic |
-| Runtime trusted tools | Tier 0 internal + Tier 1 fixed-argv probes; no challenge-code execution |
-| Core Skill + five specialist Skills | Implemented under `.dsh/skills/`; UTF-8 no BOM; observed discovered by the local Harness |
-| Read-only preflight/doctor | Implemented; no environment mutation tested |
-| Multi-frame zstd + SQLite hash chain + CAS + derived JSONL | Implemented; tamper/gap/idempotency/determinism tests |
-| Explicit screenshots | Capturer implemented + blank/failure handling tested; desktop capture NOT VERIFIED in Round 1 |
-| Markdown Writeup + evidence ZIP + manifest | Implemented; deterministic + independently verified |
-| Main-conversation `/ctf-solver` → Manager tools | **BLOCKED** for Round 2 (no supported project-scoped MCP registration) |
-| Session-log negative delivery canary | **BLOCKED** (requires a model call; mechanism verified in isolated profile) |
+| Round 1 evidence source recovery (.gitignore root-anchoring) | Fixed; `ctf_solver/evidence/` tracked and importable |
+| Human-confirmed approvals / grants (no MCP decision/create) | Implemented; negative tests; real physical TTY NOT VERIFIED |
+| Session-log ingestion (Manager registry only, no caller path) | Implemented; real Harness log ingestion verified |
+| MCP argument schema enforcement | Implemented; 154 integrity tests + protocol/exec negative tests |
+| ACP permission event session→Task mapping | Fixed; unknown sessions become diagnostics |
+| ACP launch `dsh --profile acp` | Fixed; real zero-model-call launch verified |
+| Challenge-file controlled intake + hashes + Task isolation | Implemented; Writeup lists real materials |
+| Wheel build (stdlib PEP 517 backend, no installs) + fresh-clone check | Implemented; final wheel/fresh-clone evidence in acceptance report |
+| Real Harness integration (2 Workers + FIFO, per-session Worker MCP mount, restart recovery) | 30/30 checks PASS (zero model calls) |
+| Real project-owned window screenshot, Writeup, evidence ZIP | PASS (synthetic end-to-end run committed under `round2-evidence/end-to-end/`) |
+| Main-conversation `/ctf-solver` → Manager tools | **BLOCKED** (no supported project-scoped MCP registration; owner decision needed) |
+| Session-log negative delivery canary | **BLOCKED** (requires a model request; mechanism verified in isolated profile only) |
 | Model-mediated Worker / `session/prompt` | **BLOCKED by design** (ADR-020) |
 | OS-isolated execution tier | Not available; separate future environment track |
 

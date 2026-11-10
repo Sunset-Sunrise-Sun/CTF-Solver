@@ -25,9 +25,7 @@ EXPECTED_TOOLS = {
     "ctf_task_pause",
     "ctf_task_cancel",
     "ctf_approval_request",
-    "ctf_approval_decide",
     "ctf_approval_list",
-    "ctf_grant_create",
     "ctf_grant_revoke",
     "ctf_grant_list",
     "ctf_flag_candidate",
@@ -39,6 +37,8 @@ EXPECTED_TOOLS = {
     "ctf_runtime_status",
 }
 
+FORBIDDEN_MODEL_ESCALATION_TOOLS = {"ctf_approval_decide", "ctf_grant_create"}
+
 
 def test_manager_tool_surface_and_schemas() -> None:
     client = _manager_client()
@@ -46,7 +46,9 @@ def test_manager_tool_surface_and_schemas() -> None:
     try:
         client.initialize()
         tools = client.list_tools()
-        assert {tool["name"] for tool in tools} == EXPECTED_TOOLS
+        names = {tool["name"] for tool in tools}
+        assert names == EXPECTED_TOOLS
+        assert not (names & FORBIDDEN_MODEL_ESCALATION_TOOLS)
         for tool in tools:
             assert tool["description"]
             schema = tool["inputSchema"]
@@ -106,37 +108,26 @@ def test_approval_grant_and_flag_tools() -> None:
             {
                 "task_id": task_id,
                 "action_kind": "remote_target",
-                "details": {"host": "127.0.0.1", "port": 31337},
+                "details": {"target": {"host": "127.0.0.1", "port": 31337}, "profile": "synthetic-local"},
                 "ttl_s": 60,
             },
         )
         assert is_error is False
         assert approval["status"] == "pending"
-        decided = client.call_tool(
-            "ctf_approval_decide",
-            {"approval_id": approval["approval_id"], "approved": True, "approver": "human-test"},
-        )
-        assert decided[0] is False
         assert client.call_tool("ctf_approval_list", {})[1]
-        grant = client.call_tool(
-            "ctf_grant_create",
-            {
-                "task_id": task_id,
-                "competition_profile": "synthetic-local",
-                "host": "127.0.0.1",
-                "port": 31337,
-                "protocol": "tcp",
-                "method": "GET",
-                "ttl_s": 600,
-                "max_calls": 5,
-                "approver": "human-test",
-            },
-        )
-        assert grant[0] is False
-        assert grant[1]["port"] == 31337
-        assert client.call_tool("ctf_grant_list", {})[1]
-        revoked = client.call_tool("ctf_grant_revoke", {"grant_id": grant[1]["grant_id"]})
-        assert revoked[0] is False
+        # There is no MCP tool that can approve on the model's behalf.
+        for forbidden in FORBIDDEN_MODEL_ESCALATION_TOOLS:
+            assert forbidden not in EXPECTED_TOOLS
+            try:
+                client.call_tool(forbidden, {"approval_id": approval["approval_id"]})
+            except McpRemoteError as exc:
+                assert exc.code == -32602
+            else:  # pragma: no cover
+                raise AssertionError(f"forbidden escalation tool {forbidden} is exposed")
+        # Grants cannot be created through MCP either; list/revoke remain.
+        assert client.call_tool("ctf_grant_list", {})[0] is False
+        is_error, missing = client.call_tool("ctf_grant_revoke", {"grant_id": "grant-does-not-exist"})
+        assert is_error is True
         flag = client.call_tool(
             "ctf_flag_candidate",
             {"task_id": task_id, "flag": "flag{synthetic}", "source": "local-reproduction"},
@@ -163,14 +154,18 @@ def test_evidence_and_delivery_tools_delegate() -> None:
             ("ctf_events_export", {"task_id": task_id}),
             ("ctf_writeup_build", {"task_id": task_id}),
             ("ctf_evidence_zip", {"task_id": task_id}),
-            ("ctf_session_ingest", {"task_id": task_id, "path": "synthetic.jsonl.zstd"}),
+            ("ctf_session_ingest", {"task_id": task_id}),
             ("ctf_screenshot_capture", {"task_id": task_id, "step_id": "s1", "scope": "desktop"}),
         ):
             is_error, payload = client.call_tool(tool, arguments)
             assert is_error is False, (tool, payload)
+        # The session-log tool must not accept a caller-supplied path.
+        tool_schemas = {tool["name"]: tool["inputSchema"] for tool in client.list_tools()}
+        assert "path" not in tool_schemas["ctf_session_ingest"]["properties"]
         status = client.call_tool("ctf_runtime_status", {})
         assert status[0] is False
         assert "acp" in status[1]
+        assert status[1]["security"]["approval_decide_via_mcp"].startswith("removed")
     finally:
         client.close()
 

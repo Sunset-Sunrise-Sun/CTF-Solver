@@ -33,11 +33,18 @@ def default_isolated_dsh_home(root: str | os.PathLike[str]) -> str:
 def _acp_launch_command(launcher: list[str]) -> list[str]:
     """Build the audited ``dsh --profile acp`` launch command.
 
-    A ``.cmd`` launcher cannot be spawned directly by ``CreateProcess`` on
-    Windows, so it is wrapped in ``cmd.exe /c``. Everything else is executed as
-    an argv array (never a shell string).
+    Delegates to the audited launch helper (``ctf_solver.acp.launch``), which
+    wraps a Windows ``.cmd`` launcher in ``cmd.exe /c`` and always appends the
+    ``--profile acp`` arguments. Everything is an argv array (never a shell
+    string).
     """
 
+    try:
+        from .acp.launch import build_acp_command
+    except ImportError:  # pragma: no cover - only before the Round 2 module lands
+        build_acp_command = None  # type: ignore[assignment]
+    if build_acp_command is not None:
+        return build_acp_command(launcher)
     if not launcher:
         raise ConfigError("empty ACP launcher command")
     executable = launcher[0]
@@ -53,13 +60,13 @@ def default_acp_factory(config: SolverConfig) -> AcpClientFactory:
 
         command = config.acp_command
         if command is None:
-            command = discover_acp_command()
-            if command is None:
+            launcher = discover_acp_command()
+            if launcher is None:
                 raise ConfigError(
                     "the audited Harness ACP launcher (dsh) was not found; set "
                     "CTF_SOLVER_ACP_COMMAND or --acp-command to the exact launcher path"
                 )
-            command = _acp_launch_command(command)
+            command = _acp_launch_command(launcher)
         env = build_acp_env(base=os.environ, dsh_home=config.extra.get("dsh_home"))
         env.setdefault("PYTHONPATH", str(Path(__file__).resolve().parent.parent))
         env.setdefault("PYTHONUTF8", "1")
@@ -73,6 +80,26 @@ def default_acp_factory(config: SolverConfig) -> AcpClientFactory:
         )
 
     return factory
+
+
+def build_security_service(config: SolverConfig) -> tuple[Any, Any, Any]:
+    """Compose the human-confirmation approval/grant service for the local CLI.
+
+    Deliberately does not start the ACP client, the IPC endpoint or a Worker:
+    approval decisions must be made by a human at the local console, not by an
+    agent-driven MCP process.
+    """
+
+    from .core.protocols import SystemClock
+    from .evidence.store import EvidenceStore
+    from .manager.approval_grant_service import ApprovalGrantService
+    from .manager.store import ManagerStore
+
+    paths = config.ensure_layout()
+    store = ManagerStore(str(paths.db_path))
+    evidence = EvidenceStore(str(paths.db_path), str(paths.cas_dir))
+    service = ApprovalGrantService(store, evidence, SystemClock(), config)
+    return service, store, evidence
 
 
 def build_manager_service(

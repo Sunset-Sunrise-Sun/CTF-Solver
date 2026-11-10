@@ -60,6 +60,19 @@ class SolverPaths:
     def task_workspace(self, task_id: str) -> Path:
         return self.tasks_dir / task_id / "work"
 
+    def task_inputs_dir(self, task_id: str) -> Path:
+        return self.tasks_dir / task_id / "work" / "inputs"
+
+    def intake_dir(self) -> Path:
+        return self.root / "challenge-uploads"
+
+    def default_dsh_home(self) -> Path:
+        return self.data_dir / "dsh-home"
+
+    def session_logs_root(self, dsh_home: str | os.PathLike[str] | None = None) -> Path:
+        base = Path(dsh_home) if dsh_home else self.default_dsh_home()
+        return base / "sessions"
+
     def task_dir(self, task_id: str) -> Path:
         return self.tasks_dir / task_id
 
@@ -113,6 +126,41 @@ class SolverConfig:
         paths = self.paths
         paths.ensure()
         return paths
+
+    @property
+    def dsh_home(self) -> Path:
+        """Harness home used by the managed ACP server (isolated by default)."""
+
+        configured = (self.extra.get("dsh_home") or "").strip()
+        if configured:
+            return Path(os.path.abspath(configured))
+        return self.paths.default_dsh_home()
+
+    @property
+    def session_log_root(self) -> Path:
+        """Session log root inside the managed Harness home (``<DSH_HOME>/sessions``)."""
+
+        configured = (self.extra.get("session_log_root") or "").strip()
+        if configured:
+            return Path(os.path.abspath(configured))
+        return self.dsh_home / "sessions"
+
+    @property
+    def intake_root(self) -> Path:
+        """Project-scoped challenge-file intake area (never arbitrary host paths)."""
+
+        configured = (self.extra.get("intake_dir") or "").strip()
+        if configured:
+            return Path(os.path.abspath(configured))
+        return self.paths.intake_dir()
+
+    def ensure_runtime_dirs(self) -> None:
+        """Create runtime directories needed by the Manager (all git-ignored)."""
+
+        self.ensure_layout()
+        self.intake_root.mkdir(parents=True, exist_ok=True)
+        self.dsh_home.mkdir(parents=True, exist_ok=True)
+        self.session_log_root.mkdir(parents=True, exist_ok=True)
 
 
 def discover_acp_command(env: dict[str, str] | None = None) -> list[str] | None:

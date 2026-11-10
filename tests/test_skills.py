@@ -63,7 +63,7 @@ def test_core_skill_requirements() -> None:
         "ctf_task_create",
         "ctf_task_continue",
         "ctf_approval_request",
-        "ctf_grant_create",
+        "approval confirm",
         "ctf_flag_candidate",
         "ctf-writeup" if False else "ctf_writeup_build",
         "ctf_evidence_zip",

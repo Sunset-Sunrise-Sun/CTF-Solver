@@ -12,7 +12,7 @@ import pytest
 
 from ctf_solver.core.types import ExecutionResult, ExecutionStatus
 from ctf_solver.mcp.bridge import ManagerIpcClient, parse_ipc_url
-from ctf_solver.mcp.client import McpStdioClient
+from ctf_solver.mcp.client import McpRemoteError, McpStdioClient
 from tests.support.proc import PROJECT_ROOT, child_env
 
 GOOD_TOKEN = "test-worker-token-123"
@@ -209,6 +209,24 @@ def test_exec_server_identity_comes_from_env_not_arguments(fake_ipc: FakeManager
     client.start()
     try:
         client.initialize()
+        # Strict schema validation rejects unknown identity fields instead of
+        # silently ignoring them: identity can only come from the environment.
+        with pytest.raises(McpRemoteError) as info:
+            client.call_tool(
+                "ctf_exec",
+                {
+                    "task_id": "t-test",
+                    "worker_id": "w-test",
+                    "step_id": "s",
+                    "tool_name": "internal.file_hash",
+                    "argv": ["x"],
+                    "cwd": "D:/synthetic/tasks/t-test/work",
+                    "worker_token": "attacker-supplied-token",
+                },
+            )
+        assert info.value.code == -32602
+        assert not [req for req in fake_ipc.requests if req.get("method") == "ctf_exec"]
+        # A valid call still uses the env token and cannot be overridden.
         is_error, payload = client.call_tool(
             "ctf_exec",
             {
@@ -218,11 +236,9 @@ def test_exec_server_identity_comes_from_env_not_arguments(fake_ipc: FakeManager
                 "tool_name": "internal.file_hash",
                 "argv": ["x"],
                 "cwd": "D:/synthetic/tasks/t-test/work",
-                "worker_token": "attacker-supplied-token",
             },
         )
         assert is_error is False, payload
-        # The env token is what reached the Manager; the argument cannot override it.
         forwarded = [req for req in fake_ipc.requests if req.get("method") == "ctf_exec"][-1]
         assert forwarded["token"] == GOOD_TOKEN
     finally:
@@ -234,19 +250,19 @@ def test_exec_server_rejects_non_array_argv(fake_ipc: FakeManagerIpc) -> None:
     client.start()
     try:
         client.initialize()
-        is_error, payload = client.call_tool(
-            "ctf_exec",
-            {
-                "task_id": "t-test",
-                "worker_id": "w-test",
-                "step_id": "s",
-                "tool_name": "internal.file_hash",
-                "argv": "echo hello; rm -rf /",
-                "cwd": "D:/synthetic/tasks/t-test/work",
-            },
-        )
-        assert is_error is True
-        assert payload["reason_code"] == "argv_schema_violation"
+        with pytest.raises(McpRemoteError) as info:
+            client.call_tool(
+                "ctf_exec",
+                {
+                    "task_id": "t-test",
+                    "worker_id": "w-test",
+                    "step_id": "s",
+                    "tool_name": "internal.file_hash",
+                    "argv": "echo hello; rm -rf /",
+                    "cwd": "D:/synthetic/tasks/t-test/work",
+                },
+            )
+        assert info.value.code == -32602
         assert not [req for req in fake_ipc.requests if req.get("method") == "ctf_exec"]
     finally:
         client.close()

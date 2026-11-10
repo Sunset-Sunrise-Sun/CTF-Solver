@@ -72,7 +72,9 @@ def test_create_task_runs_through_acp_and_persists_mapping(tmp_path) -> None:
         assert Path(call["cwd"]).resolve() == Path(task.workspace_path).resolve()
         assert call["mcp_servers"][0]["name"] == "ctf-exec"
         assert call["mcp_servers"][0]["args"] == ["-m", "ctf_solver.mcp.exec_server"]
-        env = call["mcp_servers"][0]["env"]
+        env_entries = call["mcp_servers"][0]["env"]
+        assert isinstance(env_entries, list), "ACP session/new mcpServers env must be {name,value} entries"
+        env = {entry["name"]: entry["value"] for entry in env_entries}
         assert env["CTF_SOLVER_IPC_URL"].startswith("tcp://127.0.0.1:")
         assert env["CTF_SOLVER_WORKER_TOKEN"]
         assert "PYTHONPATH" in env
@@ -288,6 +290,37 @@ def test_continue_task_never_prompts(tmp_path) -> None:
         store.close()
 
 
+class FakeHumanChannel:
+    """Deterministic test double for the local-console confirmation channel."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
+    def confirm(self, *, approval_digest: str, summary: str):
+        from ctf_solver.security.confirmation import HumanConfirmation
+
+        self.calls.append({"approval_digest": approval_digest, "summary": summary})
+        return HumanConfirmation(
+            channel="local_console",
+            os_user="human-test",
+            confirmed_at=1_700_000_000_000,
+            confirmation_id=f"conf-test-{len(self.calls)}",
+            approval_digest=approval_digest,
+            note="test",
+        )
+
+    def reject(self, *, approval_digest: str, summary: str):
+        confirmation = self.confirm(approval_digest=approval_digest, summary=summary)
+        return confirmation
+
+
+def _remote_target_details(host: str = "127.0.0.1", port: int = 31337, profile: str = "synthetic-local"):
+    return {
+        "target": {"host": host, "port": port, "protocol": "tcp", "method": "GET", "path": "/"},
+        "profile": profile,
+    }
+
+
 def test_approvals_grants_and_candidate_flag(tmp_path) -> None:
     service, _acp, evidence, _pipeline, _deliverables, store = build_service(tmp_path)
     try:
@@ -296,29 +329,48 @@ def test_approvals_grants_and_candidate_flag(tmp_path) -> None:
         approval = service.request_approval(
             task.task_id,
             action_kind="remote_target",
-            details={"host": "127.0.0.1", "port": 31337},
-            ttl_s=60,
+            details=_remote_target_details(),
+            ttl_s=600,
         )
         assert approval.status.value == "pending"
+        # The Agent/MCP cannot decide an approval at all.
         with pytest.raises(StateError):
-            service.decide_approval(approval.approval_id, approved=True, approver="")
-        decided = service.decide_approval(
-            approval.approval_id, approved=True, approver="human-owner"
-        )
-        assert decided.status.value == "approved"
+            service.decide_approval(approval.approval_id, approved=True, approver="human-owner")
+        # Only the human local-console confirmation path can approve.
+        channel = FakeHumanChannel()
+        approved = service.confirm_approval(approval.approval_id, channel=channel)
+        assert approved.status.value == "approved"
+        assert approved.confirmation_channel == "local_console"
+        assert approved.confirmation_os_user == "human-test"
+        assert approved.approver == "human-test"
+        assert channel.calls and channel.calls[0]["approval_digest"] == approval.action_digest
         assert service.list_approvals(task_id=task.task_id)
 
-        grant = service.create_network_grant(
-            task.task_id,
+        grant = service.create_grant_from_approval(
+            approval.approval_id,
             competition_profile="synthetic-local",
             host="127.0.0.1",
             port=31337,
+            protocol="tcp",
+            method="GET",
+            path_prefix="/",
             ttl_s=600,
             max_calls=3,
-            approver="human-owner",
         )
         assert grant.grant_digest
         assert grant.calls_used == 0
+        assert grant.approval_id == approval.approval_id
+        assert grant.confirmation_os_user == "human-test"
+        # Replaying the approval for a second grant fails closed.
+        with pytest.raises(StateError):
+            service.create_grant_from_approval(
+                approval.approval_id,
+                competition_profile="synthetic-local",
+                host="127.0.0.1",
+                port=31337,
+                ttl_s=600,
+                max_calls=1,
+            )
         revoked = service.revoke_grant(grant.grant_id)
         assert revoked.status.value == "revoked"
         assert service.list_grants(task_id=task.task_id)
@@ -368,10 +420,24 @@ def test_evidence_and_delivery_delegation(tmp_path) -> None:
     try:
         service.start()
         task = service.create_task(title="t", category="misc", conversation_id="conv")
-        log_path = tmp_path / "session.v4.jsonl.zstd"
-        log_path.write_bytes(b"fake")
-        report = service.ingest_session_log(task.task_id, path=str(log_path))
+        # Register the Task's real Harness-layout session log under the Manager's
+        # sessions root; the model can never pass a path to ingest.
+        from tests.support.session_events import standard_session
+        from tests.support.zstd_fixtures import write_session_log
+
+        session_dir = service.config.session_log_root / "fake-slug" / str(task.acp_session_id)
+        session_dir.mkdir(parents=True, exist_ok=True)
+        write_session_log(
+            session_dir / "session.v4.jsonl.zstd",
+            standard_session(session_id=str(task.acp_session_id)),
+            frames=4,
+        )
+        report = service.ingest_session_log(task.task_id)
         assert report["appended"] == 3
+        assert "path" not in report and "raw_path" not in report
+        # A second worker_id that does not match the Task's Worker fails closed.
+        with pytest.raises(Exception):
+            service.ingest_session_log(task.task_id, worker_id="w-not-this-worker")
         exported = service.export_events(task.task_id)
         assert exported.kind == "events_jsonl"
         writeup = service.build_writeup(task.task_id)
@@ -383,6 +449,7 @@ def test_evidence_and_delivery_delegation(tmp_path) -> None:
         status = service.get_task_status(task.task_id)
         assert status["executions"] == []
         assert status["evidence"]["chain_status"]["ok"] is True
+        assert status["inputs"] == []
     finally:
         service.shutdown()
         store.close()

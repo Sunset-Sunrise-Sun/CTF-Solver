@@ -112,6 +112,35 @@ class ExecToolService:
             raise McpToolError(exc.message, reason_code=exc.reason_code, details=exc.details) from exc
 
 
+def _write_handshake_if_configured(env: dict[str, str], ipc_url: str, token: str) -> None:
+    """Integration evidence hook: prove the real Harness ACP server spawned and
+    initialized this per-session MCP server (no model call required)."""
+
+    target = (env.get("CTF_SOLVER_MCP_HANDSHAKE_FILE") or "").strip()
+    if not target:
+        return
+    import json
+    import hashlib
+    import time
+    from pathlib import Path
+
+    payload = {
+        "pid": os.getpid(),
+        "started_at_ms": int(time.time() * 1000),
+        "ipc_url_scheme_host": ipc_url.split("//")[-1].split(":")[0] if "//" in ipc_url else "",
+        "worker_token_sha256": hashlib.sha256(token.encode("utf-8")).hexdigest(),
+        "tool": EXEC_TOOL_NAME,
+    }
+    path = Path(target)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+        tmp.replace(path)
+    except OSError:
+        pass
+
+
 def build_server(env: dict[str, str] | None = None) -> McpServer:
     environ = dict(os.environ if env is None else env)
     ipc_url = environ.get("CTF_SOLVER_IPC_URL", "").strip()
@@ -122,6 +151,7 @@ def build_server(env: dict[str, str] | None = None) -> McpServer:
             "ctf-exec MCP server requires CTF_SOLVER_IPC_URL and CTF_SOLVER_WORKER_TOKEN "
             "in the environment (injected by the Manager for this Worker session)"
         )
+    _write_handshake_if_configured(environ, ipc_url, token)
     client = ManagerIpcClient(ipc_url, token, timeout_s=timeout_s)
     service = ExecToolService(client)
     server = McpServer(

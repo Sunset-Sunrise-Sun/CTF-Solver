@@ -111,11 +111,10 @@ def _cmd_task(args: argparse.Namespace) -> int:
     # Round 1 defaults to a project-local isolated DSH_HOME so local Task
     # commands never write session/profile state into the live ~/.dsh.
     dsh_home = args.dsh_home or default_isolated_dsh_home(args.root)
-    config = SolverConfig(
-        root=args.root,
-        capture_mode="fake",
-        extra={"dsh_home": str(dsh_home)},
-    )
+    extra: dict[str, str] = {"dsh_home": str(dsh_home)}
+    if args.intake_dir:
+        extra["intake_dir"] = str(args.intake_dir)
+    config = SolverConfig(root=args.root, capture_mode="fake", extra=extra)
     service = build_manager_service(config)
     try:
         service.start()
@@ -127,6 +126,7 @@ def _cmd_task(args: argparse.Namespace) -> int:
                 source=args.source or "",
                 scope_profile=args.scope_profile or "",
                 notes=args.notes or "",
+                supplied_files=list(args.supplied_file or []),
             )
             print(json.dumps(task.to_dict(), ensure_ascii=False, indent=2))
             return 0
@@ -141,6 +141,93 @@ def _cmd_task(args: argparse.Namespace) -> int:
         return 2
     finally:
         service.shutdown()
+
+
+def _cmd_approval(args: argparse.Namespace) -> int:
+    from .core.config import SolverConfig
+    from .core.protocols import SystemClock
+    from .security.confirmation import ConsoleConfirmationChannel
+    from .wiring import build_security_service
+
+    config = SolverConfig(root=args.root)
+    service, store, evidence = build_security_service(config)
+    try:
+        if args.action == "list":
+            records = service.list_approvals(task_id=args.task_id or None)
+            print(json.dumps([record.to_dict() for record in records], ensure_ascii=False, indent=2))
+            return 0
+        if args.action in {"confirm", "reject"}:
+            if not args.approval_id:
+                print("--approval-id is required for confirm/reject", file=sys.stderr)
+                return 2
+            channel = ConsoleConfirmationChannel(SystemClock())
+            record = service.confirm_approval(
+                args.approval_id,
+                channel=channel,
+                reject=(args.action == "reject"),
+                note=args.note or "",
+            )
+            print(json.dumps(record.to_dict(), ensure_ascii=False, indent=2))
+            return 0
+        print(f"unknown approval action: {args.action}", file=sys.stderr)
+        return 2
+    except Exception as exc:  # noqa: BLE001 - CLI reports domain failures
+        print(f"approval operation failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        try:
+            evidence.close()
+        except Exception:  # noqa: BLE001
+            pass
+        store.close()
+
+
+def _cmd_grant(args: argparse.Namespace) -> int:
+    from .core.config import SolverConfig
+    from .wiring import build_security_service
+
+    config = SolverConfig(root=args.root)
+    service, store, evidence = build_security_service(config)
+    try:
+        if args.action == "list":
+            records = service.list_grants(task_id=args.task_id or None)
+            print(json.dumps([record.to_dict() for record in records], ensure_ascii=False, indent=2))
+            return 0
+        if args.action == "create":
+            if not args.approval_id:
+                print("--approval-id is required to create a grant", file=sys.stderr)
+                return 2
+            record = service.create_grant_from_approval(
+                args.approval_id,
+                competition_profile=args.competition_profile,
+                host=args.host,
+                port=args.port,
+                protocol=args.protocol,
+                method=args.method,
+                path_prefix=args.path_prefix,
+                ttl_s=args.ttl_s,
+                max_calls=args.max_calls,
+            )
+            print(json.dumps(record.to_dict(), ensure_ascii=False, indent=2))
+            return 0
+        if args.action == "revoke":
+            if not args.grant_id:
+                print("--grant-id is required to revoke", file=sys.stderr)
+                return 2
+            record = service.revoke_grant(args.grant_id)
+            print(json.dumps(record.to_dict(), ensure_ascii=False, indent=2))
+            return 0
+        print(f"unknown grant action: {args.action}", file=sys.stderr)
+        return 2
+    except Exception as exc:  # noqa: BLE001
+        print(f"grant operation failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        try:
+            evidence.close()
+        except Exception:  # noqa: BLE001
+            pass
+        store.close()
 
 
 def _cmd_version(_args: argparse.Namespace) -> int:
@@ -202,6 +289,20 @@ def build_parser() -> argparse.ArgumentParser:
     task.add_argument("--notes", default="")
     task.add_argument("--task-id", default="")
     task.add_argument(
+        "--supplied-file",
+        action="append",
+        default=[],
+        help=(
+            "Challenge file to import, relative to the intake dir (default "
+            "<root>/challenge-uploads). Repeatable. Absolute host paths are rejected."
+        ),
+    )
+    task.add_argument(
+        "--intake-dir",
+        default="",
+        help="Override the challenge-file intake directory (default <root>/challenge-uploads).",
+    )
+    task.add_argument(
         "--dsh-home",
         default="",
         help=(
@@ -210,6 +311,36 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     task.set_defaults(func=_cmd_task)
+
+    approval = sub.add_parser(
+        "approval",
+        help="Human approval console (list / confirm / reject). Decisions require an interactive TTY.",
+    )
+    approval.add_argument("action", choices=["list", "confirm", "reject"])
+    approval.add_argument("--root", default=".")
+    approval.add_argument("--approval-id", default="")
+    approval.add_argument("--task-id", default="")
+    approval.add_argument("--note", default="")
+    approval.set_defaults(func=_cmd_approval)
+
+    grant = sub.add_parser(
+        "grant",
+        help="Task-scoped network grants (create requires a human-confirmed approval; list / revoke).",
+    )
+    grant.add_argument("action", choices=["create", "list", "revoke"])
+    grant.add_argument("--root", default=".")
+    grant.add_argument("--approval-id", default="")
+    grant.add_argument("--grant-id", default="")
+    grant.add_argument("--task-id", default="")
+    grant.add_argument("--competition-profile", default="synthetic-local")
+    grant.add_argument("--host", default="127.0.0.1")
+    grant.add_argument("--port", type=int, default=31337)
+    grant.add_argument("--protocol", default="tcp")
+    grant.add_argument("--method", default="GET")
+    grant.add_argument("--path-prefix", default="/")
+    grant.add_argument("--ttl-s", type=int, default=3600)
+    grant.add_argument("--max-calls", type=int, default=10)
+    grant.set_defaults(func=_cmd_grant)
 
     version = sub.add_parser("version", help="Print version")
     version.set_defaults(func=_cmd_version)

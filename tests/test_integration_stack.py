@@ -22,7 +22,7 @@ from ctf_solver.mcp.client import McpStdioClient
 from tests.support.proc import PROJECT_ROOT, child_env, terminate, wait_until
 
 
-def _manager_command(root: Path, logs: Path, record: Path) -> list[str]:
+def _manager_command(root: Path, logs: Path, record: Path, session_root: Path) -> list[str]:
     fake = (
         f"{sys.executable} -m ctf_solver.acp.fake_server --scenario normal "
         f"--session-log {logs} --record {record}"
@@ -37,6 +37,8 @@ def _manager_command(root: Path, logs: Path, record: Path) -> list[str]:
         fake,
         "--capture-mode",
         "fake",
+        "--session-log-root",
+        str(session_root),
     ]
 
 
@@ -48,8 +50,10 @@ def stack(tmp_path: Path):
     logs.mkdir()
     record = tmp_path / "acp-record"
     record.mkdir()
+    session_root = tmp_path / "harness-sessions"
+    session_root.mkdir()
     client = McpStdioClient(
-        _manager_command(root, logs, record),
+        _manager_command(root, logs, record, session_root),
         env=child_env(),
         cwd=str(PROJECT_ROOT),
         request_timeout=90.0,
@@ -57,7 +61,7 @@ def stack(tmp_path: Path):
     client.start()
     try:
         client.initialize(client_info={"name": "round1-integration-test", "version": "0.1.0"})
-        yield client, root, logs, record
+        yield client, root, logs, record, session_root
     finally:
         client.close()
 
@@ -94,7 +98,7 @@ def _start_exec_client(ipc_url: str, token: str) -> McpStdioClient:
 
 
 def test_full_round1_stack(stack) -> None:
-    client, root, logs, record = stack
+    client, root, logs, record, session_root = stack
 
     # 1. Runtime status: manager + ACP client + IPC up.
     is_error, status = client.call_tool("ctf_runtime_status", {})
@@ -199,14 +203,19 @@ def test_full_round1_stack(stack) -> None:
     assert task_status["evidence"]["chain_head_seq"] > 0
 
     # 8. Session-log ingestion (multi-frame zstd -> normalized evidence, idempotent).
+    # The Manager resolves the log from its own Task/Worker/session registry; the
+    # test materializes the real Harness layout under the configured sessions root.
+    harness_dir = session_root / "fake-harness-slug" / str(tasks[0]["acp_session_id"])
+    harness_dir.mkdir(parents=True, exist_ok=True)
+    (harness_dir / "session.v4.jsonl.zstd").write_bytes(log_path.read_bytes())
     is_error, ingest = client.call_tool(
-        "ctf_session_ingest", {"task_id": tasks[0]["task_id"], "path": str(log_path)}
+        "ctf_session_ingest", {"task_id": tasks[0]["task_id"]}
     )
     assert is_error is False, (ingest, client.diagnostics())
     assert ingest["appended"] > 0
     before_reingest = _task_status(client, tasks[0]["task_id"])["evidence"]["chain_head_seq"]
     is_error, ingest2 = client.call_tool(
-        "ctf_session_ingest", {"task_id": tasks[0]["task_id"], "path": str(log_path)}
+        "ctf_session_ingest", {"task_id": tasks[0]["task_id"]}
     )
     assert is_error is False, ingest2
     assert ingest2["appended"] == 0

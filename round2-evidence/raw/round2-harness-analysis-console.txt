@@ -1,0 +1,8 @@
+{
+  "project_level_skills": "PASS (session-log evidence)",
+  "project_scoped_mcp_registration": "NOT FOUND in installed source; main-conversation Manager MCP entrypoint remains BLOCKED",
+  "note": "Skill files are discovered by the running Harness (project .dsh/skills). The Manager control MCP server is implemented and verified via stdio MCP tests and a real end-to-end Manager process, but attaching it to the live main conversation requires profile-level configuration (prohibited) or a Host Plugin bundle (owner decision). No project-scoped MCP registration mechanism was found."
+}
+evidence: D:\CTF-SOLVER\round2-evidence\raw\round2-harness-entrypoint-analysis.json
+skill catalog observed: True
+source scan observations: 20

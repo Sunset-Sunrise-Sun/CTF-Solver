@@ -159,6 +159,7 @@ class ManagerControl(Protocol):
         source: str = "",
         scope_profile: str = "",
         notes: str = "",
+        supplied_files: list[str] | None = None,
     ) -> TaskRecord: ...
 
     def list_tasks(self, *, status: str | None = None, conversation_id: str | None = None) -> list[TaskRecord]: ...
@@ -182,31 +183,7 @@ class ManagerControl(Protocol):
         ttl_s: int | None = None,
     ) -> ApprovalRecord: ...
 
-    def decide_approval(
-        self,
-        approval_id: str,
-        *,
-        approved: bool,
-        approver: str,
-        note: str = "",
-    ) -> ApprovalRecord: ...
-
     def list_approvals(self, *, task_id: str | None = None) -> list[ApprovalRecord]: ...
-
-    def create_network_grant(
-        self,
-        task_id: str,
-        *,
-        competition_profile: str,
-        host: str,
-        port: int,
-        protocol: str = "tcp",
-        method: str = "GET",
-        path_prefix: str = "/",
-        ttl_s: int = 3600,
-        max_calls: int = 10,
-        approver: str,
-    ) -> GrantRecord: ...
 
     def revoke_grant(self, grant_id: str) -> GrantRecord: ...
 
@@ -226,10 +203,11 @@ class ManagerControl(Protocol):
         self,
         task_id: str,
         *,
-        path: str,
         worker_id: str | None = None,
-    ) -> dict[str, Any]: ...
+    ) -> dict[str, Any]:
+        """Ingest the Task's real Harness session log located via the Manager registry."""
 
+        ...
     def export_events(self, task_id: str) -> ExportInfo: ...
 
     def build_writeup(self, task_id: str) -> ExportInfo: ...

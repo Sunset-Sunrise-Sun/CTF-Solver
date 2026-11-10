@@ -69,6 +69,13 @@ ROUND1_LIMITS = {
     "session_log_negative_delivery_test": "BLOCKED (requires a model request)",
 }
 
+ROUND2_SECURITY = {
+    "approval_decide_via_mcp": "removed (model can only request approval)",
+    "grant_create_via_mcp": "removed (requires a human-confirmed approval via local console)",
+    "human_confirmation_channel": "local interactive console only (TTY required; non-TTY fails closed)",
+    "session_log_ingest": "manager registry only (no model-supplied file path)",
+}
+
 
 class ManagerService(ManagerControl):
     def __init__(
@@ -98,7 +105,52 @@ class ManagerService(ManagerControl):
         self._ipc: ManagerIpcServer | None = None
         self._started = False
         self._event_errors: list[str] = []
+        self._diagnostics: list[dict[str, Any]] = []
         self._session_updates: dict[str, list[dict[str, Any]]] = {}
+        self._approval_service: Any = None
+        self._intake_service: Any = None
+        self._session_resolver: Any = None
+
+    # ------------------------------------------------------------------
+    # Lazy Round 2 collaborators
+    # ------------------------------------------------------------------
+
+    @property
+    def approval_service(self) -> Any:
+        """Human-confirmation approval/grant use cases (local console channel)."""
+
+        if self._approval_service is None:
+            from .approval_grant_service import ApprovalGrantService
+
+            self._approval_service = ApprovalGrantService(
+                self.store, self.evidence, self.clock, self.config
+            )
+        return self._approval_service
+
+    @property
+    def intake_service(self) -> Any:
+        if self._intake_service is None:
+            from ..intake import IntakeService
+
+            self._intake_service = IntakeService(self.config.intake_root, clock=self.clock)
+        return self._intake_service
+
+    @property
+    def session_resolver(self) -> Any:
+        if self._session_resolver is None:
+            from .session_logs import SessionLogResolver
+
+            self._session_resolver = SessionLogResolver(
+                self.config.session_log_root, self.store, clock=self.clock
+            )
+        return self._session_resolver
+
+    def _diagnostic(self, code: str, message: str, **details: Any) -> None:
+        self._diagnostics.append(
+            {"code": code, "message": message, "details": details, "at": self.clock.now_ms()}
+        )
+        if len(self._diagnostics) > 200:
+            del self._diagnostics[:100]
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -113,6 +165,7 @@ class ManagerService(ManagerControl):
             if self._started:
                 return self.runtime_status()
             paths = self.config.ensure_layout()
+            self.config.ensure_runtime_dirs()
             self._ipc = ManagerIpcServer(self, host="127.0.0.1", port=0)
             self._ipc.start()
             if self.acp_factory is None:
@@ -164,21 +217,44 @@ class ManagerService(ManagerControl):
     # ACP callbacks -----------------------------------------------------
 
     def _on_permission_request(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Round 1 policy: reject ACP host-tool permission requests.
+        """Round 2 policy: reject ACP host-tool permission requests.
 
         Worker execution goes through the typed ``ctf-exec`` MCP server and the
-        Manager Broker, never through arbitrary ACP host tools. A rejected
-        request is recorded for diagnostics; it is not silently allowed.
+        Manager Broker, never through arbitrary ACP host tools. The request's
+        ``sessionId`` is reverse-mapped through the Manager's own session
+        registry; an unknown session is recorded as a system diagnostic and is
+        never attributed to an arbitrary/incorrect Task.
         """
 
-        try:
-            self._emit(
-                params.get("sessionId") or "",
-                "acp_permission_rejected",
-                {"session_id": params.get("sessionId"), "tool_call": params.get("toolCall")},
+        session_id = str(params.get("sessionId") or "")
+        worker = None
+        if session_id:
+            lookup = getattr(self.store, "get_worker_by_session", None)
+            if callable(lookup):
+                try:
+                    worker = lookup(session_id)
+                except Exception as exc:  # noqa: BLE001
+                    self._diagnostic("session_lookup_error", str(exc), session_id=session_id)
+        if worker is None:
+            self._diagnostic(
+                "acp_permission_unknown_session",
+                "ACP permission request for a session not present in the Manager registry; "
+                "request rejected and not attributed to any Task",
+                session_id=session_id or None,
+                tool_call=params.get("toolCall"),
             )
-        except Exception:  # noqa: BLE001
-            pass
+        else:
+            self._emit(
+                worker.task_id,
+                "acp_permission_rejected",
+                {
+                    "session_id": session_id,
+                    "worker_id": worker.worker_id,
+                    "tool_call": params.get("toolCall"),
+                },
+                worker_id=worker.worker_id,
+                session_id=session_id,
+            )
         return {"outcome": {"outcome": "cancelled"}}
 
     def _on_session_update(self, params: dict[str, Any]) -> None:
@@ -255,21 +331,32 @@ class ManagerService(ManagerControl):
                     continue
                 active = self.store.count_active_slots()
 
-    def _worker_mcp_spec(self, worker_token: str) -> list[dict[str, Any]]:
+    def _worker_mcp_spec(self, worker_token: str, task_id: str) -> list[dict[str, Any]]:
         ipc_url = self.ipc_url
         if not ipc_url:
             raise ConfigError("Manager IPC endpoint is not started; cannot provide ctf-exec MCP server")
+        env: dict[str, str] = {
+            "CTF_SOLVER_IPC_URL": ipc_url,
+            "CTF_SOLVER_WORKER_TOKEN": worker_token,
+            "PYTHONPATH": str(Path(__file__).resolve().parents[2]),
+            "PYTHONUTF8": "1",
+        }
+        handshake_dir = (self.config.extra.get("mcp_handshake_dir") or "").strip()
+        if handshake_dir:
+            env["CTF_SOLVER_MCP_HANDSHAKE_FILE"] = str(
+                Path(handshake_dir) / f"{task_id}.json"
+            )
+        # ACP v1 ``session/new.mcpServers`` standard environment is an ordered
+        # array of {name, value} entries (verified against the installed Harness
+        # ACP server source and a live zero-model-call mount trial); a plain JSON
+        # object is silently not mounted.
+        env_entries = [{"name": key, "value": value} for key, value in env.items()]
         return [
             {
                 "name": "ctf-exec",
                 "command": sys.executable,
                 "args": ["-m", "ctf_solver.mcp.exec_server"],
-                "env": {
-                    "CTF_SOLVER_IPC_URL": ipc_url,
-                    "CTF_SOLVER_WORKER_TOKEN": worker_token,
-                    "PYTHONPATH": str(Path(__file__).resolve().parents[2]),
-                    "PYTHONUTF8": "1",
-                },
+                "env": env_entries,
                 "cwd": "",
             }
         ]
@@ -280,7 +367,7 @@ class ManagerService(ManagerControl):
         self.store.set_task_status(task.task_id, TaskStatus.STARTING)
         worker_id = new_id("w")
         worker_token = new_worker_token()
-        mcp_servers = self._worker_mcp_spec(worker_token)
+        mcp_servers = self._worker_mcp_spec(worker_token, task.task_id)
         mcp_servers[0]["cwd"] = str(workspace)
         assert self._acp is not None
         result = self._acp.new_session(cwd=str(workspace.resolve()), mcp_servers=mcp_servers)
@@ -439,6 +526,37 @@ class ManagerService(ManagerControl):
             notes=str(notes),
         )
         self.store.create_task(record)
+        imported: list[dict[str, Any]] = []
+        if supplied_files:
+            try:
+                inputs = self.intake_service.import_files(
+                    task_id=task_id,
+                    workspace=workspace,
+                    supplied_files=list(supplied_files),
+                )
+            except Exception as exc:
+                self.store.set_task_status(
+                    task_id,
+                    TaskStatus.FAILED,
+                    result_state="intake_failed",
+                    ended_at=self.clock.now_ms(),
+                    notes=f"challenge input import failed: {type(exc).__name__}: {exc}"[:2000],
+                )
+                self._emit(
+                    task_id,
+                    "task_failed",
+                    {
+                        "phase": "intake",
+                        "reason": f"{type(exc).__name__}: {exc}",
+                        "reason_code": getattr(exc, "reason_code", "intake_error"),
+                    },
+                )
+                raise
+            for item in inputs:
+                imported.append(item.to_dict() if hasattr(item, "to_dict") else dict(item))
+            recorder = getattr(self.store, "record_task_inputs", None)
+            if callable(recorder):
+                recorder(task_id, inputs)
         self._emit(
             task_id,
             "task_created",
@@ -448,7 +566,8 @@ class ManagerService(ManagerControl):
                 "conversation_id": record.conversation_id,
                 "source": record.source,
                 "scope_profile": record.scope_profile,
-                "supplied_files": list(supplied_files or []),
+                "supplied_files": [item["rel_path"] for item in imported],
+                "supplied_inputs": imported,
             },
         )
         self.store.set_task_status(task_id, TaskStatus.QUEUED)
@@ -468,6 +587,16 @@ class ManagerService(ManagerControl):
         task = self.store.require_task(task_id)
         worker = self.store.get_worker_for_task(task_id)
         queued = self.store.list_queued()
+        inputs: list[dict[str, Any]] = []
+        lister = getattr(self.store, "list_task_inputs", None)
+        if callable(lister):
+            try:
+                inputs = [
+                    item.to_dict() if hasattr(item, "to_dict") else dict(item)
+                    for item in lister(task_id)
+                ]
+            except Exception as exc:  # noqa: BLE001
+                self._diagnostic("task_inputs_read_error", str(exc), task_id=task_id)
         chain_head = (0, "")
         chain_status: dict[str, Any] | None = None
         try:
@@ -479,6 +608,7 @@ class ManagerService(ManagerControl):
             "task": task.to_dict(),
             "worker": worker.to_dict() if worker is not None else None,
             "queue_position": self.scheduler.queue_position(task_id, queued),
+            "inputs": inputs,
             "approvals": [record.to_dict() for record in self.store.list_approvals(task_id=task_id)],
             "grants": [record.to_dict() for record in self.store.list_grants(task_id=task_id)],
             "executions": self.store.list_executions(task_id, limit=10),
@@ -652,61 +782,36 @@ class ManagerService(ManagerControl):
         details: dict[str, Any],
         ttl_s: int | None = None,
     ) -> ApprovalRecord:
-        self.store.require_task(task_id)
-        try:
-            kind = ApprovalAction(str(action_kind))
-        except ValueError as exc:
-            raise ValidationError(f"unknown approval action_kind: {action_kind!r}") from exc
-        digest = sha256_hex(canonical_json({"action_kind": kind.value, "details": details}).encode("utf-8"))
-        now = self.clock.now_ms()
-        record = ApprovalRecord(
-            approval_id=new_id("apr"),
-            task_id=task_id,
-            action_kind=kind.value,
-            action_digest=digest,
-            status=ApprovalStatus.PENDING,
-            requested_at=now,
-            payload=dict(details),
-            expires_at=(now + int(ttl_s) * 1000) if ttl_s else None,
+        return self.approval_service.request_approval(
+            task_id, action_kind=action_kind, details=details, ttl_s=ttl_s
         )
-        self.store.create_approval(record)
-        self._emit(
-            task_id,
-            "approval_requested",
-            {
-                "approval_id": record.approval_id,
-                "action_kind": record.action_kind,
-                "action_digest": record.action_digest,
-                "expires_at": record.expires_at,
-            },
-        )
-        return record
 
-    def decide_approval(
-        self, approval_id: str, *, approved: bool, approver: str, note: str = ""
+    def confirm_approval(
+        self,
+        approval_id: str,
+        *,
+        channel: Any,
+        reject: bool = False,
+        note: str = "",
     ) -> ApprovalRecord:
-        record = self.store.decide_approval(
-            approval_id, approved=approved, approver=approver, note=note
+        """Local-console human confirmation path (never exposed through MCP)."""
+
+        return self.approval_service.confirm_approval(
+            approval_id, channel=channel, reject=reject, note=note
         )
-        self._emit(
-            record.task_id,
-            "approval_decided",
-            {
-                "approval_id": record.approval_id,
-                "action_kind": record.action_kind,
-                "action_digest": record.action_digest,
-                "approved": record.status is ApprovalStatus.APPROVED,
-                "approver": record.approver,
-            },
+
+    def decide_approval(self, approval_id: str, *, approved: bool = False, approver: str = "", note: str = "") -> ApprovalRecord:
+        raise StateError(
+            "approvals cannot be decided by the Agent/MCP; a human must confirm "
+            "through the local interactive console channel (ctf-solver approval confirm)"
         )
-        return record
 
     def list_approvals(self, *, task_id: str | None = None) -> list[ApprovalRecord]:
-        return self.store.list_approvals(task_id=task_id)
+        return self.approval_service.list_approvals(task_id=task_id)
 
-    def create_network_grant(
+    def create_grant_from_approval(
         self,
-        task_id: str,
+        approval_id: str,
         *,
         competition_profile: str,
         host: str,
@@ -716,75 +821,30 @@ class ManagerService(ManagerControl):
         path_prefix: str = "/",
         ttl_s: int = 3600,
         max_calls: int = 10,
-        approver: str = "",
     ) -> GrantRecord:
-        self.store.require_task(task_id)
-        if not str(host).strip():
-            raise ValidationError("network grant host must not be empty")
-        if not 1 <= int(port) <= 65535:
-            raise ValidationError("network grant port must be within 1..65535")
-        if int(ttl_s) <= 0 or int(max_calls) <= 0:
-            raise ValidationError("network grant ttl_s and max_calls must be positive")
-        if not str(approver).strip():
-            raise ValidationError("network grant requires an explicit human approver")
-        if not str(path_prefix).startswith("/"):
-            raise ValidationError("network grant path_prefix must start with '/'")
-        now = self.clock.now_ms()
-        grant = GrantRecord(
-            grant_id=new_id("grant"),
-            task_id=task_id,
-            competition_profile=str(competition_profile),
-            host=str(host).strip().lower(),
-            port=int(port),
-            protocol=str(protocol).lower(),
-            method=str(method).upper(),
-            path_prefix=str(path_prefix),
-            expires_at=now + int(ttl_s) * 1000,
-            max_calls=int(max_calls),
-            approver=str(approver),
-            created_at=now,
-            status=GrantStatus.ACTIVE,
+        return self.approval_service.create_grant_from_approval(
+            approval_id,
+            competition_profile=competition_profile,
+            host=host,
+            port=port,
+            protocol=protocol,
+            method=method,
+            path_prefix=path_prefix,
+            ttl_s=ttl_s,
+            max_calls=max_calls,
         )
-        grant.grant_digest = sha256_hex(
-            canonical_json(
-                {
-                    "task_id": task_id,
-                    "profile": grant.competition_profile,
-                    "host": grant.host,
-                    "port": grant.port,
-                    "protocol": grant.protocol,
-                    "method": grant.method,
-                    "path_prefix": grant.path_prefix,
-                    "expires_at": grant.expires_at,
-                    "max_calls": grant.max_calls,
-                    "approver": grant.approver,
-                }
-            ).encode("utf-8")
+
+    def create_network_grant(self, task_id: str, **kwargs: Any) -> GrantRecord:
+        raise StateError(
+            "network grants cannot be created directly by the Agent/MCP; they require a "
+            "human-confirmed remote_target approval and the local console channel"
         )
-        self.store.create_grant(grant)
-        self._emit(
-            task_id,
-            "grant_created",
-            {
-                "grant_id": grant.grant_id,
-                "host": grant.host,
-                "port": grant.port,
-                "protocol": grant.protocol,
-                "method": grant.method,
-                "expires_at": grant.expires_at,
-                "max_calls": grant.max_calls,
-                "profile": grant.competition_profile,
-            },
-        )
-        return grant
 
     def revoke_grant(self, grant_id: str) -> GrantRecord:
-        grant = self.store.set_grant_status(grant_id, GrantStatus.REVOKED)
-        self._emit(grant.task_id, "grant_revoked", {"grant_id": grant_id, "reason": "revoked_by_user"})
-        return grant
+        return self.approval_service.revoke_grant(grant_id)
 
     def list_grants(self, *, task_id: str | None = None) -> list[GrantRecord]:
-        return self.store.list_grants(task_id=task_id)
+        return self.approval_service.list_grants(task_id=task_id)
 
     def record_candidate_flag(self, task_id: str, *, flag: str, source: str) -> dict[str, Any]:
         task = self.store.require_task(task_id)
@@ -885,38 +945,44 @@ class ManagerService(ManagerControl):
         return record
 
     def ingest_session_log(
-        self, task_id: str, *, path: str, worker_id: str | None = None
+        self, task_id: str, *, worker_id: str | None = None
     ) -> dict[str, Any]:
-        task = self.store.require_task(task_id)
-        log_path = Path(path)
-        if not log_path.is_file():
-            raise ValidationError(f"session log file not found: {path}")
-        worker = self.store.get_worker_for_task(task_id)
-        resolved_worker = worker_id or (worker.worker_id if worker else task.worker_id)
-        session_id = task.acp_session_id or (worker.acp_session_id if worker else None)
+        """Ingest the Task's real Harness session log.
+
+        The log path is **never** supplied by the caller. It is resolved only
+        from the Manager's own Task/Worker/session registry under the managed
+        Harness ``sessions`` root; unknown/ambiguous/symlinked/out-of-root logs
+        fail closed.
+        """
+
+        self.store.require_task(task_id)
+        resolved = self.session_resolver.resolve(task_id, worker_id=worker_id)
         ingest = getattr(self.evidence, "ingest_session_log_file", None)
         if not callable(ingest):
             raise StorageError("evidence store does not support session-log ingestion")
         report = ingest(
             task_id=task_id,
-            worker_id=resolved_worker,
-            session_id=session_id,
-            path=str(log_path),
+            worker_id=resolved.worker_id,
+            session_id=resolved.session_id,
+            path=str(resolved.path),
         )
         payload = report.to_dict() if hasattr(report, "to_dict") else dict(report or {})
         self._emit(
             task_id,
             "evidence_ingested",
             {
-                "path": str(log_path),
+                "session_id": resolved.session_id,
                 "frames": payload.get("frames"),
                 "records": payload.get("appended", payload.get("decoded_records")),
                 "gaps": len(payload.get("gaps", []) or []),
                 "raw_sha256": payload.get("raw_sha256"),
             },
-            worker_id=resolved_worker,
-            session_id=session_id,
+            worker_id=resolved.worker_id,
+            session_id=resolved.session_id,
         )
+        # Do not echo local filesystem paths through the control surface.
+        payload.pop("raw_path", None)
+        payload.pop("path", None)
         return payload
 
     def export_events(self, task_id: str) -> ExportInfo:
@@ -1005,6 +1071,10 @@ class ManagerService(ManagerControl):
             "queued_tasks": len(self.store.list_queued()),
             "db_path": str(self.config.paths.db_path),
             "cas_dir": str(self.config.paths.cas_dir),
+            "session_log_root": str(self.config.session_log_root),
+            "intake_root": str(self.config.intake_root),
+            "diagnostics": list(self._diagnostics[-20:]),
+            "security": dict(ROUND2_SECURITY),
             "chain_head": chain_head,
             "event_errors": list(self._event_errors[-10:]),
             "round1_limits": dict(ROUND1_LIMITS),

@@ -311,24 +311,40 @@ def approve_request(
     action_kind: ApprovalAction = ApprovalAction.TOOL_ACTION,
     ttl_ms: int | None = 60_000,
 ) -> ApprovalRecord:
-    """Create a legitimately APPROVED Task-scoped approval bound to ``request``."""
+    """Create a legitimately APPROVED Task-scoped approval bound to ``request``.
+
+    Round 2: approvals may only be decided by the local-console human
+    confirmation path, so this helper goes through the real store method instead
+    of injecting an APPROVED row directly.
+    """
 
     from ctf_solver.policy.models import approval_action_digest
+    from ctf_solver.security.confirmation import HumanConfirmation
 
     now = stack.clock.now_ms()
+    digest = approval_action_digest(action_kind.value, request)
     record = ApprovalRecord(
         approval_id=new_id("apr"),
         task_id=task_id,
         action_kind=action_kind.value,
-        action_digest=approval_action_digest(action_kind.value, request),
-        status=ApprovalStatus.APPROVED,
+        action_digest=digest,
+        status=ApprovalStatus.PENDING,
         requested_at=now,
-        decided_at=now,
-        approver="human-verifier",
         expires_at=(now + int(ttl_ms)) if ttl_ms is not None else None,
     )
     stack.store.create_approval(record)
-    return record
+    confirmation = HumanConfirmation(
+        channel="local_console",
+        os_user="human-verifier",
+        confirmed_at=now,
+        confirmation_id=new_id("conf"),
+        approval_digest=digest,
+        note="verifier helper",
+    )
+    stack.store.record_approval_confirmation(
+        record.approval_id, approved=True, confirmation=confirmation, decided_at=now
+    )
+    return stack.store.get_approval(record.approval_id)  # type: ignore[return-value]
 
 
 # ---------------------------------------------------------------------------

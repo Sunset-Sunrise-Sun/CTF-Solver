@@ -29,15 +29,23 @@ plane. Typical flow:
 
 1. `ctf_task_create` — one challenge → one Task. Provide `title`, `category`
    (`web|misc|crypto|reverse|pwn`), `conversation_id` (stable for this conversation),
-   optional `source`, `scope_profile`, `notes`.
+   optional `source`, `scope_profile`, `notes`, and optional `supplied_files` as paths
+   **relative to the project challenge-uploads intake directory** (never absolute host
+   paths). The Manager imports, hashes and isolates the files inside the Task workspace.
 2. `ctf_task_status` — lifecycle, worker/session/workspace mapping, queue position,
    approvals, grants, executions, screenshots, evidence chain head.
 3. `ctf_task_list` — find the active Task; resolve “继续” against it.
 4. `ctf_task_continue` — continue the active Task.
-5. `ctf_approval_request` / `ctf_approval_decide` — sensitive-action approvals. The
-   decision must come from the human user; never approve on the user's behalf.
-6. `ctf_grant_create` — Task-scoped remote-target authorization (host, port, protocol,
-   method, TTL, call count). Never reuse a grant for another Task.
+5. `ctf_approval_request` — request a Task-scoped human approval for a sensitive
+   proposed action. You can only *request*; you can never decide it. There is no MCP
+   tool that approves: a human must confirm at the local interactive console with
+   `python -m ctf_solver approval confirm <approval_id>` (or reject it). Never invent or
+   accept an approver identity string, and never claim an approval exists without the
+   Manager record showing the local-console confirmation.
+6. Network target grants are created **only** by a human from a confirmed approval:
+   `python -m ctf_solver grant create --approval-id <approval_id> --host ... --port ...`.
+   There is no MCP tool that creates grants. A grant is bound to one Task, target,
+   protocol, method/action, expiry and call count, and never transfers between Tasks.
 7. `ctf_flag_candidate` — record a **candidate** Flag with its source. You never submit
    Flags; the user confirms and submits.
 8. `ctf_screenshot_capture` — explicit capture for an important program-running step.

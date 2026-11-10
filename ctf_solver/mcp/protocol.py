@@ -169,13 +169,19 @@ class McpServer:
         if not isinstance(arguments, dict):
             raise JsonRpcProtocolError(INVALID_PARAMS, "tools/call arguments must be an object")
         schema = tool.input_schema or {}
-        required = schema.get("required") or []
-        missing = [key for key in required if key not in arguments]
-        if missing:
+        from .schema import SchemaValidationError, validate_schema
+
+        try:
+            errors = validate_schema(schema, arguments)
+        except SchemaValidationError as exc:
+            raise JsonRpcProtocolError(
+                INVALID_PARAMS, f"invalid tool schema for {tool.name}: {exc}"
+            ) from exc
+        if errors:
             raise JsonRpcProtocolError(
                 INVALID_PARAMS,
-                f"missing required argument(s) for tool {tool.name}: {', '.join(missing)}",
-                data={"missing": missing},
+                f"arguments do not match the schema for tool {tool.name}",
+                data={"errors": errors[:20]},
             )
         return arguments
 

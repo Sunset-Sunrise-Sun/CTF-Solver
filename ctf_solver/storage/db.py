@@ -81,7 +81,11 @@ CREATE TABLE IF NOT EXISTS approvals (
     note           TEXT NOT NULL DEFAULT '',
     payload_json   TEXT NOT NULL DEFAULT '{}',
     expires_at     INTEGER,
-    consumed_at    INTEGER
+    consumed_at    INTEGER,
+    confirmation_channel  TEXT,
+    confirmation_id       TEXT,
+    confirmation_os_user  TEXT,
+    confirmation_note     TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_approvals_task ON approvals(task_id, status);
 
@@ -100,9 +104,24 @@ CREATE TABLE IF NOT EXISTS network_grants (
     approver            TEXT NOT NULL,
     created_at          INTEGER NOT NULL,
     status              TEXT NOT NULL,
-    grant_digest        TEXT NOT NULL DEFAULT ''
+    grant_digest        TEXT NOT NULL DEFAULT '',
+    approval_id         TEXT,
+    confirmation_id     TEXT,
+    confirmation_os_user TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_grants_task ON network_grants(task_id, status);
+
+CREATE TABLE IF NOT EXISTS task_inputs (
+    task_id         TEXT NOT NULL REFERENCES tasks(task_id),
+    rel_path        TEXT NOT NULL,
+    sha256          TEXT NOT NULL,
+    size            INTEGER NOT NULL,
+    media_type      TEXT NOT NULL DEFAULT 'application/octet-stream',
+    source_rel_path TEXT NOT NULL DEFAULT '',
+    imported_at     INTEGER NOT NULL,
+    PRIMARY KEY (task_id, rel_path)
+);
+CREATE INDEX IF NOT EXISTS idx_task_inputs_task ON task_inputs(task_id);
 
 CREATE TABLE IF NOT EXISTS executions (
     execution_id    TEXT PRIMARY KEY,
@@ -234,6 +253,43 @@ def open_database(path: str | os.PathLike[str], *, initialize: bool = True) -> s
     return conn
 
 
+def _column_names(conn: sqlite3.Connection, table: str) -> set[str]:
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return {row["name"] for row in rows}
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, declaration: str) -> None:
+    if column not in _column_names(conn, table):
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {declaration}")
+
+
+def _migrate_1_0_to_1_1(conn: sqlite3.Connection) -> None:
+    """Round 2 migration: human-confirmation columns + Task input registry."""
+
+    _ensure_column(conn, "approvals", "confirmation_channel", "TEXT")
+    _ensure_column(conn, "approvals", "confirmation_id", "TEXT")
+    _ensure_column(conn, "approvals", "confirmation_os_user", "TEXT")
+    _ensure_column(conn, "approvals", "confirmation_note", "TEXT")
+    _ensure_column(conn, "network_grants", "approval_id", "TEXT")
+    _ensure_column(conn, "network_grants", "confirmation_id", "TEXT")
+    _ensure_column(conn, "network_grants", "confirmation_os_user", "TEXT")
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS task_inputs (
+            task_id         TEXT NOT NULL REFERENCES tasks(task_id),
+            rel_path        TEXT NOT NULL,
+            sha256          TEXT NOT NULL,
+            size            INTEGER NOT NULL,
+            media_type      TEXT NOT NULL DEFAULT 'application/octet-stream',
+            source_rel_path TEXT NOT NULL DEFAULT '',
+            imported_at     INTEGER NOT NULL,
+            PRIMARY KEY (task_id, rel_path)
+        );
+        CREATE INDEX IF NOT EXISTS idx_task_inputs_task ON task_inputs(task_id);
+        """
+    )
+
+
 def initialize_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(_SCHEMA)
     with transaction(conn):
@@ -254,6 +310,11 @@ def initialize_schema(conn: sqlite3.Connection) -> None:
             conn.execute(
                 "INSERT OR IGNORE INTO meta(key, value) VALUES(?, CAST(strftime('%s','now') AS TEXT))",
                 (META_CREATED_AT,),
+            )
+        elif row["value"] == "1.0":
+            _migrate_1_0_to_1_1(conn)
+            conn.execute(
+                "UPDATE meta SET value = ? WHERE key = ?", (SCHEMA_VERSION, META_SCHEMA_VERSION)
             )
         elif row["value"] != SCHEMA_VERSION:
             raise StorageError(

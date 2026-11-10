@@ -89,9 +89,18 @@ def build_manager_tools(manager: ManagerControl) -> list[McpTool]:
                         "description": "Competition/scope profile name, e.g. synthetic-local.",
                     },
                     "notes": {"type": "string"},
+                    "supplied_files": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "maxItems": 100,
+                        "description": (
+                            "Challenge files to import, given as paths relative to the project "
+                            "challenge-uploads intake directory (never absolute host paths)."
+                        ),
+                    },
                 },
                 ["title", "category", "conversation_id"],
-                "Create a Task and enqueue it for scheduling.",
+                "Create a Task, import supplied challenge files under Manager control and enqueue it.",
             ),
             handler=_wrap(manager.create_task),
         ),
@@ -190,56 +199,13 @@ def build_manager_tools(manager: ManagerControl) -> list[McpTool]:
             ),
         ),
         McpTool(
-            name="ctf_approval_decide",
-            description=(
-                "Record a human decision on a pending approval. The approver identity is required; "
-                "the agent must not treat this as self-approval."
-            ),
-            input_schema=_schema(
-                {
-                    "approval_id": {"type": "string"},
-                    "approved": {"type": "boolean"},
-                    "approver": {"type": "string", "description": "Human approver identifier."},
-                    "note": {"type": "string"},
-                },
-                ["approval_id", "approved", "approver"],
-                "Decide an approval.",
-            ),
-            handler=_wrap(
-                lambda approval_id, approved, approver, note="": manager.decide_approval(
-                    approval_id, approved=bool(approved), approver=approver, note=note
-                )
-            ),
-        ),
-        McpTool(
             name="ctf_approval_list",
-            description="List approvals, optionally for one Task.",
+            description=(
+                "List approvals, optionally for one Task. Approval decisions are made only by a "
+                "human through the local interactive console CLI; there is no MCP approval tool."
+            ),
             input_schema=_schema({"task_id": {"type": "string"}}, [], "List approvals."),
             handler=_wrap(lambda task_id=None: manager.list_approvals(task_id=task_id)),
-        ),
-        McpTool(
-            name="ctf_grant_create",
-            description=(
-                "Create a Task-scoped network target grant (host/IP, port, protocol, method/action, "
-                "path prefix, expiry, call count, approver). Grants never transfer between Tasks."
-            ),
-            input_schema=_schema(
-                {
-                    "task_id": {"type": "string"},
-                    "competition_profile": {"type": "string"},
-                    "host": {"type": "string"},
-                    "port": {"type": "integer"},
-                    "protocol": {"type": "string"},
-                    "method": {"type": "string"},
-                    "path_prefix": {"type": "string"},
-                    "ttl_s": {"type": "integer"},
-                    "max_calls": {"type": "integer"},
-                    "approver": {"type": "string"},
-                },
-                ["task_id", "competition_profile", "host", "port", "approver"],
-                "Create a target grant.",
-            ),
-            handler=_wrap(manager.create_network_grant),
         ),
         McpTool(
             name="ctf_grant_revoke",
@@ -296,21 +262,24 @@ def build_manager_tools(manager: ManagerControl) -> list[McpTool]:
         McpTool(
             name="ctf_session_ingest",
             description=(
-                "Ingest a Harness session.v4 jsonl.zstd log into the Task evidence chain "
-                "(multi-frame decode, call/result correlation, idempotent)."
+                "Ingest this Task's real Harness session.v4 jsonl.zstd log into the evidence chain "
+                "(multi-frame decode, call/result correlation, idempotent). The log is located by the "
+                "Manager from its own Task/Worker/session registry; callers cannot pass a file path."
             ),
             input_schema=_schema(
                 {
                     "task_id": {"type": "string"},
-                    "path": {"type": "string", "description": "Absolute path to the session log."},
-                    "worker_id": {"type": "string"},
+                    "worker_id": {
+                        "type": "string",
+                        "description": "Optional expected Worker id; must match the Task's Worker.",
+                    },
                 },
-                ["task_id", "path"],
-                "Ingest a session log file.",
+                ["task_id"],
+                "Ingest the Task's registered session log.",
             ),
             handler=_wrap(
-                lambda task_id, path, worker_id=None: manager.ingest_session_log(
-                    task_id, path=path, worker_id=worker_id
+                lambda task_id, worker_id=None: manager.ingest_session_log(
+                    task_id, worker_id=worker_id
                 )
             ),
         ),
@@ -364,16 +333,32 @@ def build_server(manager: ManagerControl) -> McpServer:
 
 
 def _parse_acp_command(text: str | None) -> list[str] | None:
-    if not text:
-        return discover_acp_command()
-    return shlex.split(text, posix=False)
+    """Parse an explicit, complete ACP server command.
+
+    The default (``--acp-command`` omitted) is intentionally ``None`` so the
+    wiring layer discovers the audited Harness launcher and builds the exact
+    verified argv ``dsh --profile acp`` (including the ``--profile acp``
+    arguments). A caller-provided command is treated as complete and is not
+    rewritten, which is what fake-ACP integration tests need.
+    """
+
+    if not text or not str(text).strip():
+        return None
+    return shlex.split(str(text), posix=False)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CTF-Solver Manager control MCP server")
     parser.add_argument("--root", default=".", help="Project root (runtime data stays here, outside Git)")
-    parser.add_argument("--acp-command", default=None, help="ACP server command string")
-    parser.add_argument("--capture-mode", default="desktop", choices=["desktop", "fake"])
+    parser.add_argument(
+        "--acp-command",
+        default=None,
+        help=(
+            "Complete ACP server command string (used by tests/fake ACP). Omit to use the "
+            "audited Harness launcher as 'dsh --profile acp'."
+        ),
+    )
+    parser.add_argument("--capture-mode", default="desktop", choices=["desktop", "real-window", "fake"])
     parser.add_argument("--max-workers", type=int, default=2)
     parser.add_argument(
         "--dsh-home",
@@ -384,17 +369,38 @@ def main(argv: list[str] | None = None) -> int:
             "explicitly set after owner authorization."
         ),
     )
+    parser.add_argument(
+        "--session-log-root",
+        default="",
+        help=(
+            "Override the Harness session-log root used for registry-based ingestion. "
+            "Default: <dsh-home>/sessions. Tests may point this at a fake ACP log tree."
+        ),
+    )
+    parser.add_argument(
+        "--intake-dir",
+        default="",
+        help=(
+            "Challenge-file intake directory (default <root>/challenge-uploads). Only files "
+            "below this directory can be imported; no arbitrary host paths are read."
+        ),
+    )
     args = parser.parse_args(argv)
 
     from ..wiring import default_isolated_dsh_home
 
     dsh_home = args.dsh_home or default_isolated_dsh_home(args.root)
+    extra: dict[str, str] = {"dsh_home": str(dsh_home)}
+    if args.session_log_root:
+        extra["session_log_root"] = str(args.session_log_root)
+    if args.intake_dir:
+        extra["intake_dir"] = str(args.intake_dir)
     config = SolverConfig(
         root=args.root,
         acp_command=_parse_acp_command(args.acp_command),
         max_active_workers=max(1, min(2, args.max_workers)),
         capture_mode=args.capture_mode,
-        extra={"dsh_home": str(dsh_home)},
+        extra=extra,
     )
     from ..wiring import build_manager_service  # deferred: other modules may still be in progress
 

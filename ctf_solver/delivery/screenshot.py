@@ -280,6 +280,109 @@ class DesktopCapturer:
                 pass
 
 
+class WindowCapturer:
+    """Capture one explicitly selected, project-owned window via PrintWindow flag 2.
+
+    The audit verified ``PrintWindow`` with flag 0 is black for some windows and
+    flag 2 (``PW_RENDERFULLCONTENT``) works. This capturer never records the full
+    desktop: the target window is chosen by PID explicitly, so a test can create
+    its own throwaway window and capture only that.
+    """
+
+    name = "real-window"
+
+    def __init__(self, *, target_pid: int | None = None, powershell: str = "powershell.exe", timeout_s: float = 30.0) -> None:
+        self.target_pid = target_pid
+        self.powershell = powershell
+        self.timeout_s = timeout_s
+        self._script_text = _POWERSHELL_WINDOW_CAPTURE_SCRIPT
+
+    def set_target_pid(self, pid: int) -> None:
+        self.target_pid = int(pid)
+
+    def capture(self, *, scope: str = "window", workdir: str | None = None) -> CaptureResult:
+        captured_at = int(time.time() * 1000)
+        if scope not in {"window", "real-window"}:
+            return CaptureResult(
+                ok=False,
+                png_bytes=b"",
+                error=f"WindowCapturer does not support scope {scope!r}",
+                method=self.name,
+                captured_at=captured_at,
+            )
+        if not self.target_pid:
+            return CaptureResult(
+                ok=False,
+                png_bytes=b"",
+                error="no explicit target window PID was provided; refusing to capture the desktop",
+                method=self.name,
+                captured_at=captured_at,
+            )
+        temp_dir = Path(tempfile.mkdtemp(prefix="ctf-solver-window-shot-"))
+        script_path = temp_dir / "capture-window.ps1"
+        out_path = temp_dir / "window.png"
+        try:
+            script_path.write_text(self._script_text, encoding="utf-8")
+            command = [
+                self.powershell,
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(script_path),
+                "-TargetPid",
+                str(int(self.target_pid)),
+                "-OutPath",
+                str(out_path),
+            ]
+            try:
+                completed = subprocess.run(
+                    command,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=self.timeout_s,
+                    shell=False,
+                )
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                return CaptureResult(
+                    ok=False, png_bytes=b"", error=f"window capture process failed: {exc}",
+                    method=self.name, captured_at=captured_at,
+                )
+            if completed.returncode != 0 or not out_path.is_file():
+                tail = (completed.stderr or "").strip().splitlines()[-3:]
+                return CaptureResult(
+                    ok=False,
+                    png_bytes=b"",
+                    error=f"window capture failed (exit {completed.returncode}): {' | '.join(tail)}",
+                    method=self.name,
+                    captured_at=captured_at,
+                )
+            data = out_path.read_bytes()
+            try:
+                stats = png_statistics(data)
+            except CaptureError as exc:
+                return CaptureResult(ok=False, png_bytes=data, error=str(exc), method=self.name, captured_at=captured_at)
+            return CaptureResult(
+                ok=True,
+                png_bytes=data,
+                width=int(stats["width"]),
+                height=int(stats["height"]),
+                blank=bool(stats["blank"]),
+                method=self.name,
+                captured_at=captured_at,
+            )
+        finally:
+            try:
+                out_path.unlink(missing_ok=True)
+                script_path.unlink(missing_ok=True)
+                temp_dir.rmdir()
+            except OSError:
+                pass
+
+
 class FakeScreenCapturer:
     """Deterministic capturer used only by tests / explicit fake mode."""
 
@@ -324,11 +427,13 @@ class FakeScreenCapturer:
         )
 
 
-def build_capturer(mode: str = "desktop") -> DesktopCapturer | FakeScreenCapturer:
+def build_capturer(mode: str = "desktop") -> DesktopCapturer | WindowCapturer | FakeScreenCapturer:
     if mode == "fake":
         return FakeScreenCapturer("nonblank")
     if mode == "fake-blank":
         return FakeScreenCapturer("blank")
+    if mode == "real-window":
+        return WindowCapturer()
     return DesktopCapturer()
 
 
@@ -427,4 +532,42 @@ $result = [ordered]@{
     path = $OutPath
 }
 $result | ConvertTo-Json -Compress
+"""
+
+
+_POWERSHELL_WINDOW_CAPTURE_SCRIPT = r"""
+param([Parameter(Mandatory=$true)][int]$TargetPid, [Parameter(Mandatory=$true)][string]$OutPath)
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Drawing
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class CtfWin {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
+    [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+    [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, uint nFlags);
+    [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr value);
+}
+'@
+try { [void][CtfWin]::SetProcessDpiAwarenessContext([IntPtr](-4)) } catch { }
+$proc = Get-Process -Id $TargetPid -ErrorAction Stop
+$hwnd = $proc.MainWindowHandle
+if ($hwnd -eq [IntPtr]::Zero) { throw "target process $TargetPid has no visible main window" }
+$rect = New-Object CtfWin+RECT
+if (-not [CtfWin]::GetWindowRect($hwnd, [ref]$rect)) { throw "GetWindowRect failed" }
+$width = $rect.Right - $rect.Left
+$height = $rect.Bottom - $rect.Top
+if ($width -le 0 -or $height -le 0) { throw "invalid window size ${width}x${height}" }
+$bitmap = New-Object System.Drawing.Bitmap $width, $height
+$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+$hdc = $graphics.GetHdc()
+try {
+    if (-not [CtfWin]::PrintWindow($hwnd, $hdc, 2)) { throw "PrintWindow(PW_RENDERFULLCONTENT) failed" }
+} finally {
+    $graphics.ReleaseHdc($hdc)
+    $graphics.Dispose()
+}
+$bitmap.Save($OutPath, [System.Drawing.Imaging.ImageFormat]::Png)
+$bitmap.Dispose()
 """

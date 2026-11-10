@@ -1,0 +1,171 @@
+{
+  "started_at": "2026-11-10T11:56:22.757083+00:00",
+  "steps": {
+    "start": {
+      "acp": {
+        "diagnostics": {
+          "state": "ready",
+          "pid": 36676,
+          "command": [
+            "C:\\Windows\\system32\\cmd.exe",
+            "/c",
+            "C:\\Users\\28746\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
+            "--profile",
+            "acp"
+          ],
+          "protocol_version": 1,
+          "pending_requests": 0,
+          "last_error": null,
+          "stderr_tail": "",
+          "started_at": 1794311783245,
+          "request_count": 1,
+          "response_count": 1,
+          "malformed_lines": 0,
+          "exit_code": null,
+          "is_alive": true,
+          "agent_info": {
+            "name": "deepseek-harness-acp",
+            "version": "0.0.1"
+          },
+          "mcp_capabilities": {
+            "http": true
+          },
+          "session_capabilities": {
+            "close": {},
+            "list": {},
+            "resume": {}
+          },
+          "allow_model_calls": false,
+          "permission_requests": 0,
+          "permission_handler_errors": 0,
+          "session_updates": 0,
+          "session_update_handler_errors": 0,
+          "cancel_notifications": 0,
+          "duplicate_responses": 0,
+          "timed_out_requests": 0,
+          "eof": false,
+          "stderr_bytes": 0
+        },
+        "ready": true,
+        "error": "",
+        "alive": true
+      },
+      "ipc_url": "tcp://127.0.0.1:51593",
+      "active_workers": 0,
+      "queued_tasks": 0,
+      "db_path": "D:\\CTF-SOLVER\\.ctf-solver-data\\manager.sqlite",
+      "cas_dir": "D:\\CTF-SOLVER\\.ctf-solver-data\\cas\\sha256",
+      "session_log_root": "D:\\CTF-SOLVER\\.ctf-solver-data\\r2-dsh-home\\sessions",
+      "intake_root": "D:\\CTF-SOLVER\\challenge-uploads",
+      "diagnostics": [],
+      "security": {
+        "approval_decide_via_mcp": "removed (model can only request approval)",
+        "grant_create_via_mcp": "removed (requires a human-confirmed approval via local console)",
+        "human_confirmation_channel": "local interactive console only (TTY required; non-TTY fails closed)",
+        "session_log_ingest": "manager registry only (no model-supplied file path)"
+      },
+      "chain_head": [
+        0,
+        "0000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "event_errors": [],
+      "round1_limits": {
+        "model_calls": "blocked (no session/prompt; ADR-020)",
+        "untrusted_challenge_code": "blocked (Tier 2 OS isolation unavailable)",
+        "real_ctf_targets": "blocked (synthetic data only in this round)",
+        "main_conversation_entrypoint": "BLOCKED pending a supported project-scoped Manager tool path (Round 2)",
+        "session_log_negative_delivery_test": "BLOCKED (requires a model request)"
+      },
+      "paths": {
+        "root": "D:\\CTF-SOLVER",
+        "db": "D:\\CTF-SOLVER\\.ctf-solver-data\\manager.sqlite",
+        "cas": "D:\\CTF-SOLVER\\.ctf-solver-data\\cas\\sha256",
+        "tasks": "D:\\CTF-SOLVER\\tasks"
+      }
+    },
+    "skill_catalog_occurrences_in_real_session_logs": {
+      "ctf-solver": 0,
+      "ctf-web": 0,
+      "ctf-misc": 0,
+      "ctf-crypto": 0,
+      "ctf-reverse": 0,
+      "ctf-pwn": 0
+    },
+    "fifo": {
+      "t1": "t-27afb1669d444f6687add63472f1b105",
+      "t2": "t-2826c065654847128780f157d2e7bc25",
+      "t3": "t-9143f5499c384a409d3090b1f1671033",
+      "cancelled_t2": "cancelled",
+      "promoted_t3": "running"
+    },
+    "session_logs": {
+      "count": 2,
+      "root": "D:\\CTF-SOLVER\\.ctf-solver-data\\r2-dsh-home\\sessions"
+    },
+    "privacy_gate": {
+      "exit_code": 0,
+      "composed_config_disables_delivery": true,
+      "isolated_home": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-r2-privacy-1794311792",
+      "isolated_home_files": [
+        "profiles\\acp\\cordis.patch.yml",
+        "profiles\\acp\\cordis.yml",
+        "profiles\\acp\\package.json",
+        "profiles\\acp\\pnpm-workspace.yaml"
+      ],
+      "negative_outbound_canary": "BLOCKED: requires a model request; no model call is authorized"
+    },
+    "restart_recovery": {
+      "t-9143f5499c384a409d3090b1f1671033": "interrupted",
+      "t-844191ca8cbe48b78d2f71d1fb3af4d2": "interrupted"
+    }
+  },
+  "e2e": {
+    "task_id": "t-844191ca8cbe48b78d2f71d1fb3af4d2",
+    "writeup": "D:\\CTF-SOLVER\\round2-evidence\\end-to-end\\writeup.md",
+    "zip": "D:\\CTF-SOLVER\\round2-evidence\\end-to-end\\evidence.zip",
+    "candidate_flag": "flag{synthetic_round2_e2e}",
+    "screenshot_sha256": "7140f80e5fa6ba26a0862cbb1fd97becd9cfe037ed801fc002becccb420b5cce",
+    "note": "Worker tool calls were simulated through the same typed MCP ctf_exec interface; no model call."
+  },
+  "passed": [
+    "real ACP client ready",
+    "ACP launch uses --profile acp",
+    "two Workers active and third queued",
+    "distinct real ACP sessions",
+    "distinct workspaces",
+    "real ACP mounts per-session ctf-exec MCP server",
+    "MCP handshake identity matches Worker token",
+    "direct MCP tools/call executes typed trusted tool",
+    "denied typed execution fails closed",
+    "real Harness wrote session log(s)",
+    "real session log ingested via registry",
+    "session log ingestion idempotent",
+    "real project-owned window screenshot captured",
+    "screenshot bytes stored in CAS",
+    "Writeup generated",
+    "evidence ZIP generated",
+    "evidence ZIP manifest independently verified",
+    "cancel confirms quiescence",
+    "FIFO task promoted to running",
+    "promoted task received its own ACP session + MCP mount",
+    "synthetic challenge task created with imported input",
+    "imported challenge file exists in isolated Task workspace",
+    "typed tools produced real evidence",
+    "candidate flag recovered from real tool output",
+    "E2E screenshot of synthetic program window",
+    "E2E evidence ZIP verifies",
+    "restart recovery marks active tasks interrupted (never completed)",
+    "restart recovery creates no duplicate sessions",
+    "interrupted tasks are not reported complete",
+    "isolated-profile privacy mechanism verified (config only)"
+  ],
+  "failed": [],
+  "notes": [
+    "Skill catalog strings were not found in the real ACP session logs (no model turn); live discovery evidence remains the current interactive session log from Round 1 + format checks.",
+    "BLOCKED: requires a model request; no model call is authorized"
+  ],
+  "finished_at": "2026-11-10T11:56:33.029848+00:00",
+  "model_calls": 0,
+  "session_prompt_calls": 0,
+  "real_ctf_targets": 0
+}

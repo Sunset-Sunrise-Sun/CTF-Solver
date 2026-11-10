@@ -114,6 +114,18 @@ def test_store_activate_task_persists_worker_and_session(tmp_path) -> None:
         store.close()
 
 
+def _human_confirmation(digest: str):
+    from ctf_solver.security.confirmation import HumanConfirmation
+
+    return HumanConfirmation(
+        channel="local_console",
+        os_user="human-test",
+        confirmed_at=1_700_000_000_000,
+        confirmation_id="conf-test",
+        approval_digest=digest,
+    )
+
+
 def test_store_approval_consume_is_one_shot(tmp_path) -> None:
     store = _store(tmp_path)
     try:
@@ -128,9 +140,14 @@ def test_store_approval_consume_is_one_shot(tmp_path) -> None:
             expires_at=far_future,
         )
         store.create_approval(approval)
+        # A caller-supplied approver string is not a confirmation.
         with pytest.raises(StateError):
-            store.decide_approval("apr-1", approved=True, approver="")
-        store.decide_approval("apr-1", approved=True, approver="human")
+            store.record_approval_confirmation(
+                "apr-1", approved=True, confirmation={"approver": "agent", "channel": "local_console"}
+            )
+        store.record_approval_confirmation(
+            "apr-1", approved=True, confirmation=_human_confirmation("a" * 64)
+        )
         assert store.consume_approval("apr-1", store.clock.now_ms()) is True
         assert store.consume_approval("apr-1", store.clock.now_ms()) is False
         assert store.consume_approval("apr-unknown", store.clock.now_ms()) is False
@@ -153,7 +170,12 @@ def test_store_rejects_expired_approval(tmp_path) -> None:
             )
         )
         with pytest.raises(StateError):
-            store.decide_approval("apr-exp", approved=True, approver="human")
+            store.record_approval_confirmation(
+                "apr-exp",
+                approved=True,
+                confirmation=_human_confirmation("a" * 64),
+                decided_at=2000,
+            )
     finally:
         store.close()
 

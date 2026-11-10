@@ -115,9 +115,7 @@ EXPECTED_MANAGER_TOOLS = {
     "ctf_task_pause",
     "ctf_task_cancel",
     "ctf_approval_request",
-    "ctf_approval_decide",
     "ctf_approval_list",
-    "ctf_grant_create",
     "ctf_grant_revoke",
     "ctf_grant_list",
     "ctf_flag_candidate",
@@ -128,6 +126,8 @@ EXPECTED_MANAGER_TOOLS = {
     "ctf_evidence_zip",
     "ctf_runtime_status",
 }
+
+FORBIDDEN_ESCALATION_TOOLS = {"ctf_approval_decide", "ctf_grant_create"}
 
 
 # ---------------------------------------------------------------------------
@@ -1111,7 +1111,11 @@ def test_manager_two_active_third_fifo_and_promotion(tmp_path: Path) -> None:
             )
             mcp_servers = session["mcp_servers"]
             assert mcp_servers and mcp_servers[0]["name"] == "ctf-exec"
-            assert mcp_servers[0]["env"]["CTF_SOLVER_WORKER_TOKEN"] == stored_worker.worker_token
+            # ACP v1 standard env is an ordered {name, value} entry array.
+            env_entries = mcp_servers[0]["env"]
+            assert isinstance(env_entries, list)
+            env = {entry["name"]: entry["value"] for entry in env_entries}
+            assert env["CTF_SOLVER_WORKER_TOKEN"] == stored_worker.worker_token
 
         sessions = {item["session_id"] for item in fake.new_sessions}
         assert len(sessions) == 2
@@ -1295,39 +1299,69 @@ def test_manager_continue_never_calls_prompt(tmp_path: Path) -> None:
         _teardown_manager(service, store, evidence)
 
 
+class _HumanConfirmationChannel:
+    """Round 2 test double: only the local console channel can confirm an approval."""
+
+    def __init__(self, *, os_user: str = "human-verifier") -> None:
+        self.os_user = os_user
+
+    def confirm(self, *, approval_digest: str, summary: str):
+        from ctf_solver.security.confirmation import HumanConfirmation
+
+        assert approval_digest
+        return HumanConfirmation(
+            channel="local_console",
+            os_user=self.os_user,
+            confirmed_at=1_700_000_000_000,
+            confirmation_id="conf-verifier",
+            approval_digest=approval_digest,
+            note="verifier",
+        )
+
+
 def test_manager_approvals_grants_flag_and_screenshots(tmp_path: Path) -> None:
     service, fake, store, evidence, _config = _build_manager(tmp_path)
     service.start()
     try:
         task = service.create_task(title="controls", category="misc", conversation_id="conv-1")
         approval = service.request_approval(
-            task.task_id, action_kind="tool_action", details={"tool": "internal.file_hash"}
+            task.task_id,
+            action_kind="remote_target",
+            details={
+                "target": {"host": "127.0.0.1", "port": 8080, "protocol": "tcp", "method": "GET", "path": "/"},
+                "profile": "synthetic-local",
+            },
+            ttl_s=600,
         )
         assert approval.status is ApprovalStatus.PENDING
+        # No Agent/MCP path may decide an approval.
         with pytest.raises(StateError):
             service.decide_approval(approval.approval_id, approved=True, approver="")
-        decided = service.decide_approval(
-            approval.approval_id, approved=True, approver="human-verifier", note="ok"
-        )
-        assert decided.status is ApprovalStatus.APPROVED
-        assert decided.approver == "human-verifier"
         with pytest.raises(StateError):
-            service.decide_approval(approval.approval_id, approved=False, approver="human-verifier")
+            service.decide_approval(
+                approval.approval_id, approved=True, approver="human-verifier"
+            )
+        approved = service.confirm_approval(
+            approval.approval_id, channel=_HumanConfirmationChannel(), note="ok"
+        )
+        assert approved.status is ApprovalStatus.APPROVED
+        assert approved.approver == "human-verifier"
+        assert approved.confirmation_channel == "local_console"
         assert service.list_approvals(task_id=task.task_id)[0].approval_id == approval.approval_id
 
-        grant = service.create_network_grant(
-            task.task_id,
+        grant = service.create_grant_from_approval(
+            approval.approval_id,
             competition_profile="synthetic-local",
             host="127.0.0.1",
             port=8080,
-            protocol="http",
+            protocol="tcp",
             method="GET",
             path_prefix="/",
             ttl_s=60,
             max_calls=2,
-            approver="human-verifier",
         )
         assert grant.task_id == task.task_id and grant.grant_digest
+        assert grant.approval_id == approval.approval_id
         revoked = service.revoke_grant(grant.grant_id)
         assert revoked.status is GrantStatus.REVOKED
         assert service.list_grants(task_id=task.task_id)[0].grant_id == grant.grant_id
@@ -1462,14 +1496,8 @@ class _FakeManagerControl:
     def request_approval(self, task_id: str, **kwargs: object) -> dict[str, object]:
         return {"task_id": task_id, **kwargs}
 
-    def decide_approval(self, approval_id: str, **kwargs: object) -> dict[str, object]:
-        return {"approval_id": approval_id, **kwargs}
-
     def list_approvals(self, task_id: str | None = None) -> list[object]:
         return []
-
-    def create_network_grant(self, **kwargs: object) -> dict[str, object]:
-        return dict(kwargs)
 
     def revoke_grant(self, grant_id: str) -> dict[str, object]:
         return {"grant_id": grant_id}
@@ -1483,7 +1511,7 @@ class _FakeManagerControl:
     def take_screenshot(self, task_id: str, step_id: str | None = None, scope: str = "desktop") -> dict[str, object]:
         return {"task_id": task_id, "status": "ok"}
 
-    def ingest_session_log(self, task_id: str, path: str, worker_id: str | None = None) -> dict[str, object]:
+    def ingest_session_log(self, task_id: str, worker_id: str | None = None) -> dict[str, object]:
         return {"task_id": task_id}
 
     def export_events(self, task_id: str) -> dict[str, object]:
@@ -1503,6 +1531,7 @@ def test_manager_mcp_tool_surface_and_no_flag_submission() -> None:
     tools = build_manager_tools(_FakeManagerControl())
     names = {tool.name for tool in tools}
     assert names == EXPECTED_MANAGER_TOOLS
+    assert not (names & FORBIDDEN_ESCALATION_TOOLS), "model must not be able to approve or authorize"
     assert all(name.startswith("ctf_") for name in names)
     assert "ctf_flag_candidate" in names
     assert not any("submit" in name.lower() for name in names), "no Flag submission tool may exist"
@@ -1858,7 +1887,11 @@ def test_privacy_gate_mechanism_evidence_and_canary_blocked() -> None:
 
 def test_readme_and_round1_notes_do_not_overclaim() -> None:
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
-    assert "does **not** claim final MVP acceptance" in readme
+    # Round 2 keeps the honest acceptance posture: candidate, not final MVP acceptance.
+    assert (
+        "does **not** claim final MVP acceptance" in readme
+        or "not claim final MVP acceptance" in readme
+    )
     for row_marker in (
         "Main-conversation `/ctf-solver` → Manager tools",
         "Session-log negative delivery canary",
@@ -1910,20 +1943,12 @@ def test_clean_room_and_no_auto_install_claims() -> None:
 
 
 # ===========================================================================
-# G. Known product defects found by this verification (documented, not hidden)
+# G. Round 1 verification findings — permanent Round 2 regression tests
+#    (the three defects below were fixed in Round 2 and must never regress)
 # ===========================================================================
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "DEFECT: ctf_solver/manager/store.py:556-557 reads row['request']/row['result'], "
-        "but ctf_solver/runtime/pipeline.py:578-579 supplies 'request_json'/'result_json'; "
-        "executions.request_json is always '{}' and a denied call's result_json is '{}' "
-        "(the durable execution row loses the request document)."
-    ),
-)
-def test_defect_execution_rows_lose_request_and_denied_result_json(tmp_path: Path) -> None:
+def test_execution_rows_keep_request_and_denied_result_json(tmp_path: Path) -> None:
     stack = build_stack(tmp_path / "stack")
     try:
         task, worker = create_running_task(stack)
@@ -1947,16 +1972,7 @@ def test_defect_execution_rows_lose_request_and_denied_result_json(tmp_path: Pat
         stack.close()
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "DEFECT: PRODUCT_SPEC §4 requires the Task minimum fields to include the evidence-chain "
-        "head, but no Manager code updates tasks.evidence_head (ManagerStore.update_task_fields "
-        "supports it and ctf_solver/manager/service.py never calls it), so the Writeup renders "
-        "'Evidence chain head: `unknown`'."
-    ),
-)
-def test_defect_task_evidence_head_is_never_persisted(tmp_path: Path) -> None:
+def test_task_evidence_head_is_persisted(tmp_path: Path) -> None:
     service, fake, store, evidence, _config = _build_manager(tmp_path)
     service.start()
     try:
@@ -1972,15 +1988,7 @@ def test_defect_task_evidence_head_is_never_persisted(tmp_path: Path) -> None:
         _teardown_manager(service, store, evidence)
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "EVIDENCE DEFECT: docs claim round1-evidence/raw/privacy-gate-exit.txt and "
-        "privacy-gate-home-path.txt are raw evidence for the privacy gate, but both files "
-        "are empty (0 bytes); only privacy-gate-result.txt carries exit_code=0."
-    ),
-)
-def test_defect_privacy_gate_evidence_files_are_not_empty() -> None:
+def test_privacy_gate_evidence_files_are_not_empty() -> None:
     citations = [
         EVIDENCE_RAW / "privacy-gate-exit.txt",
         EVIDENCE_RAW / "privacy-gate-home-path.txt",

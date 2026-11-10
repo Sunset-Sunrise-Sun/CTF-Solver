@@ -157,11 +157,32 @@ class WriteupBuilder:
         lines.append(f"- Task workspace (runtime, outside Git): `{task.workspace_path}`")
         created = [event for event in events if event.get("event_type") == "task_created"]
         supplied: list[str] = []
+        material_rows: list[dict[str, Any]] = []
         for event in created:
             payload = _payload(event)
+            for item in payload.get("supplied_inputs", []) or []:
+                if isinstance(item, Mapping):
+                    material_rows.append(dict(item))
             for item in payload.get("supplied_files", []) or []:
                 supplied.append(str(item))
-        if supplied:
+        if material_rows:
+            lines.append("- Imported challenge materials (Manager-controlled intake, copied into the")
+            lines.append("  Task workspace; hashes are over the imported bytes):")
+            lines.append("")
+            lines.append("| path | size | media type | sha256 | source |")
+            lines.append("|---|---|---|---|---|")
+            for item in material_rows:
+                lines.append(
+                    "| `{rel}` | {size} | {media} | `{sha}` | `{source}` |".format(
+                        rel=str(item.get("rel_path", "")),
+                        size=int(item.get("size", 0) or 0),
+                        media=str(item.get("media_type", "application/octet-stream")),
+                        sha=str(item.get("sha256", "")),
+                        source=str(item.get("source_rel_path", "")),
+                    )
+                )
+            lines.append("")
+        elif supplied:
             lines.append("- Supplied materials recorded at intake:")
             for item in supplied:
                 lines.append(f"  - `{item}`")

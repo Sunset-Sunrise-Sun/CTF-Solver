@@ -65,13 +65,44 @@ tokens fail closed.
 ## 4. Local Task operations (single process, for smoke checks)
 
 ```powershell
-python -m ctf_solver task create --root . --title "Synthetic misc" --category misc
+# challenge files must first be placed under <root>/challenge-uploads/ (git-ignored);
+# supplied paths are relative to that intake root, never absolute host paths
+python -m ctf_solver task create --root . --title "Synthetic misc" --category misc `
+    --supplied-file challenge.zip --supplied-file notes/readme.txt
 python -m ctf_solver task list --root .
 python -m ctf_solver task status --root . --task-id <task-id>
 ```
 
 These start the real wiring (Manager + ACP client + Broker/Runtime + SQLite/CAS) and
-shut it down afterwards. They do not make model calls.
+shut it down afterwards. They do not make model calls. The managed ACP server uses the
+project-local isolated `DSH_HOME` by default.
+
+## 4b. Human approval console and target grants (Round 2)
+
+Approval decisions and network grants are **human-only** and are never exposed as MCP
+tools. They require an interactive local console (a real TTY; MCP/agent/pipe contexts
+fail closed):
+
+```powershell
+# list pending/decided approvals
+python -m ctf_solver approval list --root .
+
+# a human reviews the displayed action summary + digest prefix and types CONFIRM/REJECT
+python -m ctf_solver approval confirm --root . --approval-id <approval-id>
+python -m ctf_solver approval reject  --root . --approval-id <approval-id> --note "not authorized"
+
+# create a Task-scoped network grant ONLY from a confirmed remote_target approval
+python -m ctf_solver grant create --root . --approval-id <approval-id> `
+    --competition-profile synthetic-local --host 127.0.0.1 --port 31337 `
+    --protocol tcp --method GET --ttl-s 600 --max-calls 5
+python -m ctf_solver grant list --root .
+python -m ctf_solver grant revoke --root . --grant-id <grant-id>
+```
+
+The model can call `ctf_approval_request` (request only), `ctf_approval_list`,
+`ctf_grant_list` and `ctf_grant_revoke`. There is no MCP path to approve a request or
+create a grant. Replay, expiry, cross-Task use, digest mismatch and double consumption
+fail closed.
 
 ## 5. Evidence helpers
 
@@ -86,12 +117,21 @@ python -m ctf_solver evidence verify-chain --root .
 ## 6. Tests
 
 ```powershell
-# Full deterministic suite (Round 1)
+# Full deterministic suite (fake ACP/MCP; real ACP smoke opt-in)
 python -m pytest tests -q -p no:cacheprovider
 
-# Optional zero-model-call smoke test against the locally installed Harness ACP server
+# Include the zero-model-call real Harness ACP smoke test
 $env:CTF_SOLVER_ENABLE_REAL_ACP = '1'
-python -m pytest tests/test_real_acp_smoke.py -q -p no:cacheprovider
+python -m pytest tests -q -p no:cacheprovider
+
+# Round 2 real-Harness integration evidence (30 checks, no model calls)
+python scripts/round2_integration.py
+# Read-only Harness entrypoint / project-scope analysis + Skill discovery evidence
+python scripts/round2_harness_analysis.py
+# Wheel build (in-tree stdlib PEP 517 backend; no installation)
+python scripts/build_wheel.py
+# Fresh-clone verification (strict committed HEAD; run after a commit)
+python scripts/fresh_clone_check.py
 ```
 
 - Tests are offline and deterministic. They use fake ACP/MCP servers, synthetic

@@ -345,6 +345,10 @@ class ApprovalRecord:
     payload: dict[str, Any] = field(default_factory=dict)
     expires_at: int | None = None
     consumed_at: int | None = None
+    confirmation_channel: str | None = None
+    confirmation_id: str | None = None
+    confirmation_os_user: str | None = None
+    confirmation_note: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -360,6 +364,10 @@ class ApprovalRecord:
             "payload": self.payload,
             "expires_at": self.expires_at,
             "consumed_at": self.consumed_at,
+            "confirmation_channel": self.confirmation_channel,
+            "confirmation_id": self.confirmation_id,
+            "confirmation_os_user": self.confirmation_os_user,
+            "confirmation_note": self.confirmation_note,
         }
 
 
@@ -380,6 +388,9 @@ class GrantRecord:
     created_at: int = 0
     status: GrantStatus = GrantStatus.ACTIVE
     grant_digest: str = ""
+    approval_id: str | None = None
+    confirmation_id: str | None = None
+    confirmation_os_user: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -398,6 +409,9 @@ class GrantRecord:
             "created_at": self.created_at,
             "status": self.status.value,
             "grant_digest": self.grant_digest,
+            "approval_id": self.approval_id,
+            "confirmation_id": self.confirmation_id,
+            "confirmation_os_user": self.confirmation_os_user,
         }
 
 
@@ -415,6 +429,39 @@ class ArtifactRef:
             "media_type": self.media_type,
             "cas_path": self.cas_path,
         }
+
+
+@dataclass
+class ImportedInput:
+    """One challenge-supplied file imported into a Task workspace under Manager control."""
+
+    rel_path: str
+    sha256: str
+    size: int
+    media_type: str = "application/octet-stream"
+    source_rel_path: str = ""
+    imported_at: int = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "rel_path": self.rel_path,
+            "sha256": self.sha256,
+            "size": self.size,
+            "media_type": self.media_type,
+            "source_rel_path": self.source_rel_path,
+            "imported_at": self.imported_at,
+        }
+
+    @classmethod
+    def from_row(cls, row: Any) -> "ImportedInput":
+        return cls(
+            rel_path=row["rel_path"],
+            sha256=row["sha256"],
+            size=int(row["size"]),
+            media_type=row["media_type"],
+            source_rel_path=row["source_rel_path"] or "",
+            imported_at=int(row["imported_at"]),
+        )
 
 
 @dataclass

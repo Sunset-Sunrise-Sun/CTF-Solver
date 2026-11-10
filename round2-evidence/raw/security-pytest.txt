@@ -1,0 +1,16 @@
+CTF-Solver Round 2 - human-confirmation approval/grant security pytest evidence
+timestamp_utc: 2026-11-10T11:48:35Z
+cwd: D:\CTF-SOLVER
+git_branch: feat/round2-harness-integration
+git_head_baseline: 8615af6f552813d50ed2f429b45ef4bdfe65e326
+python: Python 3.14.7
+pytest: pytest 9.1.1
+command: python -m pytest tests/test_security_confirmation.py tests/test_security_approval_grant.py tests/test_security_store.py -q -p no:cacheprovider
+scope: ctf_solver/security/**, ctf_solver/manager/store.py, ctf_solver/manager/approval_grant_service.py, tests/test_security_*.py
+offline: no network, no real TTY, no model call, synthetic fixtures under pytest tmp_path
+
+.............................................                            [100%]
+45 passed in 1.33s
+
+exit_code: 0
+

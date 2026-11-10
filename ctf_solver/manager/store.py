@@ -7,9 +7,10 @@ appended by the evidence store; this repository only owns Manager state tables.
 from __future__ import annotations
 
 import json
+import sqlite3
 import threading
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any, Iterator, Mapping, Sequence
 
 from ..core.canonical import canonical_json, file_sha256
 from ..core.errors import NotFoundError, StateError, StorageError
@@ -22,6 +23,7 @@ from ..core.types import (
     FlagState,
     GrantRecord,
     GrantStatus,
+    ImportedInput,
     ScreenshotRecord,
     TaskRecord,
     TaskStatus,
@@ -314,6 +316,25 @@ class ManagerStore:
             ).fetchone()
         return WorkerRecord.from_row(row) if row is not None else None
 
+    def get_worker_by_session(self, session_id: str) -> WorkerRecord | None:
+        """Reverse-map an ACP session id through the Manager's own registry.
+
+        Never relies on the ACP server's ``session/list``; an unknown session is
+        simply absent. The mapping is unique in practice; the most recently
+        created Worker wins if a session id was ever re-used.
+        """
+
+        text = str(session_id or "").strip()
+        if not text:
+            return None
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT * FROM workers WHERE acp_session_id = ?"
+                " ORDER BY created_at DESC, worker_id DESC LIMIT 1",
+                (text,),
+            ).fetchone()
+        return WorkerRecord.from_row(row) if row is not None else None
+
     def set_worker_status(self, worker_id: str, status: WorkerStatus) -> WorkerRecord:
         with self._tx():
             self.conn.execute(
@@ -370,31 +391,98 @@ class ManagerStore:
             ).fetchone()
         return _approval_from_row(row) if row is not None else None
 
-    def decide_approval(
-        self, approval_id: str, *, approved: bool, approver: str, note: str = ""
+    def record_approval_confirmation(
+        self,
+        approval_id: str,
+        *,
+        approved: bool,
+        confirmation: Any,
+        decided_at: int | None = None,
+        note: str = "",
     ) -> ApprovalRecord:
-        if not approver or not str(approver).strip():
-            raise StateError("an approval decision requires an explicit human approver")
+        """Atomically record the only valid approval decision: a human confirmation.
+
+        ``confirmation`` is a :class:`ctf_solver.security.confirmation.HumanConfirmation`
+        (or a mapping with the same keys). It must carry the local-console
+        channel, a non-empty confirmed OS user, a confirmation id, and the full
+        action digest that the human was shown. Anything else -- a caller
+        supplied approver string, a mismatched digest, a replayed decision, an
+        expired approval -- fails closed with :class:`StateError`.
+        """
+
+        fields = _confirmation_fields(confirmation)
+        channel = fields["channel"]
+        os_user = fields["os_user"]
+        confirmation_id = fields["confirmation_id"]
+        digest = fields["approval_digest"]
+        if channel != "local_console":
+            raise StateError(
+                "an approval decision requires the local console confirmation channel; "
+                f"got {channel!r}"
+            )
+        if not os_user:
+            raise StateError("a human confirmation requires a recorded OS user identity")
+        if not confirmation_id:
+            raise StateError("a human confirmation requires a confirmation id")
+        if not isinstance(approved, bool):
+            raise StateError("approved must be a boolean")
         with self._tx():
             record = self.get_approval(approval_id)
             if record is None:
                 raise NotFoundError(f"unknown approval: {approval_id}")
+            now = int(decided_at) if decided_at is not None else self.clock.now_ms()
             if record.status is not ApprovalStatus.PENDING:
                 raise StateError(f"approval {approval_id} is already {record.status.value}")
-            now = self.clock.now_ms()
-            if record.expires_at is not None and record.expires_at <= now:
-                self.conn.execute(
-                    "UPDATE approvals SET status = ?, note = ? WHERE approval_id = ?",
-                    (ApprovalStatus.EXPIRED.value, note, approval_id),
+            if digest != str(record.action_digest or "").strip().lower():
+                raise StateError(
+                    "the human confirmation digest does not match the approval action digest"
                 )
-                raise StateError(f"approval {approval_id} has expired")
-            status = ApprovalStatus.APPROVED if approved else ApprovalStatus.REJECTED
-            self.conn.execute(
-                "UPDATE approvals SET status = ?, decided_at = ?, approver = ?, note = ?"
-                " WHERE approval_id = ?",
-                (status.value, now, approver, note, approval_id),
-            )
+            if record.expires_at is not None and int(record.expires_at) <= now:
+                self.conn.execute(
+                    "UPDATE approvals SET status = ? WHERE approval_id = ? AND status = ?",
+                    (ApprovalStatus.EXPIRED.value, approval_id, ApprovalStatus.PENDING.value),
+                )
+                expired = True
+            else:
+                expired = False
+                status = ApprovalStatus.APPROVED if approved else ApprovalStatus.REJECTED
+                decision_note = str(note or fields["note"] or "")
+                cursor = self.conn.execute(
+                    "UPDATE approvals SET status = ?, decided_at = ?, approver = ?, note = ?,"
+                    " confirmation_channel = ?, confirmation_id = ?, confirmation_os_user = ?,"
+                    " confirmation_note = ?"
+                    " WHERE approval_id = ? AND status = ?",
+                    (
+                        status.value,
+                        now,
+                        os_user,
+                        decision_note,
+                        channel,
+                        confirmation_id,
+                        os_user,
+                        decision_note,
+                        approval_id,
+                        ApprovalStatus.PENDING.value,
+                    ),
+                )
+                if cursor.rowcount != 1:
+                    raise StateError(
+                        f"approval {approval_id} could not be decided atomically "
+                        "(already decided, expired or replayed)"
+                    )
+        if expired:
+            raise StateError(f"approval {approval_id} has expired")
         return self.get_approval(approval_id)  # type: ignore[return-value]
+
+    def mark_approval_expired(self, approval_id: str) -> bool:
+        """Mark a still-pending approval as expired; returns whether it changed."""
+
+        with self._tx():
+            cursor = self.conn.execute(
+                "UPDATE approvals SET status = ? WHERE approval_id = ? AND status = ?",
+                (ApprovalStatus.EXPIRED.value, approval_id, ApprovalStatus.PENDING.value),
+            )
+            return cursor.rowcount == 1
 
     def list_approvals(self, *, task_id: str | None = None) -> list[ApprovalRecord]:
         query = "SELECT * FROM approvals"
@@ -408,7 +496,13 @@ class ManagerStore:
         return [_approval_from_row(row) for row in rows]
 
     def consume_approval(self, approval_id: str, now_ms: int) -> bool:
-        """Atomically validate and consume a one-shot approval."""
+        """Atomically validate and consume a one-shot human-confirmed approval.
+
+        The approval must be APPROVED, unexpired, unused, and must carry the
+        recorded local-console human confirmation fields. An approved approval
+        without a human confirmation (for example a legacy row) can never be
+        consumed, so callers cannot bypass the human decision path.
+        """
 
         with self._tx():
             record = self.get_approval(approval_id)
@@ -418,28 +512,48 @@ class ManagerStore:
                 return False
             if record.consumed_at is not None:
                 return False
-            if record.expires_at is not None and record.expires_at <= now_ms:
+            if not (
+                record.confirmation_channel == "local_console"
+                and record.confirmation_id
+                and record.confirmation_os_user
+            ):
                 return False
-            self.conn.execute(
-                "UPDATE approvals SET consumed_at = ? WHERE approval_id = ? AND consumed_at IS NULL",
-                (now_ms, approval_id),
+            if record.expires_at is not None and int(record.expires_at) <= int(now_ms):
+                return False
+            cursor = self.conn.execute(
+                "UPDATE approvals SET consumed_at = ?"
+                " WHERE approval_id = ? AND status = ? AND consumed_at IS NULL"
+                " AND confirmation_channel = 'local_console'"
+                " AND confirmation_id IS NOT NULL AND confirmation_id != ''"
+                " AND confirmation_os_user IS NOT NULL AND confirmation_os_user != ''",
+                (now_ms, approval_id, ApprovalStatus.APPROVED.value),
             )
-            row = self.conn.execute(
-                "SELECT consumed_at FROM approvals WHERE approval_id = ?", (approval_id,)
-            ).fetchone()
-            return row is not None and row["consumed_at"] == now_ms
+            return cursor.rowcount == 1
 
     # ------------------------------------------------------------------
     # Network grants
     # ------------------------------------------------------------------
 
     def create_grant(self, grant: GrantRecord) -> GrantRecord:
+        """Insert a network grant row.
+
+        This is a low-level repository primitive; the public use-case API is
+        :meth:`ctf_solver.manager.approval_grant_service.ApprovalGrantService.create_grant_from_approval`,
+        which is the only accepted path. It is never exposed through MCP.
+        """
+
         with self._tx():
+            self._insert_grant_row(grant)
+        return self.get_grant(grant.grant_id)  # type: ignore[return-value]
+
+    def _insert_grant_row(self, grant: GrantRecord) -> None:
+        try:
             self.conn.execute(
                 "INSERT INTO network_grants(grant_id, task_id, competition_profile, host, port,"
                 " protocol, method, path_prefix, expires_at, max_calls, calls_used, approver,"
-                " created_at, status, grant_digest)"
-                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                " created_at, status, grant_digest, approval_id, confirmation_id,"
+                " confirmation_os_user)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     grant.grant_id,
                     grant.task_id,
@@ -456,9 +570,63 @@ class ManagerStore:
                     grant.created_at,
                     grant.status.value,
                     grant.grant_digest,
+                    grant.approval_id,
+                    grant.confirmation_id,
+                    grant.confirmation_os_user,
                 ),
             )
-        return self.get_grant(grant.grant_id)  # type: ignore[return-value]
+        except sqlite3.IntegrityError as exc:
+            raise StorageError(f"could not insert network grant {grant.grant_id!r}") from exc
+
+    def create_grant_from_approval(
+        self, approval_id: str, grant: GrantRecord, now_ms: int
+    ) -> bool:
+        """Atomically consume one human-confirmed approval and insert its grant.
+
+        Returns ``False`` (and changes nothing) when the approval is missing,
+        not approved, already consumed, expired, missing human confirmation
+        fields, or belongs to a different Task than ``grant.task_id``. Exactly
+        one caller can win this compare-and-set, so an approval mints at most
+        one grant.
+        """
+
+        with self._tx():
+            record = self.get_approval(approval_id)
+            if record is None:
+                return False
+            if record.status is not ApprovalStatus.APPROVED:
+                return False
+            if record.consumed_at is not None:
+                return False
+            if not (
+                record.confirmation_channel == "local_console"
+                and record.confirmation_id
+                and record.confirmation_os_user
+            ):
+                return False
+            if record.expires_at is not None and int(record.expires_at) <= int(now_ms):
+                return False
+            if grant.task_id != record.task_id:
+                return False
+            if grant.approval_id != approval_id:
+                return False
+            if (
+                not grant.confirmation_id
+                or grant.confirmation_os_user != record.confirmation_os_user
+            ):
+                return False
+            cursor = self.conn.execute(
+                "UPDATE approvals SET consumed_at = ?"
+                " WHERE approval_id = ? AND status = ? AND consumed_at IS NULL"
+                " AND confirmation_channel = 'local_console'"
+                " AND confirmation_id IS NOT NULL AND confirmation_id != ''"
+                " AND confirmation_os_user IS NOT NULL AND confirmation_os_user != ''",
+                (now_ms, approval_id, ApprovalStatus.APPROVED.value),
+            )
+            if cursor.rowcount != 1:
+                return False
+            self._insert_grant_row(grant)
+            return True
 
     def get_grant(self, grant_id: str) -> GrantRecord | None:
         with self._lock:
@@ -518,6 +686,64 @@ class ManagerStore:
                 (grant_id,),
             )
         return True
+
+    # ------------------------------------------------------------------
+    # Task inputs (Manager-controlled challenge file registry)
+    # ------------------------------------------------------------------
+
+    def record_task_inputs(
+        self, task_id: str, inputs: Sequence[ImportedInput] | Sequence[Mapping[str, Any]]
+    ) -> None:
+        """Upsert the Manager-controlled registry of imported challenge files.
+
+        ``rel_path`` is workspace-relative and authoritative; ``source_rel_path``
+        is the intake-root-relative provenance only. Re-importing the same
+        relative path updates its hash/metadata and never duplicates rows.
+        """
+
+        task = self.require_task(task_id)
+        now = self.clock.now_ms()
+        rows: list[tuple[Any, ...]] = []
+        for item in inputs or ():
+            fields = _imported_input_fields(item)
+            if not fields["rel_path"]:
+                raise StorageError("an imported input requires a non-empty rel_path")
+            if not fields["sha256"]:
+                raise StorageError(
+                    f"imported input {fields['rel_path']!r} requires a SHA-256 digest"
+                )
+            rows.append(
+                (
+                    task.task_id,
+                    fields["rel_path"],
+                    fields["sha256"],
+                    int(fields["size"]),
+                    fields["media_type"] or "application/octet-stream",
+                    fields["source_rel_path"],
+                    int(fields["imported_at"] or now),
+                )
+            )
+        if not rows:
+            return
+        with self._tx():
+            self.conn.executemany(
+                "INSERT INTO task_inputs(task_id, rel_path, sha256, size, media_type,"
+                " source_rel_path, imported_at) VALUES(?,?,?,?,?,?,?)"
+                " ON CONFLICT(task_id, rel_path) DO UPDATE SET"
+                " sha256 = excluded.sha256, size = excluded.size,"
+                " media_type = excluded.media_type,"
+                " source_rel_path = excluded.source_rel_path,"
+                " imported_at = excluded.imported_at",
+                rows,
+            )
+
+    def list_task_inputs(self, task_id: str) -> list[ImportedInput]:
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT * FROM task_inputs WHERE task_id = ? ORDER BY rel_path",
+                (task_id,),
+            ).fetchall()
+        return [ImportedInput.from_row(row) for row in rows]
 
     # ------------------------------------------------------------------
     # Executions / screenshots / exports
@@ -677,6 +903,10 @@ def _approval_from_row(row: Any) -> ApprovalRecord:
         payload=payload if isinstance(payload, dict) else {},
         expires_at=row["expires_at"],
         consumed_at=row["consumed_at"],
+        confirmation_channel=row["confirmation_channel"],
+        confirmation_id=row["confirmation_id"],
+        confirmation_os_user=row["confirmation_os_user"],
+        confirmation_note=row["confirmation_note"],
     )
 
 
@@ -697,6 +927,57 @@ def _grant_from_row(row: Any) -> GrantRecord:
         created_at=int(row["created_at"]),
         status=GrantStatus(row["status"]),
         grant_digest=row["grant_digest"] or "",
+        approval_id=row["approval_id"],
+        confirmation_id=row["confirmation_id"],
+        confirmation_os_user=row["confirmation_os_user"],
+    )
+
+
+def _confirmation_fields(confirmation: Any) -> dict[str, str]:
+    """Read human-confirmation fields from an object or a mapping (fail closed)."""
+
+    if confirmation is None:
+        raise StateError("a human confirmation record is required to decide an approval")
+
+    def _get(name: str) -> Any:
+        if isinstance(confirmation, Mapping):
+            return confirmation.get(name)
+        return getattr(confirmation, name, None)
+
+    def _text(name: str) -> str:
+        value = _get(name)
+        return "" if value is None else str(value).strip()
+
+    return {
+        "channel": _text("channel").lower(),
+        "os_user": _text("os_user"),
+        "confirmation_id": _text("confirmation_id"),
+        "approval_digest": _text("approval_digest").lower(),
+        "note": "" if _get("note") is None else str(_get("note")),
+    }
+
+
+def _imported_input_fields(item: Any) -> dict[str, Any]:
+    if isinstance(item, ImportedInput):
+        return {
+            "rel_path": item.rel_path,
+            "sha256": item.sha256.lower(),
+            "size": item.size,
+            "media_type": item.media_type,
+            "source_rel_path": item.source_rel_path,
+            "imported_at": item.imported_at,
+        }
+    if isinstance(item, Mapping):
+        return {
+            "rel_path": str(item.get("rel_path") or ""),
+            "sha256": str(item.get("sha256") or "").lower(),
+            "size": int(item.get("size", 0) or 0),
+            "media_type": str(item.get("media_type") or "application/octet-stream"),
+            "source_rel_path": str(item.get("source_rel_path") or ""),
+            "imported_at": int(item.get("imported_at", 0) or 0),
+        }
+    raise StorageError(
+        f"imported inputs must be ImportedInput or mapping values, got {type(item).__name__}"
     )
 
 

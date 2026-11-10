@@ -77,7 +77,11 @@ Integrate the Round 1 product with the existing Harness installation and close t
 
 A model-mediated `session/prompt` test requires separate explicit user authorization after the session-log privacy gate is proven. If not authorized, mark only that gate BLOCKED; do not infer approval.
 
-## 4. Environment boundary — applies to both rounds
+## 4. Clean-room implementation
+
+CTF-Solver is fully independent. Do not reuse or import code, database schemas/migrations, APIs, UI, services, or runtime components from the old CTF Workbench, `D:\\CTF`, or `D:\\CTFworker`. Reference repositories may inform technical design, but source code must not be copied without a separate license/provenance review and explicit owner approval.
+
+## 5. Environment boundary — applies to both rounds
 
 The owner explicitly did not authorize:
 - software/package installation, uninstallation, upgrade, or system configuration;

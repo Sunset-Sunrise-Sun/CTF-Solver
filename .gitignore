@@ -1,0 +1,40 @@
+# Local CTF challenge material and runtime state
+.ctf-solver-data/
+tasks/*/work/
+tasks/*/evidence/
+challenge-files/
+challenge-uploads/
+captures/
+exports/
+evidence/
+
+# Harness local state and session logs
+.dsh/sessions/
+.dsh/cache/
+*.jsonl.zst
+*.jsonl.zstd
+*.zst
+*.zstd
+
+# Databases and local indexes
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Local runtime outputs
+*.log
+*.tmp
+*.dump

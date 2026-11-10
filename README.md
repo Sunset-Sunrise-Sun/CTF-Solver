@@ -76,6 +76,8 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 
 ## Development rules
 
+0. CTF-Solver is a clean-room independent implementation. Do not reuse code, databases/migrations, APIs, UI, services, or runtime components from the old CTF Workbench / D:/CTF / D:/CTFworker. Reference repositories are for technical ideas; copying source requires license/provenance review and owner approval.
+
 1. Do not change the product contract or decisions silently. Update docs/DECISIONS.md first.
 2. Do not expose arbitrary host Shell or Docker Socket to a Worker.
 3. Do not automatically submit a Flag; the user verifies and submits it.

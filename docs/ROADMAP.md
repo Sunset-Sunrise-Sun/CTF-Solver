@@ -8,6 +8,8 @@ This roadmap supersedes the former Phase 1–7 implementation sequence. The prod
 
 ## Frozen product contract
 
+CTF-Solver is a clean-room independent implementation. Do not reuse old CTF Workbench code, database schemas/migrations, APIs, UI, services, or runtime components. External repositories may inform design, but source reuse requires license/provenance review and owner approval.
+
 - DeepSeek Harness remains the reasoning/runtime layer; no second model loop or standalone CTF platform.
 - Explicit `/ctf-solver` entry; CTF mode persists for the current conversation.
 - Core Skill plus five category Skills: Web, Misc, Crypto, Reverse, Pwn.

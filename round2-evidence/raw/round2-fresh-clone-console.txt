@@ -1,0 +1,165 @@
+
+===== git clone =====
+git clone --no-hardlinks --branch feat/round2-harness-integration D:\CTF-SOLVER C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-xub3si40\clone
+Cloning into 'C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-xub3si40\clone'...
+done.
+
+
+===== clone pytest =====
+C:\Users\28746\AppData\Local\Programs\Python\Python314\python.exe -m pytest tests -q -p no:cacheprovider (cwd=C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-xub3si40\clone)
+exit=0
+........................................................................ [  7%]
+........................................................................ [ 15%]
+........................................................................ [ 23%]
+........................................................................ [ 30%]
+........................................................................ [ 38%]
+........................................................................ [ 46%]
+........................s..s............................................ [ 54%]
+........................................................................ [ 61%]
+.............................s.......................................... [ 69%]
+........................................................................ [ 77%]
+........................................................................ [ 84%]
+....................s................................................... [ 92%]
+.....................................................................    [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_intake.py:85: cannot create file symlink on this Windows host without elevation
+SKIPPED [1] tests\test_intake.py:85: cannot create destination symlink on this Windows host without elevation
+SKIPPED [1] tests\test_real_acp_smoke.py:24: real ACP smoke test is opt-in (CTF_SOLVER_ENABLE_REAL_ACP=1); Round 1 default is fake-only
+SKIPPED [1] tests\test_session_log_resolver.py:552: Windows symlink/junction creation unavailable in this environment (not elevated and/or Developer Mode off); link-escape case not exercised
+929 passed, 4 skipped in 60.68s (0:01:00)
+
+
+===== clone wheel build =====
+C:\Users\28746\AppData\Local\Programs\Python\Python314\python.exe C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-xub3si40\clone\scripts\build_wheel.py --repo C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-xub3si40\clone --out C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-xub3si40\clone\dist --evidence-json D:\CTF-SOLVER\round2-evidence\raw\fresh-clone-wheel-build-20261110T120253Z.json (cwd=C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-xub3si40\clone)
+exit=0
+{
+  "ok": true,
+  "generated_at_utc": "2026-11-10T12:03:57Z",
+  "repo_root": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone",
+  "branch": "feat/round2-harness-integration",
+  "head": "d69b9493c480e81c3908b58f361e84262c0cc646",
+  "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "python_executable": "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+  "pip_version": "pip 26.2.1 from C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\pip (python 3.14)",
+  "out_dir": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone\\dist",
+  "commands": [
+    {
+      "command": [
+        "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "-m",
+        "pip",
+        "wheel",
+        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone",
+        "--no-deps",
+        "--no-build-isolation",
+        "--disable-pip-version-check",
+        "--no-input",
+        "--no-cache-dir",
+        "-w",
+        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone\\dist"
+      ],
+      "returncode": 0,
+      "seconds": 1.589,
+      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.0-py3-none-any.whl size=204840 sha256=6278b15ffee1c61433618fcaad05fe169c6e2c7f51864655203a2b4b82167fe2\n  Stored in directory: C:\\Users\\28746\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-91xw3vcv\\wheels\\a1\\6b\\f5\\01519c6b1492ebb06fe3ee5c9a2b48ce066646eebbdceaf724\nSuccessfully built ctf-solver\n",
+      "stderr_tail": "",
+      "builder": "pip",
+      "produced_wheel": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone\\dist\\ctf_solver-0.1.0-py3-none-any.whl"
+    }
+  ],
+  "errors": [],
+  "builder": "pip",
+  "wheel": {
+    "filename": "ctf_solver-0.1.0-py3-none-any.whl",
+    "path": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
+    "size": 204840,
+    "sha256": "6278b15ffee1c61433618fcaad05fe169c6e2c7f51864655203a2b4b82167fe2"
+  },
+  "verification": {
+    "structure": {
+      "ok": true,
+      "wheel_filename": "ctf_solver-0.1.0-py3-none-any.whl",
+      "dist_info": "ctf_solver-0.1.0.dist-info",
+      "members": 63,
+      "packages": [
+        "ctf_solver",
+        "ctf_solver.acp",
+        "ctf_solver.core",
+        "ctf_solver.delivery",
+        "ctf_solver.evidence",
+        "ctf_solver.manager",
+        "ctf_solver.mcp",
+        "ctf_solver.policy",
+        "ctf_solver.preflight",
+        "ctf_solver.runtime",
+        "ctf_solver.security",
+        "ctf_solver.storage"
+      ],
+      "record_entries": 63,
+      "record_ok": true,
+      "metadata": {
+        "name": "ctf-solver",
+        "version": "0.1.0",
+        "requires_python": ">=3.11"
+      }
+    },
+    "imports": {
+      "ok": true,
+      "import_command": {
+        "command": [
+          "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-c",
+          "import ctf_solver.evidence.store, ctf_solver.manager.service, ctf_solver.intake; from ctf_solver import __version__; print(__version__)"
+        ],
+        "returncode": 0,
+        "seconds": 0.483,
+        "stdout_tail": "0.1.0\n",
+        "stderr_tail": ""
+      },
+      "version_command": {
+        "command": [
+          "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-m",
+          "ctf_solver",
+          "version"
+        ],
+        "returncode": 0,
+        "seconds": 0.183,
+        "stdout_tail": "ctf-solver 0.1.0\n",
+        "stderr_tail": ""
+      },
+      "imported_version": "0.1.0",
+      "required_imports": [
+        "ctf_solver.evidence.store",
+        "ctf_solver.manager.service",
+        "ctf_solver.intake"
+      ]
+    },
+    "ok": true
+  },
+  "duration_s": 3.012
+}
+
+EVIDENCE_JSON=D:\CTF-SOLVER\round2-evidence\raw\fresh-clone-wheel-build-20261110T120253Z.json
+
+
+===== SUMMARY =====
+{
+  "ok": true,
+  "branch": "feat/round2-harness-integration",
+  "clone_head": "d69b9493c480e81c3908b58f361e84262c0cc646",
+  "overlay_working_tree": false,
+  "source_core_autocrlf": "true",
+  "clone_core_autocrlf": "true",
+  "pytest": {
+    "returncode": 0,
+    "seconds": 62.495
+  },
+  "wheel_build": {
+    "returncode": 0,
+    "seconds": 3.198,
+    "evidence_json": "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-wheel-build-20261110T120253Z.json"
+  },
+  "errors": [],
+  "evidence_json": "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-20261110T120253Z.json",
+  "log": "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-20261110T120253Z.log"
+}

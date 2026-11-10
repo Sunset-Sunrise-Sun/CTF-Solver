@@ -71,6 +71,7 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 - docs/ROUND_1_ACCEPTANCE_REPORT.md — Round 1 PASS/FAIL/BLOCKED/NOT VERIFIED acceptance report.
 - docs/ROUND_2_SECURITY_CHANGES.md — Round 2 approval/grant/session-ingest/MCP security remediation.
 - docs/ROUND_2_HARNESS_INTEGRATION_NOTES.md — real Harness integration evidence and remaining limits.
+- docs/ROUND_2_ACCEPTANCE_REPORT.md — Round 2 PASS/FAIL/BLOCKED/NOT VERIFIED acceptance report.
 - docs/ROUND_2_INTERFACES.md — Round 2 module/security interface contracts.
 - docs/LOCAL_OPERATION.md — no-install local operation, preflight, testing and data layout.
 - docs/REFERENCE_PROJECTS.md — external projects and what to learn from them.

@@ -1,15 +1,15 @@
 {
   "wheel": {
     "filename": "ctf_solver-0.1.0-py3-none-any.whl",
-    "path": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-followup2-wheel-1ef10b7344fc407d82dae6fa8bd90c80\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
-    "size": 223327,
-    "sha256": "b8e4d112a351a633e87c1db4c0101422ea34a6b35721d730b7dadc1d7b72bb21"
+    "path": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-finalpatch-wheel-7151a733dbe24c98bbcaac7de6809dd9\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
+    "size": 223346,
+    "sha256": "84249381ffa058b2273b7e062e3a10ace0dc1451a44541357f02d44c34952705"
   },
   "build": {
-    "repo": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-followup2-wheel-1ef10b7344fc407d82dae6fa8bd90c80",
-    "head": "fe48330ce8170466ff455282b8f95a65193b6240",
-    "expected_commit": "fe48330ce8170466ff455282b8f95a65193b6240",
-    "branch": "fix/final-acceptance-followup-2",
+    "repo": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-finalpatch-wheel-7151a733dbe24c98bbcaac7de6809dd9",
+    "head": "25d6eefd7e58c9233971a8fba8c43ad17bd27a37",
+    "expected_commit": "25d6eefd7e58c9233971a8fba8c43ad17bd27a37",
+    "branch": "fix/final-acceptance-final-patch",
     "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
     "build_command": "python scripts/build_wheel.py",
     "clean_checkout": true
@@ -20,7 +20,8 @@
     "sources_byte_identical": true
   },
   "record": {
-    "ok": true
+    "ok": true,
+    "members_checked": 63
   },
   "imports": {
     "ok": true

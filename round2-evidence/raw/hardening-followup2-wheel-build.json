@@ -1,13 +1,13 @@
 {
   "ok": true,
-  "generated_at_utc": "2026-11-10T13:09:06Z",
-  "repo_root": "D:\\CTF-SOLVER",
-  "branch": "fix/round2-acceptance-remediation",
-  "head": "d38845366075c57f5840127b93bfd58c9c9e24f3",
+  "generated_at_utc": "2026-11-10T15:46:41Z",
+  "repo_root": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-finalpatch-wheel-7151a733dbe24c98bbcaac7de6809dd9",
+  "branch": "fix/final-acceptance-final-patch",
+  "head": "25d6eefd7e58c9233971a8fba8c43ad17bd27a37",
   "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
   "python_executable": "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
   "pip_version": "pip 26.2.1 from <USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\pip (python 3.14)",
-  "out_dir": "D:\\CTF-SOLVER\\dist",
+  "out_dir": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-finalpatch-wheel-7151a733dbe24c98bbcaac7de6809dd9\\dist",
   "commands": [
     {
       "command": [
@@ -15,30 +15,30 @@
         "-m",
         "pip",
         "wheel",
-        "D:\\CTF-SOLVER",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-finalpatch-wheel-7151a733dbe24c98bbcaac7de6809dd9",
         "--no-deps",
         "--no-build-isolation",
         "--disable-pip-version-check",
         "--no-input",
         "--no-cache-dir",
         "-w",
-        "D:\\CTF-SOLVER\\dist"
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-finalpatch-wheel-7151a733dbe24c98bbcaac7de6809dd9\\dist"
       ],
       "returncode": 0,
-      "seconds": 1.566,
-      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.0-py3-none-any.whl size=214584 sha256=ae30eb4546dc3abb84bfc98f376dbd7afe10a4c3308f67d479225e258f1fba47\n  Stored in directory: <USER_HOME>\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-ce77i61s\\wheels\\b9\\b8\\33\\e6a489ec79f82c83e7a20081770505815d45a72c26e0a7967c\nSuccessfully built ctf-solver\n",
+      "seconds": 1.437,
+      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.0-py3-none-any.whl size=223346 sha256=84249381ffa058b2273b7e062e3a10ace0dc1451a44541357f02d44c34952705\n  Stored in directory: <USER_HOME>\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-f_4dcxva\\wheels\\98\\2e\\f3\\90230dee13159d9b2a77598a631947ec43c7a61783b955daf9\nSuccessfully built ctf-solver\n",
       "stderr_tail": "",
       "builder": "pip",
-      "produced_wheel": "D:\\CTF-SOLVER\\dist\\ctf_solver-0.1.0-py3-none-any.whl"
+      "produced_wheel": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-finalpatch-wheel-7151a733dbe24c98bbcaac7de6809dd9\\dist\\ctf_solver-0.1.0-py3-none-any.whl"
     }
   ],
   "errors": [],
   "builder": "pip",
   "wheel": {
     "filename": "ctf_solver-0.1.0-py3-none-any.whl",
-    "path": "D:\\CTF-SOLVER\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
-    "size": 214584,
-    "sha256": "ae30eb4546dc3abb84bfc98f376dbd7afe10a4c3308f67d479225e258f1fba47"
+    "path": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-finalpatch-wheel-7151a733dbe24c98bbcaac7de6809dd9\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
+    "size": 223346,
+    "sha256": "84249381ffa058b2273b7e062e3a10ace0dc1451a44541357f02d44c34952705"
   },
   "verification": {
     "structure": {
@@ -77,7 +77,7 @@
           "import ctf_solver.evidence.store, ctf_solver.manager.service, ctf_solver.intake; from ctf_solver import __version__; print(__version__)"
         ],
         "returncode": 0,
-        "seconds": 0.502,
+        "seconds": 0.456,
         "stdout_tail": "0.1.0\n",
         "stderr_tail": ""
       },
@@ -89,7 +89,7 @@
           "version"
         ],
         "returncode": 0,
-        "seconds": 0.176,
+        "seconds": 0.161,
         "stdout_tail": "ctf-solver 0.1.0\n",
         "stderr_tail": ""
       },
@@ -102,5 +102,5 @@
     },
     "ok": true
   },
-  "duration_s": 2.986
+  "duration_s": 2.751
 }

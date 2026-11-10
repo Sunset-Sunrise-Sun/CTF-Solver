@@ -531,38 +531,39 @@ class ManagerService(ManagerControl):
         events: list[dict[str, Any]] = []
         evidence_ok = False
         try:
-            evidence_ok = True
             events = self._completion_events(task_id)
             if len(events) == 1:
                 self._require_chain_intact(task_id)
+            evidence_ok = len(events) == 1
         except Exception:  # noqa: BLE001
             evidence_ok = False
 
         payload: Mapping[str, Any] = {}
-        if evidence_ok and len(events) == 1:
+        anchor = ""
+        if evidence_ok:
             candidate = events[0].get("payload")
             if isinstance(candidate, Mapping):
                 payload = candidate
+            anchor = str(events[0].get("record_hash") or "").strip().lower()
         result_state = str(payload.get("result_state") or "")
         ended_at = payload.get("ended_at")
         can_complete = (
             evidence_ok
-            and len(events) == 1
+            and worker is not None
             and str(events[0].get("task_id") or "") == task_id
             and result_state not in {"", "unknown"}
             and isinstance(ended_at, int)
             and int(ended_at) > 0
+            and len(anchor) == 64
         )
 
         if can_complete:
             try:
-                if worker is not None and worker.status is not WorkerStatus.STOPPED:
-                    self.store.set_worker_status(worker.worker_id, WorkerStatus.STOPPED)
-                head_hash = self._require_chain_intact(task_id)
-                self._persist_evidence_head_strict(task_id, head_hash)
-                completed = self.store.set_task_status(
+                self._verify_chain_anchor(task_id, anchor)
+                self._persist_evidence_head_strict(task_id, anchor)
+                completed = self.store.finalize_task_completion(
                     task_id,
-                    TaskStatus.COMPLETED,
+                    worker_id=worker.worker_id,
                     result_state=result_state,
                     ended_at=int(ended_at),
                     notes="completion recovered from durable evidence after restart",
@@ -582,10 +583,23 @@ class ManagerService(ManagerControl):
                     "session_duplicate_created": False,
                     "recovered_completion": True,
                 }
-            except Exception as exc:  # noqa: BLE001 - fall through to interruption
+            except Exception as exc:  # noqa: BLE001 - keep pending + slot protection
                 self._diagnostic(
                     "completion_recovery_finalize_failed", str(exc), task_id=task_id
                 )
+                self._event_errors.append(
+                    f"completion recovery {task_id}: {type(exc).__name__}: {exc}"
+                )
+                return {
+                    "task_id": task_id,
+                    "previous_status": previous,
+                    "status": TaskStatus.COMPLETION_PENDING.value,
+                    "session_duplicate_created": False,
+                    "recovered_completion": False,
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+            finally:
+                pass
 
         # No trustworthy completion evidence: never report completed. Release the
         # slot only as part of a clearly interrupted/aborted outcome.
@@ -978,7 +992,7 @@ class ManagerService(ManagerControl):
 
     def _completion_event_payload(
         self, task_id: str, worker: WorkerRecord, result_state: str
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], str]:
         events = self._completion_events(task_id)
         if len(events) > 1:
             raise StateError(
@@ -997,7 +1011,13 @@ class ManagerService(ManagerControl):
                 )
             if not isinstance(payload.get("ended_at"), int) or int(payload["ended_at"]) <= 0:
                 raise StateError("existing task_completed evidence has no valid ended_at")
-            return dict(payload)
+            anchor = str(event.get("record_hash") or "").strip().lower()
+            if not anchor:
+                raise StateError(
+                    "existing task_completed evidence has no record hash; cannot verify "
+                    "the historical chain anchor"
+                )
+            return dict(payload), anchor
 
         ended_at = int(self.clock.now_ms())
         payload = {
@@ -1024,7 +1044,8 @@ class ManagerService(ManagerControl):
                 f"task_completed evidence append failed: {type(exc).__name__}: {exc}",
                 details={"task_id": task_id, "phase": "task_completed_append"},
             ) from exc
-        # Verify the event really is in the chain (not just that append returned).
+        # Verify the event really is in the chain and keep its own hash as the
+        # immutable Task completion anchor (NOT the later global head).
         self._require_chain_intact(task_id)
         events = self._completion_events(task_id)
         if len(events) != 1:
@@ -1032,30 +1053,69 @@ class ManagerService(ManagerControl):
                 f"task_completed evidence verification failed: {len(events)} event(s)",
                 details={"task_id": task_id, "phase": "task_completed_verify"},
             )
-        return payload
+        anchor = str(events[0].get("record_hash") or "").strip().lower()
+        if not anchor:
+            raise StorageError(
+                "task_completed evidence has no record hash; cannot establish an anchor",
+                details={"task_id": task_id, "phase": "task_completed_anchor"},
+            )
+        return payload, anchor
+
+    def _verify_chain_anchor(self, task_id: str, anchor_hash: str) -> str:
+        anchor = str(anchor_hash or "").strip().lower()
+        if len(anchor) != 64:
+            raise StateError(
+                f"Task {task_id} has no valid historical evidence-head anchor"
+            )
+        verifier = getattr(self.evidence, "verify_chain_anchor", None)
+        if not callable(verifier):
+            raise StateError(
+                "the evidence store cannot verify historical chain anchors; refusing "
+                "to trust a Task completion snapshot"
+            )
+        self._require_chain_intact(task_id)
+        try:
+            valid = bool(verifier(anchor))
+        except Exception as exc:  # noqa: BLE001
+            raise StateError(
+                f"historical evidence-head verification failed: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
+        if not valid:
+            raise StateError(
+                f"Task {task_id} historical evidence head is not present in the "
+                "current intact evidence chain"
+            )
+        return anchor
 
     def _verify_completed_task_evidence(self, task: TaskRecord) -> dict[str, Any]:
-        self._require_chain_intact(task.task_id)
+        """Verify a completed Task against its historical chain snapshot.
+
+        The global append-only head legitimately advances when other Tasks write
+        evidence. The correct invariant is therefore: the Task's saved
+        ``evidence_head`` must be the record hash of its unique completion event
+        and must still exist inside the current valid chain; the current global
+        head may be later.
+        """
+
+        anchor = self._verify_chain_anchor(task.task_id, task.evidence_head or "")
         events = self._completion_events(task.task_id)
         if len(events) != 1:
             raise StateError(
                 f"completed Task {task.task_id} lacks exactly one task_completed event "
                 f"({len(events)} found); refusing to report completion"
             )
-        payload = events[0].get("payload") if isinstance(events[0].get("payload"), Mapping) else {}
+        event = events[0]
+        event_anchor = str(event.get("record_hash") or "").strip().lower()
+        if event_anchor != anchor:
+            raise StateError(
+                "completed Task evidence_head does not match its completion event anchor"
+            )
+        payload = event.get("payload") if isinstance(event.get("payload"), Mapping) else {}
         if payload.get("result_state") != task.result_state:
             raise StateError("completed Task result_state and evidence disagree")
         if int(payload.get("ended_at") or 0) != int(task.ended_at or 0):
             raise StateError("completed Task ended_at and evidence disagree")
-        try:
-            head = self.evidence.chain_head()
-        except Exception as exc:  # noqa: BLE001
-            raise StateError(f"evidence chain head unavailable: {exc}") from exc
-        head_hash = str(head[1]) if isinstance(head, tuple) and len(head) == 2 else ""
-        if not head_hash or str(task.evidence_head or "") != head_hash:
-            raise StateError(
-                "completed Task evidence_head does not match the evidence chain head"
-            )
         return dict(payload)
 
     def _finalize_completion(
@@ -1069,11 +1129,11 @@ class ManagerService(ManagerControl):
     ) -> dict[str, Any]:
         """Finish a completion from ``completion_pending`` with mandatory evidence.
 
-        Ordering: durable completion event → strict evidence_head persistence →
-        Worker stop/slot release → durable completed status → FIFO pump. Any
-        failure before the final status leaves the Task in ``completion_pending``
-        with its Worker slot held (or, if the Worker already stopped, returns a
-        detectable pending state) so it can be retried/recovered safely.
+        Ordering: durable completion event + historical anchor verification →
+        strict evidence_head persistence → atomic SQLite transaction setting the
+        Task ``completed`` and the Worker ``stopped`` (slot release) → optional
+        FIFO pump. If the transaction fails, both Task and Worker are rolled back,
+        the Task stays ``completion_pending`` and the Worker keeps the slot.
         """
 
         task = self.store.require_task(task_id)
@@ -1102,37 +1162,48 @@ class ManagerService(ManagerControl):
                         details={"task_id": task_id, "phase": "grant_revocation"},
                     ) from exc
 
-        payload = self._completion_event_payload(task_id, worker, result_state)
+        payload, anchor = self._completion_event_payload(task_id, worker, result_state)
         ended_at = int(payload["ended_at"])
-        head_hash = self._require_chain_intact(task_id)
-        self._persist_evidence_head_strict(task_id, head_hash)
+        # Mandatory: the saved historical snapshot must be the completion event
+        # hash and must be inside the current intact chain.
+        self._verify_chain_anchor(task_id, anchor)
+        self._persist_evidence_head_strict(task_id, anchor)
 
-        # Stop accepting/executing is guaranteed by completion_pending + IPC guard;
-        # now release the Worker slot only after the completion evidence is durable.
+        # Atomic final state: Task completed + Worker stopped (slot release) only
+        # together. Failure rolls both back, so the slot cannot be freed early.
         try:
-            self.store.set_worker_status(worker.worker_id, WorkerStatus.STOPPED)
-        except Exception as exc:  # noqa: BLE001
-            raise StorageError(
-                f"could not stop Worker {worker.worker_id} for completion: "
-                f"{type(exc).__name__}: {exc}",
-                details={"task_id": task_id, "phase": "worker_stop"},
-            ) from exc
-        try:
-            completed = self.store.set_task_status(
+            completed = self.store.finalize_task_completion(
                 task_id,
-                TaskStatus.COMPLETED,
+                worker_id=worker.worker_id,
                 result_state=result_state,
                 ended_at=ended_at,
-                notes=(note or "Task completed through the Manager lifecycle")[:2000],
+                notes=(note or "Task completed through the Manager lifecycle"),
             )
         except Exception as exc:  # noqa: BLE001
+            self._diagnostic(
+                "task_completion_finalize_failed",
+                str(exc),
+                task_id=task_id,
+                worker_id=worker.worker_id,
+            )
             raise StorageError(
-                f"Task completion status could not be persisted: "
+                f"final completion state could not be persisted atomically: "
                 f"{type(exc).__name__}: {exc}",
-                details={"task_id": task_id, "phase": "task_status"},
+                details={"task_id": task_id, "phase": "task_worker_finalize"},
             ) from exc
-        # Re-verify the durable completion invariants after the final write.
-        self._verify_completed_task_evidence(completed)
+        # Re-verify against the immutable historical anchor (the global head may
+        # have advanced; it is not the Task snapshot).
+        try:
+            self._verify_completed_task_evidence(completed)
+        except Exception as exc:  # noqa: BLE001
+            self._diagnostic(
+                "task_completion_post_verify_failed", str(exc), task_id=task_id
+            )
+            raise StorageError(
+                f"completion post-write evidence verification failed: "
+                f"{type(exc).__name__}: {exc}",
+                details={"task_id": task_id, "phase": "completion_post_verify"},
+            ) from exc
         snapshot = {
             "task_id": task_id,
             "status": TaskStatus.COMPLETED.value,

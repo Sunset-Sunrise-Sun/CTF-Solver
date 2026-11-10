@@ -408,7 +408,10 @@ class ApprovalGrantService:
                 "unverifiable approval confirmation"
             )
         try:
-            events = lister(task_id=task_id, event_type="approval_decided")
+            # Final acceptance follow-up: the uniqueness check is GLOBAL. Do not
+            # filter by the current Task, otherwise a duplicate/conflicting
+            # approval_decided event filed under another Task would be invisible.
+            events = lister(event_type="approval_decided")
         except Exception as exc:  # noqa: BLE001 - evidence read failure fails closed
             raise StateError(
                 f"could not read approval decision evidence: {type(exc).__name__}: {exc}"

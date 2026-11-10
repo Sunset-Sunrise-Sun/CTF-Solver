@@ -185,6 +185,74 @@ class ManagerStore:
             )
         return self.require_task(task_id)
 
+    def finalize_task_completion(
+        self,
+        task_id: str,
+        *,
+        worker_id: str,
+        result_state: str,
+        ended_at: int,
+        notes: str = "",
+    ) -> TaskRecord:
+        """Atomically persist ``completed`` Task state and Worker slot release.
+
+        The Task final status and the Worker ``stopped`` status are written in
+        one SQLite transaction. If either write fails, both are rolled back: the
+        Task stays ``completion_pending``, the Worker keeps its occupied-slot
+        status, and no FIFO admission can happen. This is the only path used by
+        completion finalization.
+        """
+
+        with self._tx():
+            task = self.require_task(task_id)
+            if task.status is not TaskStatus.COMPLETION_PENDING:
+                raise StateError(
+                    f"Task {task_id} is not completion_pending "
+                    f"(status={task.status.value})"
+                )
+            worker = self.require_worker(worker_id)
+            if worker.task_id != task_id:
+                raise StateError("Worker does not belong to the Task being completed")
+            if not task.acp_session_id or worker.acp_session_id != task.acp_session_id:
+                raise StateError("Worker/session ownership does not match the Task")
+            if not can_transition(task.status, TaskStatus.COMPLETED):
+                raise StateError(
+                    f"illegal completion transition {task.status.value} -> completed"
+                )
+            now = self.clock.now_ms()
+            cursor = self.conn.execute(
+                "UPDATE tasks SET status = ?, result_state = ?, ended_at = ?, notes = ?,"
+                " updated_at = ? WHERE task_id = ? AND status = ?",
+                (
+                    TaskStatus.COMPLETED.value,
+                    result_state,
+                    int(ended_at),
+                    (notes or "")[:2000],
+                    now,
+                    task_id,
+                    TaskStatus.COMPLETION_PENDING.value,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise StateError(
+                    f"Task {task_id} completion status compare-and-set failed"
+                )
+            worker_cursor = self.conn.execute(
+                "UPDATE workers SET status = ?, updated_at = ?"
+                " WHERE worker_id = ? AND task_id = ?",
+                (
+                    WorkerStatus.STOPPED.value,
+                    now,
+                    worker_id,
+                    task_id,
+                ),
+            )
+            if worker_cursor.rowcount != 1:
+                raise StateError(
+                    f"Worker {worker_id} slot release compare-and-set failed"
+                )
+        return self.require_task(task_id)
+
     def activate_task(
         self,
         task_id: str,

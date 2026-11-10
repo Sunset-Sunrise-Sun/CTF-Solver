@@ -1,16 +1,44 @@
 {
-  "scope": "all tracked and untracked non-binary text files at the final hardening working tree",
+  "scope": "all tracked and untracked non-binary text files at the final follow-up working tree",
+  "before": {
+    "text_files_scanned": 256,
+    "files_with_personal_home": 47,
+    "personal_home_occurrences": 343,
+    "note": "captured before any redaction"
+  },
+  "after": {
+    "files_with_personal_home": 0,
+    "occurrences": 0,
+    "scan": "round2-evidence/raw/privacy-scan-after.json"
+  },
   "replacement": "personal Windows home paths -> <USER_HOME>; bare profile id -> <USER_ID>",
-  "passes": [
+  "redaction_passes": [
     {
-      "files_redacted": 0,
-      "occurrences_replaced": 0
+      "method": "UTF-8 text replacement",
+      "files_touched": 43,
+      "occurrences_replaced": 331
     },
     {
-      "files_redacted": 2,
-      "occurrences_replaced": 16
+      "method": "byte-level replacement for invalid-UTF-8 evidence logs",
+      "files_touched": 5,
+      "occurrences_replaced": 13
+    },
+    {
+      "method": "byte-level replacement for new clean-clone evidence",
+      "files_touched": 5,
+      "occurrences_replaced": 73
+    },
+    {
+      "method": "byte-level replacement for follow-up test/integration evidence",
+      "files_touched": 7,
+      "occurrences_replaced": 14
     }
   ],
-  "total_files_redacted": 2,
-  "total_occurrences_replaced": 16
+  "secrets": {
+    "pattern_scan": "OpenAI-style keys, GitHub tokens, AWS access keys, private-key headers, password/token assignments",
+    "real_credentials_found": 0,
+    "notes": "test fixture tokens are synthetic; no real credential found"
+  },
+  "junit": "all committed JUnit XML files are parsed; redaction placeholders are XML-escaped in XML files and verified by scripts/verify_junit_xml.py",
+  "limitation": "final tree redacted; older Git history commits were not rewritten (no history rewrite policy)"
 }

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import threading
 from pathlib import Path
 from typing import Any
@@ -152,8 +153,28 @@ class FakeEvidence:
         record_id: str | None = None,
     ) -> str:
         record_id = record_id or f"ev-{len(self.events) + 1:04d}"
+        previous = self.events[-1]["record_hash"] if self.events else "0" * 64
+        record_hash = sha256_hex(
+            json.dumps(
+                {
+                    "seq": len(self.events) + 1,
+                    "record_id": record_id,
+                    "task_id": task_id,
+                    "worker_id": worker_id,
+                    "session_id": session_id,
+                    "source": source,
+                    "source_id": source_id,
+                    "event_type": event_type,
+                    "payload": payload,
+                    "prev": previous,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            ).encode("utf-8")
+        )
         self.events.append(
             {
+                "seq": len(self.events) + 1,
                 "record_id": record_id,
                 "task_id": task_id,
                 "worker_id": worker_id,
@@ -164,6 +185,8 @@ class FakeEvidence:
                 "event_type": event_type,
                 "payload": dict(payload),
                 "timestamp": timestamp or 0,
+                "prev_hash": previous,
+                "record_hash": record_hash,
             }
         )
         return record_id
@@ -177,10 +200,19 @@ class FakeEvidence:
         return self.store_artifact(Path(path).read_bytes(), media_type=media_type, source=source)
 
     def chain_head(self) -> tuple[int, str]:
-        return (len(self.events), "f" * 64)
+        if not self.events:
+            return (0, "0" * 64)
+        return (len(self.events), self.events[-1]["record_hash"])
 
     def chain_status(self) -> ChainStatus:
-        return ChainStatus(ok=True, records=len(self.events), head_hash="f" * 64)
+        head = self.events[-1]["record_hash"] if self.events else "0" * 64
+        return ChainStatus(ok=True, records=len(self.events), head_hash=head)
+
+    def verify_chain_anchor(self, anchor_hash: str) -> bool:
+        anchor = str(anchor_hash or "").strip().lower()
+        if len(anchor) != 64:
+            return False
+        return any(event["record_hash"] == anchor for event in self.events)
 
     def record_screenshot(self, record: ScreenshotRecord) -> None:
         self.screenshots.append(record)

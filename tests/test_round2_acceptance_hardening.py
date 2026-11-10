@@ -388,3 +388,91 @@ def test_event_chain_damage_blocks_grant_creation(env) -> None:
     with pytest.raises(StateError):
         _grant(env, decided)
     assert env.store.get_approval(approval.approval_id).consumed_at is None
+
+
+# ---------------------------------------------------------------------------
+# Final acceptance follow-up: cross-Task decision-event uniqueness
+# ---------------------------------------------------------------------------
+
+
+def _cross_task_conflict_event(env, decided, task_b, *, conflict: bool = True):
+    return env.evidence.append_event(
+        task_id=task_b.task_id,
+        source="manager",
+        source_id="manager:approval_decided:cross-task",
+        event_type="approval_decided",
+        payload={
+            "approval_id": decided.approval_id,
+            "task_id": task_b.task_id if conflict else decided.task_id,
+            "action_kind": decided.action_kind,
+            "action_digest": decided.action_digest if not conflict else "f" * 64,
+            "approved": True,
+            "approver": "cross-task-conflict",
+            "confirmation_channel": "local_console",
+            "confirmation_id": "cross-task-confirmation",
+            "confirmation_os_user": "cross-task-conflict",
+            "decided_at": decided.decided_at,
+            "note": "cross-task conflict",
+        },
+        timestamp=env.clock.now_ms(),
+    )
+
+
+def test_cross_task_duplicate_decision_event_is_rejected(env) -> None:
+    approval = _request(env)
+    decided = _approve(env, approval.approval_id)
+    _cross_task_conflict_event(env, decided, env.other, conflict=True)
+    with pytest.raises(StateError):
+        _grant(env, decided)
+    assert env.store.get_approval(approval.approval_id).consumed_at is None
+    assert env.store.list_grants() == []
+
+
+def test_cross_task_duplicate_with_matching_fields_is_still_rejected(env) -> None:
+    """Even a byte-identical second event in another Task breaks uniqueness."""
+
+    approval = _request(env)
+    decided = _approve(env, approval.approval_id)
+    _cross_task_conflict_event(env, decided, env.other, conflict=False)
+    with pytest.raises(StateError):
+        _grant(env, decided)
+    assert env.store.list_grants() == []
+
+
+def test_cross_task_event_with_rewritten_task_id_is_rejected(env) -> None:
+    approval = _request(env)
+    decided = _approve(env, approval.approval_id)
+    # Event row belongs to Task B but payload claims Task A.
+    env.evidence.append_event(
+        task_id=env.other.task_id,
+        source="manager",
+        source_id="manager:approval_decided:rewritten-task",
+        event_type="approval_decided",
+        payload={
+            "approval_id": decided.approval_id,
+            "task_id": decided.task_id,
+            "action_kind": decided.action_kind,
+            "action_digest": decided.action_digest,
+            "approved": True,
+            "approver": decided.confirmation_os_user,
+            "confirmation_channel": "local_console",
+            "confirmation_id": decided.confirmation_id,
+            "confirmation_os_user": decided.confirmation_os_user,
+            "decided_at": decided.decided_at,
+            "note": "",
+        },
+        timestamp=env.clock.now_ms(),
+    )
+    with pytest.raises(StateError):
+        _grant(env, decided)
+    assert env.store.list_grants() == []
+
+
+def test_legitimate_approval_still_creates_one_grant(env) -> None:
+    approval = _request(env)
+    decided = _approve(env, approval.approval_id)
+    grant = _grant(env, decided)
+    assert grant.approval_id == approval.approval_id
+    assert grant.task_id == env.task.task_id
+    assert len(env.store.list_grants(task_id=env.task.task_id)) == 1
+    assert len(env.store.list_grants(task_id=env.other.task_id)) == 0

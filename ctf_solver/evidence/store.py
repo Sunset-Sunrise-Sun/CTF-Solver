@@ -601,6 +601,25 @@ class EvidenceStore(AbstractContextManager["EvidenceStore"]):
         head_seq = int(get_meta(self._conn, META_CHAIN_HEAD_SEQ, "0") or 0)
         return head_seq, head
 
+    def verify_chain_anchor(self, anchor_hash: str) -> bool:
+        """Return True iff ``anchor_hash`` is a record in the current intact chain.
+
+        ``chain_head()`` is the global append position. Historic Task completion
+        snapshots store the hash of their own completion event; later events may
+        advance the global head, but the anchor must still exist in the valid
+        chain. The chain itself is fully recomputed before accepting an anchor.
+        """
+
+        text = str(anchor_hash or "").strip().lower()
+        if len(text) != 64 or any(char not in "0123456789abcdef" for char in text):
+            return False
+        row = self._conn.execute(
+            "SELECT seq FROM events WHERE record_hash = ?", (text,)
+        ).fetchone()
+        if row is None:
+            return False
+        return bool(self.chain_status().ok)
+
     def chain_status(self) -> ChainStatus:
         """Recompute the whole chain and compare it with the protected head."""
 

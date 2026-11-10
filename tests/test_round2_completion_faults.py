@@ -63,6 +63,16 @@ def _build_persistent(tmp_path, *, acp=None, start=True):
     return service, store, evidence
 
 
+def _install_trigger(store, name: str, sql: str) -> None:
+    store.conn.execute(sql)
+    store.conn.commit()
+
+
+def _drop_trigger(store, name: str) -> None:
+    store.conn.execute(f"DROP TRIGGER IF EXISTS {name}")
+    store.conn.commit()
+
+
 def _complete(service, task_id: str):
     return service.complete_task(
         task_id,
@@ -193,52 +203,77 @@ def test_chain_status_failure_after_event_keeps_pending_and_retry_finishes(tmp_p
         store.close()
 
 
-def test_worker_stop_failure_prevents_completion(tmp_path) -> None:
+def test_worker_slot_persistence_failure_prevents_completion(tmp_path) -> None:
     service, store, _evidence = _build(tmp_path)
     try:
         task = service.create_task(title="worker-fail", category="misc", conversation_id="c")
         worker = store.get_worker_for_task(task.task_id)
-        original = store.set_worker_status
-
-        def flaky_worker(worker_id, status):
-            if status is WorkerStatus.STOPPED:
-                raise OSError("synthetic worker stop failure")
-            return original(worker_id, status)
-
-        store.set_worker_status = flaky_worker  # type: ignore[method-assign]
+        # Abort the Worker status UPDATE inside the atomic finalization transaction.
+        _install_trigger(
+            store,
+            "block_worker_stop",
+            "CREATE TRIGGER block_worker_stop BEFORE UPDATE ON workers"
+            " WHEN NEW.status = 'stopped' BEGIN"
+            " SELECT RAISE(ABORT, 'synthetic worker stop failure'); END",
+        )
         with pytest.raises(StorageError):
             _complete(service, task.task_id)
         pending = store.require_task(task.task_id)
         assert pending.status is TaskStatus.COMPLETION_PENDING
         assert store.require_worker(worker.worker_id).status is not WorkerStatus.STOPPED
         assert store.count_active_slots() == 1
-        store.set_worker_status = original  # type: ignore[method-assign]
+        _drop_trigger(store, "block_worker_stop")
         assert _complete(service, task.task_id)["status"] == "completed"
+        assert store.require_worker(worker.worker_id).status is WorkerStatus.STOPPED
+        assert store.count_active_slots() == 0
     finally:
         service.close()
         store.close()
 
 
-def test_task_status_persistence_failure_does_not_report_success(tmp_path) -> None:
-    service, store, _evidence = _build(tmp_path)
+def test_task_status_persistence_failure_keeps_worker_slot(tmp_path) -> None:
+    acp = FakeAcp()
+    service, store, _evidence = _build(tmp_path, acp=acp)
     try:
-        task = service.create_task(title="status-fail", category="misc", conversation_id="c")
-        original = store.set_task_status
-
-        def flaky_status(task_id, target, **kwargs):
-            if target is TaskStatus.COMPLETED:
-                raise OSError("synthetic completed status failure")
-            return original(task_id, target, **kwargs)
-
-        store.set_task_status = flaky_status  # type: ignore[method-assign]
+        first = service.create_task(title="slot-first", category="misc", conversation_id="c")
+        second = service.create_task(title="slot-second", category="misc", conversation_id="c")
+        third = service.create_task(title="slot-queued", category="misc", conversation_id="c")
+        first_worker = store.get_worker_for_task(first.task_id)
+        assert store.count_active_slots() == 2
+        assert len(acp.new_session_calls) == 2
+        _install_trigger(
+            store,
+            "block_task_complete",
+            "CREATE TRIGGER block_task_complete BEFORE UPDATE ON tasks"
+            " WHEN NEW.status = 'completed' BEGIN"
+            " SELECT RAISE(ABORT, 'synthetic completed status failure'); END",
+        )
         with pytest.raises(StorageError):
-            _complete(service, task.task_id)
-        pending = store.require_task(task.task_id)
+            _complete(service, first.task_id)
+        pending = store.require_task(first.task_id)
         assert pending.status is TaskStatus.COMPLETION_PENDING
-        store.set_task_status = original  # type: ignore[method-assign]
-        result = _complete(service, task.task_id)
+        assert pending.ended_at is None
+        # Slot is still held: Worker is not STOPPED, slot count unchanged, FIFO
+        # Task has NOT been admitted and its Session was NOT created early.
+        assert store.require_worker(first_worker.worker_id).status is not WorkerStatus.STOPPED
+        assert store.count_active_slots() == 2
+        assert store.require_task(third.task_id).status is TaskStatus.QUEUED
+        assert store.get_worker_for_task(third.task_id) is None
+        assert len(acp.new_session_calls) == 2
+        _drop_trigger(store, "block_task_complete")
+        result = _complete(service, first.task_id)
         assert result["status"] == "completed"
-        assert len(service._completion_events(task.task_id)) == 1  # noqa: SLF001
+        assert len(service._completion_events(first.task_id)) == 1  # noqa: SLF001
+        # After the durable completion the slot is released exactly once and the
+        # queued FIFO Task starts once.
+        assert store.require_task(third.task_id).status is TaskStatus.RUNNING
+        assert len([w for w in store.list_workers() if w.task_id == third.task_id]) == 1
+        assert len(acp.new_session_calls) == 3
+        # Repeat completion is idempotent and does not release/create anything again.
+        snapshot = _complete(service, first.task_id)
+        assert snapshot["already_completed"] is True
+        assert len([w for w in store.list_workers() if w.task_id == first.task_id]) == 1
+        assert len(acp.new_session_calls) == 3
     finally:
         service.close()
         store.close()
@@ -311,19 +346,21 @@ def test_restart_pending_with_valid_completion_evidence_finalizes_completed(tmp_
         task = service.create_task(title="crash-with-evidence", category="misc", conversation_id="c")
         task_id = task.task_id
         first_worker = store.get_worker_for_task(task_id)
-        original = store.set_task_status
-
-        def flaky_status(task_id, target, **kwargs):
-            if target is TaskStatus.COMPLETED:
-                raise OSError("synthetic crash before final status")
-            return original(task_id, target, **kwargs)
-
-        store.set_task_status = flaky_status  # type: ignore[method-assign]
+        _install_trigger(
+            store,
+            "block_task_complete_crash",
+            "CREATE TRIGGER block_task_complete_crash BEFORE UPDATE ON tasks"
+            " WHEN NEW.status = 'completed' BEGIN"
+            " SELECT RAISE(ABORT, 'synthetic crash before final status'); END",
+        )
         with pytest.raises(StorageError):
             _complete(service, task_id)
         assert store.require_task(task_id).status is TaskStatus.COMPLETION_PENDING
         assert len(service._completion_events(task_id)) == 1  # noqa: SLF001
-        assert store.require_worker(first_worker.worker_id).status is WorkerStatus.STOPPED
+        # The final transaction rolled back: the Worker still holds the slot.
+        assert store.require_worker(first_worker.worker_id).status is not WorkerStatus.STOPPED
+        assert store.count_active_slots() == 1
+        _drop_trigger(store, "block_task_complete_crash")
     finally:
         service.close()
         store.close()
@@ -346,6 +383,57 @@ def test_restart_pending_with_valid_completion_evidence_finalizes_completed(tmp_
             allow_missing_session_log=True,
         )
         assert snapshot["already_completed"] is True
+    finally:
+        service2.close()
+        store2.close()
+
+def test_restart_finalize_failure_keeps_slot_until_retry(tmp_path) -> None:
+    """A crash/pending recovery that cannot finalize must not release the slot."""
+
+    acp = FakeAcp()
+    service, store, _evidence = _build_persistent(tmp_path, acp=acp)
+    task_id = None
+    worker_id = None
+    try:
+        task = service.create_task(title="recover-blocked", category="misc", conversation_id="c")
+        task_id = task.task_id
+        worker_id = store.get_worker_for_task(task_id).worker_id
+        _install_trigger(
+            store,
+            "block_task_complete_recovery",
+            "CREATE TRIGGER block_task_complete_recovery BEFORE UPDATE ON tasks"
+            " WHEN NEW.status = 'completed' BEGIN"
+            " SELECT RAISE(ABORT, 'synthetic finalize failure'); END",
+        )
+        with pytest.raises(StorageError):
+            _complete(service, task_id)
+        assert store.require_task(task_id).status is TaskStatus.COMPLETION_PENDING
+        assert store.require_worker(worker_id).status is not WorkerStatus.STOPPED
+        assert store.count_active_slots() == 1
+        assert len(service._completion_events(task_id)) == 1  # noqa: SLF001
+    finally:
+        service.close()
+        store.close()
+
+    service2, store2, _evidence2 = _build_persistent(tmp_path, start=False)
+    try:
+        service2.start()
+        pending = store2.require_task(task_id)
+        # Recovery could not finalize (trigger still present): the Task stays
+        # pending and the Worker slot remains held.
+        assert pending.status is TaskStatus.COMPLETION_PENDING
+        assert store2.require_worker(worker_id).status is not WorkerStatus.STOPPED
+        assert store2.count_active_slots() == 1
+        _drop_trigger(store2, "block_task_complete_recovery")
+        snapshot = service2.complete_task(
+            task_id,
+            result_state="solved_flag_candidate",
+            allow_missing_session_log=True,
+        )
+        assert snapshot["already_completed"] is False
+        assert store2.require_task(task_id).status is TaskStatus.COMPLETED
+        assert store2.count_active_slots() == 0
+        assert len(service2._completion_events(task_id)) == 1  # noqa: SLF001
     finally:
         service2.close()
         store2.close()

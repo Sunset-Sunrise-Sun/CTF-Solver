@@ -5,153 +5,139 @@
 
 ## 1. Product definition
 
-CTF-Solver is a DeepSeek Harness-native CTF solving extension. It adds a durable task/control/evidence layer around Harness; it is not a replacement model runtime, a separate CTF web platform, or a second autonomous agent loop.
+CTF-Solver is a semi-autonomous CTF solving extension for DeepSeek Harness. It preserves Harness as the reasoning/runtime layer and adds a Core Skill, five specialist Skills, a Manager, independent ACP Workers, a typed execution interface, policy/approval, evidence storage, and reproducible delivery.
 
-The product is intended to support authorized CTF challenges and local challenge files across five categories:
+It is not a standalone CTF platform, a new frontend, a multi-model race system, or a replacement agent runtime.
 
-- Web
-- Misc
-- Crypto
-- Reverse
-- Pwn
+The MVP covers exactly five categories: Web, Misc, Crypto, Reverse, and Pwn. First Blood scanning is a separate future project and explicitly excluded.
 
-The product must preserve the user's ability to understand what is happening, approve sensitive actions, resume work, and inspect the evidence behind the final result.
+## 2. Entry and conversation mode
 
-## 2. Entry and conversation-mode behavior
+The user explicitly enters /ctf-solver. The command is not auto-triggered by a binary, flag-like string, or generic security question.
 
-### 2.1 Explicit entry
+After activation, CTF mode persists for the current conversation:
+- challenge descriptions, archives, binaries, screenshots, URLs, hints, and environment details do not require repeating the command;
+- “continue” and follow-up evidence refer to the active Task unless a clearly new challenge is introduced;
+- a new challenge creates a new Task and does not overwrite the previous one;
+- ambiguous continuation/task switching prompts one concise clarification;
+- the user can exit with a natural-language request such as “退出 CTF 模式”.
 
-The user starts the mode by entering:
+A new conversation requires explicit entry again. Durable Task records may be resumed explicitly, but a new chat must not silently assume an old Task is active.
 
-```text
-/ctf-solver
-```
+Conversation mode and Task state are separate. Finishing a challenge does not automatically exit CTF mode.
 
-The command is explicit. Do not auto-activate CTF mode merely because a message contains a binary, a flag-like string, or a security question.
+## 3. Semi-autonomous operating model
 
-### 2.2 Persistent within the current conversation
+The Agent may autonomously inspect challenge material, classify the task, check tool availability, form hypotheses, plan experiments, write helper scripts inside the Task workspace, run routine permitted tools through ctf-exec, iterate on actual outputs, and prepare evidence-backed deliverables.
 
-After activation, CTF mode remains active for the current Harness conversation:
+Human approval is required before:
+- executing an untrusted challenge binary or other untrusted code;
+- installing software or changing the toolchain;
+- accessing a remote CTF target or performing target-side actions.
 
-- The user can send challenge descriptions, archives, binaries, screenshots, URLs, hints, and environment details without repeating the command.
-- “Continue”, “try another approach”, and follow-up evidence refer to the active task unless the user clearly introduces another challenge.
-- A clearly new challenge creates a new Task; it does not overwrite the previous Task.
-- If the message could be either a continuation or a new challenge, ask one concise clarification rather than guessing.
-- The user can leave the mode with a natural-language request such as “退出 CTF 模式”.
+Because the current environment has no accepted OS isolation tier, approval alone is not sufficient to run untrusted code on the host. Such execution remains blocked until Tier 2 isolation is installed and accepted.
 
-A new conversation is a new mode context and requires the explicit command again. Durable task records remain available for an explicit resume flow, but a new chat must not silently assume the old task is active.
+Flag submission is always human-controlled. The Agent may identify and explain a candidate Flag, but the user verifies and submits it. Automatic submission is excluded.
 
-### 2.3 Mode state is not task state
+## 4. Task and Worker model
 
-- **Conversation mode** says that this conversation is operating under CTF-Solver interaction rules.
-- **Task state** describes one challenge and its Worker, workspace, ACP session, approvals, and evidence.
+Each challenge has a stable Task ID, independent workspace, and independent Harness ACP session.
 
-Finishing or pausing a challenge does not automatically exit conversation mode.
+Minimum Task fields: task_id, conversation_id, title, category, source, competition/scope profile, workspace, ACP session ID, status, timestamps, evidence-chain head, and result state.
 
-## 3. Task model
+One challenge per Task. Multiple files forming one challenge belong to the same Task; distinct challenges must not share workspaces, session IDs, or evidence.
 
-Each challenge has a stable Task ID and an independent workspace and Harness ACP session.
+Task lifecycle:
+- created → queued → starting → running;
+- running may transition to awaiting_approval or blocked;
+- terminal states include completed, partial, failed, and blocked;
+- cancellation first becomes cancel_requested and only becomes cancelled after process/job quiescence is confirmed.
 
-Minimum Task fields:
+A Task is not complete merely because the model stopped responding.
 
-| Field | Purpose |
-|---|---|
-| `task_id` | Stable unique identifier |
-| `conversation_id` | Conversation that initiated or resumed the task |
-| `title` | Human-readable challenge name |
-| `category` | Web / Misc / Crypto / Reverse / Pwn / Unknown |
-| `source` | Attachment, local file, event platform, or user description |
-| `scope_profile` | Competition rules, authorized targets, and permitted actions |
-| `workspace` | `tasks/<task_id>/work` |
-| `acp_session_id` | Harness session created for this task |
-| `status` | Lifecycle state |
-| `created_at`, `updated_at` | Timestamps |
-| `evidence_head_hash` | Current task evidence-chain head |
-| `result_state` | Verified / partial / not solved / blocked / unknown |
-
-### 3.1 Task lifecycle
-
-The initial lifecycle vocabulary is:
-
-```text
-created → queued → starting → running
-                     ↘ awaiting_approval
-                     ↘ blocked
-                     ↘ cancel_requested
-running → completed | partial | failed | blocked
-cancel_requested → cancelled (only after quiescence is confirmed)
-```
-
-A task must not be marked `completed` merely because the model stopped responding. The Manager must evaluate the terminal state and evidence. If the system cannot confirm that an underlying job has stopped, it must retain `cancel_requested` or an equivalent uncertain state.
-
-### 3.2 One challenge per Task
-
-Multiple files that form one challenge belong to one Task. Distinct challenges receive distinct Tasks. The Manager must not mix artifacts, session IDs, or writeups between Tasks.
-
-## 4. Worker scheduling
+## 5. Scheduling
 
 - Maximum active Workers: **2**.
-- Additional Tasks enter a **FIFO** queue.
-- One Worker maps to one Task and one independent ACP session.
-- A Worker may use Harness tools and approved MCP wrappers through the Manager policy boundary.
-- Independent ACP sessions do not imply independent OS processes or OS-level isolation.
-- The Manager, not the model, is authoritative for queue order, active count, and Task-to-session mapping.
+- Additional Tasks enter a FIFO queue.
+- One Worker maps to one Task and one independent ACP session/workspace.
+- Manager is authoritative for queue order, active count, and Task/session mapping.
+- Independent ACP sessions do not imply independent OS processes or OS isolation.
 
-The first implementation uses a single managed ACP Server process with multiple task sessions unless later measurements justify a different process topology. This is a shared failure domain and must be documented and tested.
+The initial design may use one managed ACP Server process for multiple sessions. This is a shared failure domain and must be surfaced.
 
-## 5. Solving workflow
+## 6. Core Skill and five specialist Skills
 
-1. **Intake:** collect the challenge statement and supplied artifacts.
-2. **Rules and scope:** identify the competition/platform rules and authorized target scope before any network or state-changing action.
-3. **Preflight:** classify the category, inventory files, check tool availability, and identify missing prerequisites.
-4. **Plan:** create a short, evidence-oriented plan and identify actions requiring approval.
-5. **Execute:** run permitted actions through Harness and the Manager's policy boundary.
-6. **Observe:** capture actual tool arguments, outputs, exit codes, job states, and explicitly requested screenshots.
-7. **Reason:** distinguish facts, hypotheses, failed attempts, and conclusions.
-8. **Verify:** validate any proposed flag or exploit result against the actual challenge evidence. A guessed flag is not a solved challenge.
-9. **Deliver:** produce a concise result summary, evidence references, a Markdown writeup, and a SHA-256 manifest.
-10. **Persist:** save the Task state so the user can continue or resume it.
+Deliver one Core Skill plus five category Skills:
 
-The Manager schedules and governs this workflow. Harness performs model reasoning; CTF-Solver must not implement a parallel model loop.
+- Core: ctf-solver
+- ctf-web
+- ctf-misc
+- ctf-crypto
+- ctf-reverse
+- ctf-pwn
 
-## 6. User-facing controls
+The Core Skill owns intake, competition rules, Task lifecycle, and routing. Specialist Skills provide category-specific reasoning guidance and references. Skills are instruction content, not security boundaries; Manager/Runtime/Broker enforce permissions.
 
-The user should be able to:
+Project-level Skill bundles are discovered under the nearest Harness project root, for example .dsh/skills/. Use UTF-8 without BOM; the audit observed that a BOM can cause silent Skill discovery failure.
 
-- start the mode with `/ctf-solver`;
-- add challenge material and continue without repeating the command;
-- ask for current task/queue status;
-- approve or reject a specific sensitive action;
-- pause or request cancellation of a Task;
-- continue a Task or start another Task;
-- request a writeup or inspect the evidence;
-- exit CTF mode.
+## 7. Network policy
 
-No broad “approve all future actions” grant is implied by a single approval. Sensitive approvals are scoped to a concrete action and Task.
+The agreed policy distinguishes public research from competition targets:
 
-## 7. Deliverables
+- Public research and public documentation lookup may use the internet.
+- Public research access does not authorize active probing or exploitation of the source host.
+- Competition target access requires authorization for the specific Task and target, including host/port/action scope.
+- Out-of-scope hosts, ports, and actions are rejected.
+- Loopback/private destinations are not implicitly trusted; they require explicit scope when part of the authorized challenge.
 
-A completed or partial Task should provide:
+## 8. Execution and environment
 
-1. **Result summary** — what was established and what remains unresolved.
-2. **Flag/result** — only if actually found and verified; otherwise explicitly say not found or not verified.
-3. **Writeup** — Markdown generated from evidence, with analysis narrative and reproducible commands.
-4. **Evidence** — tool calls/results, relevant files, job outcomes, and explicitly captured screenshots.
-5. **Integrity manifest** — SHA-256 hashes for delivered artifacts.
-6. **Limitations** — missing tools, blocked actions, unverified steps, or environment constraints.
+- CLI/headless tools are preferred.
+- GUI is auxiliary and used primarily for required program-running screenshots; reliable GUI keyboard/mouse automation is not an MVP dependency.
+- Runtime exposes a typed ctf-exec interface through MCP.
+- Workers do not receive arbitrary host Shell access or Docker Socket access.
+- Runtime/Broker validates Task, workspace, tool permissions, and network authorization.
+- Environment/toolchain setup is separate from product development. Product performs preflight and reports missing tools; it must not silently install software or alter the existing D:/CTF project or Harness profile/config.
 
-The writeup must preserve failed attempts and important negative results when they affect the reasoning. It must never fabricate command output, screenshots, flags, test results, or measurements.
+## 9. Evidence and Writeup
 
-## 8. Out of scope for the initial MVP
+Capture actual execution data:
+- Task / Worker / Step IDs;
+- tool name and version;
+- argv (not an opaque shell command string);
+- working directory;
+- input and output files;
+- start/end timestamps;
+- exit code;
+- stdout and stderr;
+- screenshot paths and digests;
+- approval and network-grant references.
 
-- Replacing Harness with a custom LLM/agent runtime.
-- Racing multiple model providers or multi-model swarms.
-- A standalone web dashboard or CTFd polling platform.
-- Unrestricted autonomous scanning or exploitation of arbitrary public targets.
-- Reliable GUI mouse/keyboard automation; current audit found input injection unreliable.
-- Claiming OS isolation where only Harness file sandboxing exists.
-- Copying whole third-party CTF frameworks or knowledge bases.
+Maintain append-only evidence/events.jsonl, screenshot files, SQLite event/state index with hash chain, CAS raw bytes, and manifest.sha256. Never fabricate missing output.
 
-## 9. MVP success criteria
+The Markdown Writeup must follow the actual solving/operation order and be reproducible. Include challenge description, hypotheses and reasons for experiments, commands/argv and cwd, actual outputs/errors, failed attempts, important negative results, key program-running screenshots, verification evidence, and explicit unknowns/blocked steps.
 
-The MVP is successful only when the acceptance gates in [ACCEPTANCE.md](ACCEPTANCE.md) pass. In particular, the persistent mode, independent Task/session mapping, 2-Worker FIFO scheduler, per-call authorization, evidence integrity, session-log data handling, and writeup traceability must work together in an end-to-end local synthetic challenge.
+This is a concise evidence-based account of analysis and operations, not a dump of hidden internal reasoning.
+
+Deliverables:
+1. Markdown Writeup.
+2. Evidence ZIP with selected outputs, screenshots, intermediate artifacts, and manifest.sha256.
+3. SHA-256 integrity manifest.
+
+PDF conversion is a later handoff to another Agent, not part of the CTF-Solver core.
+
+## 10. Out of scope
+
+- First Blood scanning/monitoring.
+- New standalone frontend/dashboard.
+- Replacement LLM runtime or second agent loop.
+- Multi-model racing/swarm solving.
+- Automatic Flag submission.
+- Unrestricted target scanning/exploitation.
+- Reliable GUI keyboard/mouse automation.
+- Automatic software/toolchain installation.
+- Arbitrary host Shell or direct Docker Socket access.
+
+## 11. MVP success criteria
+
+See ACCEPTANCE.md. The MVP must demonstrate persistent mode, independent ACP Tasks, 2-Worker FIFO, typed execution, scoped authorization, evidence integrity, session-log privacy, human Flag submission, and a reproducible Markdown Writeup plus evidence ZIP.

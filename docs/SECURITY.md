@@ -5,131 +5,112 @@
 
 ## 1. Security posture
 
-CTF-Solver is intended for authorized CTF challenges and local challenge environments. It must not become an unrestricted scanner or exploitation agent.
+CTF-Solver is a semi-autonomous assistant for authorized CTF challenges and local challenge environments. It is not an unrestricted scanner or exploitation agent.
 
-The current Harness sandbox is not an OS-level boundary for malicious binaries. Host Plugins and MCP servers execute outside that sandbox. The audit also found that the built-in web fetch path can reach loopback/private addresses despite contrary source comments/expectations. Therefore policy must be enforced outside the model and outside coarse Harness permission settings.
+The current Harness sandbox is not an OS-level boundary for malicious binaries. Host Plugins and MCP servers execute outside that sandbox. The audit also found that built-in web_fetch can reach loopback/private addresses despite contrary source comments. Policy must therefore be enforced by Manager/Broker and, for untrusted code, by a real OS isolation tier.
 
 ## 2. Trust boundaries
 
 | Component/input | Trust treatment |
 |---|---|
 | User-provided challenge archive, binary, source, PCAP, document | Untrusted data |
-| Challenge description, webpage, README, embedded prompt | Untrusted content; never instructions to override system policy |
-| Harness Worker/model output | Untrusted proposal until checked against evidence and policy |
-| Harness shell/tool execution | Privileged action; must be brokered and logged |
+| Challenge description, webpage, README, embedded prompt | Untrusted content; cannot override policy |
+| Harness Worker/model output | Untrusted proposal until validated |
+| Typed ctf-exec request | Untrusted request; validate server-side |
 | Cordis Host Plugin | Fully trusted host code; not sandboxed |
 | MCP server/process | Trusted host-side integration; not sandboxed |
-| Manager Core | Trusted policy/control plane; must be minimal, reviewed, and fail closed |
-| Session log | Sensitive local data; may contain paths, commands, tool arguments, and outputs |
-| CAS artifact | Immutable by digest in normal operation; still validate content before use |
+| Manager/Broker | Trusted control plane; minimize and review |
+| Session log | Sensitive local data; may contain paths, commands, arguments, outputs, flags, or secrets |
+| CAS artifact | Content-addressed and integrity-checked; still validate before use |
 
-## 3. Execution tiers
+## 3. Semi-autonomous approvals
+
+The Agent may analyze, plan, write helper scripts in its Task workspace, and run routine permitted tools.
+
+Explicit human approval is required before:
+- executing untrusted challenge binaries or other untrusted code;
+- installing software or changing the toolchain;
+- accessing a remote CTF target or performing target-side actions.
+
+Approval is scoped to a concrete Task/action and is not blanket authorization.
+
+While Tier 2 OS isolation is unavailable, approval alone is insufficient to execute untrusted challenge code on the host. Such execution remains blocked until isolation is accepted.
+
+Flag submission is always human-controlled. No automatic submission is part of the MVP.
+
+## 4. Execution tiers
 
 ### Tier 0 — Static, non-executing inspection
 
-Allowed after Task intake and local workspace setup:
-
-- record filename, size, file type, and SHA-256;
-- list archive members without extracting executable content;
-- inspect text and metadata;
-- run explicitly allowlisted, trusted metadata tools that do not execute challenge-provided code.
-
-Parsing untrusted files is still an attack surface. Tool allowlisting reduces exposure but does not prove parser safety.
+Allowed after Task intake: record filename/size/type/hash; inspect archive metadata/listings without executing content; inspect text and safe metadata; use carefully allowlisted trusted metadata tools. Parsing untrusted files is still an attack surface.
 
 ### Tier 1 — Controlled trusted tooling (temporary MVP)
 
-Permitted only when the tool itself is trusted, the action is within the Task workspace, and the Manager policy allows it:
+Permitted only when the tool is trusted, action is within the Task workspace, and Manager/Broker allows it. Use typed ctf-exec; do not expose arbitrary host Shell.
 
-- run approved analysis tools against challenge data;
-- write generated notes/results only to the Task workspace or Manager data root;
-- use local-only operations unless a per-call network grant exists.
+Tier 1 is not a sandbox. Do not run challenge-provided executables, scripts, macros, installers, shell snippets, or exploit payloads directly on the host. If a step requires executing untrusted code, block/defer until Tier 2.
 
-Tier 1 is **not** a sandbox. Do not run challenge-provided executables, scripts, macros, installers, shell snippets, or exploit payloads directly on the host. If analysis requires executing challenge code, stop and mark the Task blocked pending Tier 2.
+### Tier 2 — OS-isolated execution (separate P1 environment track)
 
-### Tier 2 — OS-isolated execution (P1, not currently available)
+Required before arbitrary untrusted challenge code or exploit payloads can run. Candidate: WSL2 Linux distribution with functioning Docker Engine and a verified isolation layer such as gVisor, or another independently reviewed disposable VM/container boundary.
 
-Required before arbitrary untrusted challenge code or exploit payloads can be executed. Candidate environment: WSL2 Linux distribution with a functioning Docker Engine and a verified isolation layer such as gVisor, or another independently reviewed disposable VM/container boundary.
+Latest audit:
+- WSL2 installed, Ubuntu 24.04 Stopped.
+- Docker Engine and gVisor not installed.
+- CTF toolchain incomplete, including Ghidra/JDK, GDB, pwntools, SageMath, Wireshark/tshark, radare2/rizin, and related packages.
 
-The latest audit reports:
-- WSL2 is installed, but Ubuntu 24.04 is stopped;
-- Docker Engine and gVisor are not installed;
-- the CTF toolchain is incomplete (including Ghidra, GDB, pwntools, SageMath, Wireshark/tshark, radare2/rizin, and related packages).
+No Tier 2 capability may be claimed until installation and containment tests pass. A running Docker daemon alone is not proof of isolation.
 
-No Tier 2 capability may be claimed until installation and containment tests pass. A running Docker daemon alone is not sufficient proof of isolation.
+## 5. Network policy: public research vs CTF targets
 
-## 4. Network and target authorization
+Public documentation, advisories, source repositories, and general research material may be accessed over the public internet to support analysis. This does not authorize active probing or exploitation of the public source host.
 
-Network is **deny by default**.
-
-A per-call grant must be issued by the Manager broker. At minimum it binds:
-
+Remote CTF target access is denied until the specific Task has an explicit grant binding:
 - Task ID and competition/profile;
 - destination host/IP and port;
 - protocol and method/action;
-- optional path or endpoint constraints;
-- call count or one-shot semantics;
-- expiry/TTL;
-- user approval and timestamp.
+- optional path/endpoint constraints;
+- expiry/TTL and call count;
+- approving user and decision timestamp.
 
-The grant must not apply to another Task. Redirects, DNS changes, alternate ports, and private/loopback destinations must be checked rather than implicitly inherited.
+Out-of-scope hosts, ports, and actions are rejected. Loopback/private destinations are not implicitly allowed; they require explicit scope when part of the authorized challenge environment.
 
-The built-in Harness approval model does not supply all these constraints. A one-time `allow_once` decision is not a substitute for a target-scoped broker.
+Harness's coarse approval model does not supply all these constraints. A one-time allow_once decision is not a substitute for the Manager Broker.
 
-Competition rules must be read before network actions. If AI use, automation, scanning, exploitation, or submission is forbidden or unclear, stop and ask the user rather than infer permission.
+## 6. MCP, ctf-exec, and Docker boundary
 
-## 5. Session-log privacy and exfiltration
+MCP is the unified local-tool interface. Workers receive typed ctf-exec calls, not arbitrary host Shell. Manager/Broker validates Task, Worker, tool allowlist/version, argv, cwd, input/output paths, execution tier, and network grant.
 
-The latest audit found `dsh-session-log-deepseek` enabled by default. It sends incremental session log data to the official API as `dsh_session_log`; the audit observed `delivery-accepted`. Session logs may contain:
+Host Plugins and MCP servers run outside the Harness sandbox. Broker is the sole controlled Docker API caller when Tier 2 is available. Worker sessions and MCP callers never receive Docker Socket mounts or raw Docker credentials. Raw MCP tools cannot bypass Broker.
 
-- local file paths;
-- commands and command arguments;
-- tool output;
-- challenge source, flags, or secrets;
-- internal network addresses and environment details.
+Do not pass broad host environment variables, API keys, or CTFd tokens to Workers. Prefer short-lived, least-privilege credentials held by Manager and injected only for a specific approved action.
 
-**P0 release gate:** disable this delivery or configure a verified exclusion before processing real challenge data. Do not assume that disabling a UI feature or hiding a log view disables network delivery. Test the actual outbound behavior and confirm that a synthetic canary string from the CTF session is absent from outbound delivery.
+## 7. Session-log privacy and exfiltration
 
-The exact configuration mechanism is not yet documented in the repository; implementation must discover it from the local audit report/source and prove it with a negative test.
+The latest audit found dsh-session-log-deepseek enabled by default. It sends incremental session log data as dsh_session_log; the audit observed delivery-accepted. Logs may contain local paths, commands, challenge source, flags, and secrets.
 
-## 6. MCP and Host Plugin
+**P0 release gate:** disable delivery or configure a verified exclusion before processing real CTF content. Do not assume hiding a log view disables network delivery. Test actual outbound behavior and confirm a synthetic canary from a CTF session is absent.
 
-- Host Plugins are fully trusted code and run outside the Harness sandbox.
-- MCP servers and their subprocesses are also outside the Harness sandbox.
-- Only Manager-declared MCP servers/tools may be exposed.
-- Every MCP call must pass through the same Task-scoped broker and evidence pipeline.
-- Do not pass broad environment variables, API keys, or CTFd tokens to Worker processes.
-- Prefer short-lived, least-privilege credentials held by the Manager and injected only for a specific authorized operation.
+The exact configuration mechanism is not yet documented in this repository. Discover it from the full local audit report/source and prove it with a negative test.
 
-A Skill instruction saying “do not do X” is not enforcement. Enforcement belongs in Manager policy, Host Plugin hooks, and eventually OS isolation.
+## 8. Evidence integrity
 
-## 7. Evidence integrity
+Preserve raw session-log and artifact bytes in CAS; hash each artifact with SHA-256; maintain append-only evidence/events.jsonl and a Manager SQLite hash chain; record parser version, source, Task/session mapping, and ingest time; detect missing sequence numbers, incomplete call/result pairs, and failed frame decoding. Never silently truncate evidence.
 
-- Preserve raw session-log bytes and original artifact bytes in CAS.
-- Hash each artifact with SHA-256.
-- Maintain an append-only evidence chain with previous-hash linkage.
-- Record parser version, source, Task/session mapping, and ingest time.
-- Detect missing sequence numbers, incomplete tool call/result pairs, and failed frame decoding.
-- Never silently truncate or normalize away raw evidence.
+The hash chain is tamper-evident only relative to a protected chain head. It is not a digital signature.
 
-The hash chain is tamper-evident only relative to a protected chain head. It is not a digital signature and does not prove authorship against a fully privileged local attacker.
+## 9. Screenshot privacy
 
-## 8. Screenshot privacy
+Screenshots are requested explicitly at key program-running steps. The user should know when desktop/window capture is requested. Store images in CAS and record Task/Worker/Step/session/time metadata. Do not capture continuously or silently.
 
-Screenshots are captured only through an explicit action. The user should know when desktop/window capture is requested. Store the image in CAS and record the Task/session/step/time metadata. Do not capture continuously or silently.
+The audited Worker has no independent desktop window; screenshot ownership cannot be inferred from PID alone. Java/Qt/GPU capture remains unverified.
 
-The audited worker has no independent GUI window; a screenshot cannot be attributed to a Worker by PID alone. Java/Qt/GPU capture remains unverified.
+## 10. Environment/toolchain separation
 
-## 9. Fail-closed rules
+Environment setup is separate from product development. Product may perform preflight and report missing tools, but must not silently install software, alter the existing D:/CTF project, or modify Harness profile/config. Those actions require explicit authorization.
 
-Stop or block the relevant action when:
+## 11. Fail-closed rules
 
-- target scope is missing or ambiguous;
-- the competition rules do not authorize the action;
-- the Manager broker is unavailable;
-- the required approval is absent or expired;
-- the action exceeds the grant's target/port/method/TTL;
-- the task requires untrusted code execution while Tier 2 is unavailable;
-- session-log external delivery has not been disabled and verified;
-- evidence ingestion is corrupt or incomplete in a way that invalidates the result.
+Block or ask the user when target scope is missing/ambiguous, competition rules do not authorize the action, Broker is unavailable, approval is absent/expired/mismatched, a request exceeds target/port/method/TTL, untrusted code requires execution while Tier 2 is unavailable, session-log delivery has not been disabled/verified, or evidence is corrupt/incomplete in a way that invalidates the result.
 
-Do not convert a policy failure into a silent fallback to direct shell, raw MCP, or unrestricted web access.
+Never silently fall back to direct host Shell, raw MCP, or unrestricted target access.

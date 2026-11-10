@@ -3,284 +3,136 @@
 **Status:** approved logical architecture; implementation details remain subject to acceptance tests  
 **Date:** 2026-11-10
 
-## 1. Architecture principle
-
-DeepSeek Harness remains the model/agent runtime. CTF-Solver adds a control plane around Harness:
-
-- conversation-mode entry and Task intake;
-- bounded Worker scheduling;
-- one independent ACP session and workspace per Task;
-- policy and approval brokering;
-- session/event ingestion;
-- tamper-evident evidence storage;
-- explicit screenshot capture;
-- reproducible writeup generation.
-
-There must not be a second CTF-specific model loop. The Manager may schedule and resume Harness sessions, but it does not independently reimplement planning/reasoning.
-
-## 2. Logical component diagram
-
-```text
-┌──────────────────────────────────────────────────────────────┐
-│ DeepSeek Harness interactive conversation                    │
-│                                                              │
-│  /ctf-solver ──► project Skill (mode + workflow instructions) │
-│                         │                                    │
-│                         ▼                                    │
-│             thin Cordis Host Plugin / CTF tools              │
-└─────────────────────────┬────────────────────────────────────┘
-                          │ typed Manager calls
-                          ▼
-┌──────────────────────────────────────────────────────────────┐
-│ CTF-Solver Manager Core                                      │
-│                                                              │
-│  Conversation/Task Registry ── FIFO Scheduler (max 2)         │
-│              │                                               │
-│              ├── Policy Engine + external per-call broker    │
-│              ├── ACP Client                                  │
-│              ├── Event + session-log ingestor                │
-│              ├── Screenshot capture/attribution              │
-│              ├── SQLite evidence index + hash chain          │
-│              ├── CAS artifact store                          │
-│              └── Writeup/manifest generator                  │
-└─────────────────────────┬────────────────────────────────────┘
-                          │ stdio ND-JSON / JSON-RPC 2.0
-                          ▼
-              ┌───────────────────────────────┐
-              │ dsh --profile acp             │
-              │ Harness ACP Server            │
-              │                               │
-              │ session A: Task A workspace   │
-              │ session B: Task B workspace   │
-              │                               │
-              │ Harness model/tool loop       │
-              └───────────────────────────────┘
-```
-
-The Cordis Host Plugin is an integration adapter, not a second runtime. It may register CTF tools, subscribe to Harness events, intercept tool lifecycle hooks, and relay scoped approval requests. The plugin is fully trusted host code and is not protected by the Harness sandbox.
-
-## 3. Component responsibilities
-
-### 3.1 Project Skill bundle
-
-Location in the target Harness project:
-
-```text
-.dsh/skills/ctf-solver/
-├── SKILL.md
-├── references/
-│   ├── web.md
-│   ├── misc.md
-│   ├── crypto.md
-│   ├── reverse.md
-│   └── pwn.md
-└── scripts/
-    └── ...
-```
-
-Responsibilities:
+## 1. Principle
 
-- expose the explicit `/ctf-solver` entry;
-- explain persistent conversation-mode behavior;
-- route user requests to Manager tools;
-- provide concise category-specific guidance through on-demand references;
-- require evidence-backed claims and explicit unknowns.
-
-The Skill is instruction content, not a security boundary. It must be UTF-8 without BOM; the audit observed that a BOM can cause silent discovery failure. Project-level skill discovery was verified at rank 100.
-
-### 3.2 Cordis Host Plugin
-
-Responsibilities:
-
-- register a small, typed CTF tool surface for the Skill;
-- relay tool calls to Manager Core;
-- subscribe to relevant session/tool events;
-- participate in approval request/response handling;
-- expose explicit screenshot and Task-status operations where required.
-
-The plugin must remain thin. It must not contain category-specific solving logic or its own model loop. Because Host Plugins are fully trusted and outside the sandbox, minimize dependencies, filesystem reach, and exposed methods; review every release.
-
-The precise packaging/lifecycle arrangement for the Manager modules should be chosen to minimize IPC and operational complexity, while preserving the logical Manager boundary. Do not treat in-process code as sandboxed.
-
-### 3.3 Manager Core
-
-Manager Core is the authoritative control plane. It owns:
+DeepSeek Harness remains the reasoning/runtime layer. CTF-Solver adds:
+- Core Skill + five category Skills;
+- Manager and Manager-owned ACP Client;
+- independent ACP Worker session/workspace per Task;
+- typed ctf-exec interface through MCP;
+- Runtime and policy Broker;
+- SQLite authoritative state/events + CAS artifact bytes;
+- Markdown Writeup + evidence ZIP;
+- optional lightweight Cordis hooks.
 
-- conversation-mode and Task registry;
-- Task IDs, workspace paths, ACP session IDs, and lifecycle state;
-- 2-Worker concurrency and FIFO scheduling;
-- scope profiles and per-call authorization;
-- ACP client transport and lifecycle;
-- session-log ingestion and event correlation;
-- evidence hash chain and CAS;
-- screenshot metadata/attribution;
-- writeup and integrity-manifest generation.
+There must not be a second CTF-specific model loop.
 
-The Manager is not a second agent loop. It may issue ACP protocol operations and manage Task state, but challenge reasoning remains in Harness.
+## 2. Logical architecture
 
-### 3.4 ACP Client and Harness ACP Server
+User → /ctf-solver Core Skill → CTF Manager.
 
-The audited Harness is an **ACP Server**, not an ACP Client. The shipped runtime did not provide a `dsh-subagent-acp` client. Manager Core must therefore implement the ACP Client transport or use a separately audited ACP host/runner.
+Manager owns Task registry, FIFO scheduler (max 2), ACP Client, MCP tool registry, policy Broker, SQLite event/state index and hash chain, CAS, screenshot/evidence association, and Writeup/evidence ZIP generation.
 
-The verified server mode is launched as:
+Manager ACP Client → dsh --profile acp (Harness ACP Server) → one independent Worker session per Task.
 
-```text
-dsh --profile acp
-```
+Worker → typed ctf-exec MCP tool → Manager/Broker → Runtime → approved CLI/headless tool.
 
-Transport: stdio ND-JSON, JSON-RPC 2.0.
+When Tier 2 is available, Broker is the sole controlled Docker API caller. Workers never receive Docker Socket access.
 
-For each Task, Manager calls `session/new` with the Task's working directory:
+Cordis Host Plugin is a lightweight optional integration layer for event/approval/scheduling hooks; it is not a second runtime.
 
-```text
-tasks/<task_id>/work
-```
+## 3. Core Skill and five specialist Skills
 
-The Manager persists the returned ACP session ID and maps it to the Task. The initial design uses one managed ACP Server process with multiple independent sessions. This is session isolation, **not** process or OS isolation.
+The Core Skill is the sole user-facing entry point: /ctf-solver. It owns intake, rules, Task lifecycle instructions, and routing.
 
-Important audited behavior:
+Five specialist Skills:
+- ctf-web
+- ctf-misc
+- ctf-crypto
+- ctf-reverse
+- ctf-pwn
 
-- `session/list` does not include active sessions; it cannot be the Manager's authoritative active-Task registry.
-- The Manager must persist active session IDs and Task mappings itself.
-- A single ACP process hosts all sessions in the initial design, creating a shared failure domain.
-- ACP cancel stops a turn but does not provide a verified force-kill of all underlying work.
-- Resume error paths were tested; successful production recovery and in-flight close/cancel behavior remain acceptance items.
+They provide category-specific reasoning guidance and on-demand references. They do not grant permissions or execute host commands by themselves.
 
-The Manager must not claim a Task is cancelled until it has confirmed that associated jobs/processes are quiescent. Otherwise use `cancel_requested`/uncertain status.
+Project-level bundles live under .dsh/skills/ in the nearest Harness project root. Use UTF-8 without BOM.
 
-### 3.5 Policy and approval broker
+## 4. Manager
 
-Harness permissions alone are insufficient for CTF scope control. They expose coarse sandbox/ask/never modes and one-time approval decisions, but do not enforce TTL or per-Task/target/port/action constraints.
+Manager is the authoritative control plane. It owns conversation mode and Task registry, Task/Worker/session/workspace mapping, max-two FIFO scheduling, competition profiles and target grants, ACP Client lifecycle, MCP tool registry and ctf-exec routing, Broker, session-log ingestion, SQLite/CAS evidence, screenshot attribution, and deliverable generation.
 
-All sensitive actions must pass through the Manager broker. A grant should bind at least:
+Manager is not a second agent loop. It schedules and governs Harness sessions; Harness performs challenge reasoning.
 
-- Task ID;
-- action/tool name;
-- target host/IP and port, where applicable;
-- protocol/method and optional path constraints;
-- permitted operation;
-- expiry and call count;
-- approving user and decision record.
+## 5. ACP Client and Harness ACP Server
 
-No network access is granted by default. A broad approval for one action must not silently authorize later actions or other Tasks.
+The audited Harness is an ACP Server, not an ACP Client. The shipped runtime did not provide a dsh-subagent-acp client. Manager must implement the ACP Client transport or use a separately audited ACP host/runner.
 
-### 3.6 MCP boundary
+Verified server mode: dsh --profile acp. Transport: stdio ND-JSON, JSON-RPC 2.0.
 
-MCP is opt-in and not preconfigured in the audited profile. A dummy stdio MCP server was mounted through `session/new.mcpServers`, and discovery/initialization/tool listing succeeded. A real `tools/call` was not verified because it required a model call.
+For each Task, Manager calls session/new with cwd=tasks/<task_id>/work and persists the returned ACP session ID.
 
-CTF-Solver must:
+The initial design may use one managed ACP Server process with multiple independent sessions. This is session isolation, not process or OS isolation.
 
-1. declare/allowlist MCP servers through Manager-owned configuration;
-2. wrap MCP tools in typed Manager actions;
-3. run each call through the same per-call policy broker;
-4. record arguments, result, errors, and artifact references;
-5. never expose a raw MCP bypass to a Worker.
+Audited implications:
+- session/list does not include active sessions; Manager's registry is authoritative.
+- one ACP process hosting multiple sessions is a shared failure domain.
+- ACP cancel stops a turn but has no verified force-kill of all underlying work.
+- resume error paths were tested; successful production recovery and in-flight close/cancel remain acceptance items.
 
-MCP servers execute outside the Harness sandbox and must be treated as trusted host-side processes.
+Do not mark a Task cancelled until associated jobs/processes are quiescent.
 
-## 4. Evidence data flow
+## 6. MCP and ctf-exec
 
-```text
-Harness session JSONL.zstd ─┐
-                             ├──► parser + event normalizer
-Live Cordis/session events ──┘              │
-                                            ▼
-                                  callId / seq correlation
-                                            │
-                      ┌─────────────────────┴────────────────────┐
-                      ▼                                          ▼
-             SQLite append-only index                    CAS (SHA-256)
-             task/event/approval/job                     raw outputs/files/
-             chain_prev_hash + chain_hash                 screenshots/archives
-                      │                                          │
-                      └─────────────────────┬────────────────────┘
-                                            ▼
-                                  Writeup + manifest
-```
+MCP is the unified local-tool interface. Workers invoke typed ctf-exec, not arbitrary host Shell.
 
-The audit verified that session logs contain useful events, including `tool/call`, `tool/result`, `job/registered`, `job/settled`, approval events, command events, and monotonically increasing `seq` values. Tool calls and results can be correlated by `callId`.
+ctf-exec uses a tool identifier and argv array, not an arbitrary shell string. Runtime validates Task/Worker, workspace, tool/version, arguments, input/output paths, execution tier, and network authorization. See EXECUTION_CONTRACT.md.
 
-The session log is zstd-compressed as concatenated independent frames. A single-frame Node decode returned only the first frame; Python `zstandard` streaming decode successfully read the complete audited log. Any production parser must scan/decode every frame and test against multi-frame fixtures.
+Manager/Broker is the only controlled Docker API caller when isolated runtime is available. Workers never receive Docker Socket mounts, Docker credentials, or raw Docker API access.
 
-Harness logs have no hash chain or signature. Manager ingestion must preserve raw source bytes and create its own append-only, tamper-evident chain. A local hash chain detects accidental or unauthorized edits relative to its stored head; it is not a digital signature or proof against an attacker who can rewrite the database and chain head.
+## 7. Runtime and Broker
 
-## 5. Suggested local data layout
+Runtime performs approved CLI/headless tool execution. Broker is the policy enforcement point and trusted computing base for privileged operations.
 
-Runtime data must stay outside Git:
+Broker validates Task and Worker identity, allowed tool/version, argv schema, cwd/path containment, inputs/outputs, public-research vs CTF-target network policy, approvals/grants, execution tier, and resource limits.
 
-```text
-.ctf-solver-data/
-├── manager.sqlite
-├── cas/
-│   └── sha256/<prefix>/<digest>
-├── sessions/
-│   └── <acp-server-instance>/
-├── exports/
-└── temp/
+The product performs preflight and reports missing tools. Environment/toolchain installation is a separate workstream and requires explicit authorization.
 
-tasks/
-└── <task_id>/
-    ├── work/                 # ACP session cwd; challenge working files
-    ├── evidence/
-    │   ├── events.jsonl     # normalized evidence references
-    │   └── manifest.json
-    └── writeup.md
-```
+## 8. Cordis Host Plugin
 
-The exact root may be configurable, but it must be outside tracked source paths or covered by strict ignore rules. Challenge attachments, credentials, screenshots, session logs, databases, and CAS objects must never be committed by default.
+Cordis Host Plugin is lightweight and optional/later, not a prerequisite for the smallest Skill-plus-scripts prototype. The audit verified it can register tools, intercept tool lifecycle hooks, subscribe to session events, and respond to approval requests.
 
-## 6. Evidence event contract
+Use it where it materially improves scheduling, authorization, or evidence hooks. Keep it thin: Host Plugin code is fully trusted and outside the Harness sandbox. Do not move policy enforcement into an unreviewed hook or treat the plugin as sandboxed.
 
-Each normalized evidence record should include:
+## 9. Evidence data flow
 
-- schema version;
-- event ID and source event ID;
-- Task ID, conversation ID, ACP session ID;
-- sequence number and timestamp;
-- event type;
-- tool name and canonicalized arguments, when applicable;
-- `callId` and correlated result reference, when applicable;
-- exit code, `isError`, job status/cause/detail, when available;
-- artifact CAS references and SHA-256 digests;
-- previous chain hash and current chain hash;
-- provenance and parser version.
+Harness session JSONL.zstd and live events → parser/normalizer → callId and seq correlation → SQLite event/state index with hash chain + CAS raw bytes → Markdown Writeup and evidence ZIP.
 
-The ingest path must be idempotent, detect sequence gaps, retain unmatched calls/results as explicit gaps, and preserve the original raw event data in CAS.
+The audit verified tool/call, tool/result, job/registered, job/settled, approval and command events; tool calls/results correlate by callId and seq is monotonic.
 
-## 7. Screenshot attribution
+Session logs use concatenated independent zstd frames. A single-frame Node decode returned only the first frame; Python zstandard streaming decode read the complete audited log. Production ingestion must decode every frame.
 
-The audit verified desktop capture with PowerShell `CopyFromScreen` and window capture with `PrintWindow` flag 2. A worker has no independent desktop window, so PID-to-HWND enumeration does not establish Worker ownership.
+Harness logs have no hash chain or signature. Manager must preserve raw source bytes and create its own append-only tamper-evident chain. This is not a digital signature.
 
-MVP rule:
+## 10. Evidence record contract
 
-- screenshots are captured only through an explicit capture call;
-- the request includes Task ID, ACP session ID, step ID, capture scope (desktop or named window), and a timestamp;
-- Manager records the capture event and CAS digest;
-- association uses the explicit call plus a bounded time window and corresponding session event;
-- never infer that a screenshot belongs to a Worker merely because a process exists;
-- do not silently capture the user's desktop in the background.
+Each normalized record includes schema version, event/source IDs, Task/Worker/conversation/ACP session/Step IDs, sequence/timestamp, event type, tool/version/argv/cwd, input/output refs and hashes, exit code, stdout/stderr refs, job/approval/network-grant refs, screenshot refs, previous/current chain hash, provenance, and parser version.
 
-Java/Qt/GPU application capture remains unverified. GUI keyboard/mouse injection was unreliable in the audit; prefer CLI tools and headless modes.
+Ingestion must be idempotent, detect sequence gaps, retain unmatched calls/results as explicit gaps, and preserve raw event data in CAS.
 
-## 8. Failure and recovery
+## 11. Screenshot attribution
 
-The Manager must persist Task/session mappings before relying on them. Because the ACP Server is a shared process and active sessions are absent from `session/list`, recovery must use the Manager database and verify each session explicitly.
+The audit verified desktop capture with PowerShell CopyFromScreen and window capture with PrintWindow flag 2. A Worker has no independent desktop window, so PID-to-HWND does not establish Worker ownership.
 
-Required failure handling:
+Capture important program-running steps through an explicit operation. Metadata includes Task, Worker, Step, ACP session, scope, and timestamp. Store images in CAS and associate them with the explicit call and bounded time window. No silent continuous desktop capture. Java/Qt/GPU capture remains unverified.
 
-- ACP Server exits: mark affected sessions as interrupted; do not mark Tasks complete.
-- Manager restarts: reload Task/queue/session mappings from SQLite and reconcile against available ACP state.
-- Session log is missing or corrupt: preserve the gap and mark evidence incomplete.
-- zstd frame decode fails: do not silently accept a partial log.
-- Worker turn cancellation: mark `cancel_requested` until job quiescence is verified.
-- Screenshot capture fails or is blank: record failure; do not create a placeholder image or claim capture success.
+CLI/headless evidence is preferred; GUI is auxiliary.
 
-## 9. Implementation boundaries
+## 12. Suggested local data layout
 
-- No direct edits to Harness core.
-- No custom second LLM loop.
-- No raw MCP calls bypassing Manager.
-- No reliance on Harness sandbox as OS isolation.
-- No automatic upload of CTF session logs.
-- No challenge data in Git.
-- No production claim until the tests in [ACCEPTANCE.md](ACCEPTANCE.md) pass.
+Runtime data stays outside Git:
+
+- .ctf-solver-data/manager.sqlite
+- .ctf-solver-data/cas/sha256/
+- .ctf-solver-data/sessions/
+- tasks/<task_id>/work/
+- tasks/<task_id>/evidence/events.jsonl
+- tasks/<task_id>/evidence/shots/
+- tasks/<task_id>/evidence/manifest.sha256
+- tasks/<task_id>/writeup.md
+
+## 13. Deliverables
+
+Each Task produces a chronological, reproducible Markdown Writeup, an evidence ZIP with selected outputs/screenshots/intermediate artifacts, and a SHA-256 manifest. PDF conversion is a later handoff.
+
+## 14. Failure and recovery
+
+ACP Server exit marks affected sessions interrupted. Manager restart reloads Task/queue/session mappings from SQLite. Missing/corrupt logs and zstd decode failures create explicit evidence gaps. Cancellation remains cancel_requested until quiescence is verified. Failed/blank screenshots are recorded as failures.

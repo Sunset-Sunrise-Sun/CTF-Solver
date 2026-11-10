@@ -3,170 +3,108 @@
 **Decision log owner:** CTF-Solver architecture  
 **Last updated:** 2026-11-10
 
-This document records product and architecture decisions that must not be silently changed by an implementation agent. A change requires an explicit proposal, rationale, impact analysis, and approval.
+Changes to accepted decisions require an explicit proposal, rationale, impact analysis, and approval.
 
 ## Accepted decisions
 
-### ADR-001 — Harness remains the agent runtime; use Scheme A
-
+### ADR-001 — Harness remains the reasoning/runtime layer; use Scheme A
 **Status:** Accepted
 
-Harness is an ACP Server, not an ACP Client. The audited installation did not ship a usable ACP client package. Manager Core will implement the ACP Client transport (or use a separately audited ACP host/runner) and communicate with `dsh --profile acp` over stdio ND-JSON / JSON-RPC 2.0.
+Harness is an ACP Server, not an ACP Client. The audited installation did not ship a usable ACP client package. Manager implements the ACP Client transport (or uses a separately audited ACP host/runner) and communicates with dsh --profile acp over stdio ND-JSON / JSON-RPC 2.0. No second CTF model loop.
 
-**Consequences**
-- No second CTF-specific model loop.
-- Harness performs reasoning and tool execution.
-- Manager owns task scheduling, scope, approvals, persistence, and evidence.
-- ACP client transport and lifecycle tests are first-class implementation work.
-
-### ADR-002 — One independent ACP session and workspace per challenge
-
+### ADR-002 — One independent ACP session/workspace per challenge
 **Status:** Accepted
 
-Each Task gets a new Harness ACP session with `cwd=tasks/<task_id>/work`.
+Each Task gets a new Harness ACP session with cwd=tasks/<task_id>/work. The initial deployment may use one ACP Server process for multiple sessions. Independent sessions are not process/OS isolation.
 
-**Consequences**
-- Task/session/workspace mapping is persisted by Manager.
-- One Task's files and evidence must not leak into another Task.
-- Independent sessions are not OS isolation.
-- The initial deployment may use one ACP Server process for multiple sessions; this is a shared failure domain, not fault isolation.
-
-### ADR-003 — Cordis Host Plugin is a thin adapter
-
+### ADR-003 — Core Skill plus five category Skills
 **Status:** Accepted
 
-Use a minimal Cordis Host Plugin to register CTF tools, relay Manager calls, observe tool/session events, and participate in approval requests. Do not put a second reasoning loop or category-solving engine in the plugin.
+Deliver ctf-solver Core Skill plus ctf-web, ctf-misc, ctf-crypto, ctf-reverse, and ctf-pwn. Core Skill is the single user entry point. Skills do not enforce security policy.
 
-**Consequences**
-- Host Plugin code is fully trusted and outside the Harness sandbox.
-- Keep its API small and code review strict.
-- Manager policy must remain explicit; plugin hooks alone are not a security boundary.
-
-### ADR-004 — Explicit, persistent conversation mode
-
+### ADR-004 — Cordis Host Plugin is lightweight and optional/later
 **Status:** Accepted
 
-The user enters CTF mode once with `/ctf-solver`. It remains active for the current conversation. New challenges create new Tasks; continuations remain on the active Task. A new conversation requires explicit entry again.
-
-**Consequences**
-- Do not require the command for every challenge or every turn.
-- Mode state and Task state are separate.
-- Do not auto-trigger CTF mode.
+Cordis hooks can register tools, observe tool/session events, and participate in approval. They are useful as lightweight scheduling/authorization/evidence hooks, but are not a second runtime and are not required for the smallest Skill-plus-scripts prototype. Introduce them only where they materially improve the approved architecture. Host Plugin code is fully trusted and outside the Harness sandbox.
 
 ### ADR-005 — Two active Workers, FIFO queue
-
 **Status:** Accepted
 
-At most two Workers may run simultaneously. Other Tasks wait in FIFO order.
+At most two Workers run simultaneously; further Tasks wait FIFO. Manager is authoritative for queue order and active count.
 
-**Consequences**
-- The Manager is authoritative for active count and queue ordering.
-- Harness session enumeration cannot replace the Manager registry.
-- Tests must cover queue order, worker failure, and slot release.
+### ADR-006 — Semi-autonomous operation; human controls sensitive actions
+**Status:** Accepted
 
-### ADR-006 — Temporary non-OS-isolated MVP boundary
+The Agent may analyze, plan, write helper scripts, and run routine permitted tools. Human approval is required before untrusted-code execution, software installation/toolchain changes, and remote CTF target access. The user confirms and submits any Flag; automatic submission is excluded.
 
+Because Tier 2 isolation is not currently available, approval alone is not sufficient to run untrusted code on the host. Such execution remains blocked until isolation is accepted.
+
+### ADR-007 — Network policy B: public research open, CTF targets scoped
+**Status:** Accepted
+
+Public research and documentation lookup may use the internet. Competition-target access requires authorization for the specific Task/target/host/port/action. Out-of-scope targets are denied. Loopback/private destinations are not implicitly allowed.
+
+### ADR-008 — Temporary non-OS-isolated development boundary
 **Status:** Accepted with strict restrictions
 
-The first development/integration phase may use the current Harness environment without Docker/gVisor isolation, but this is a temporary operational boundary and must never be described as secure isolation.
+The product and safe local integration can be developed without claiming OS isolation. Until Tier 2 is available, only static inspection and explicitly approved trusted tools that do not execute challenge-provided code may run. Challenge binaries/scripts/macros/exploit payloads must not execute on the host. WSL2/Docker/gVisor setup is a separate P1 environment track.
 
-Before Tier 2 is available:
-- allow only metadata/hash inspection and explicitly allowlisted trusted tooling that does not execute challenge-provided code;
-- do not execute challenge binaries, scripts, macros, exploit payloads, or untrusted installers on the host;
-- default network access to deny;
-- allow a network action only through a per-call Manager grant bound to Task, target, port, action, and expiry;
-- stop/defer a task when its next step requires untrusted code execution or a capability the broker cannot constrain.
-
-Docker/WSL-based isolation and its acceptance tests are P1 environment work. This decision does not waive the requirement for isolation before arbitrary challenge code execution.
-
-### ADR-007 — Session-log external delivery is a P0 security gate
-
+### ADR-009 — Session-log external delivery is a P0 security gate
 **Status:** Accepted
 
-The latest audit found that the session-log plugin is enabled by default and can upload tool output, paths, and commands as `dsh_session_log`; the audit observed a `delivery-accepted` event.
+The latest audit found dsh-session-log-deepseek enabled by default and observed dsh_session_log delivery acceptance. Disable delivery or configure a verified exclusion before processing real CTF data. Prove the supported mechanism with a negative outbound-delivery test.
 
-**Consequences**
-- Disable the plugin or add a verified exclusion before processing real CTF challenge content.
-- Do not rely on an untested configuration guess.
-- Acceptance requires a negative test proving that CTF session content is not delivered to the official API.
-- The exact supported configuration mechanism remains an implementation verification item.
-
-### ADR-008 — Manager owns the evidence pipeline
-
+### ADR-010 — Manager owns evidence: SQLite + CAS + append-only event contract
 **Status:** Accepted
 
-Ingest Harness session events/logs into a Manager-owned SQLite index with a per-record hash chain and a SHA-256 content-addressed store (CAS).
+Ingest Harness session events/logs into Manager-owned SQLite state/events and a per-record hash chain; store raw outputs/files in SHA-256 CAS. Also maintain append-only evidence/events.jsonl, screenshot directory, and manifest.sha256. Preserve raw source bytes, decode every concatenated zstd frame, correlate calls/results by callId, preserve seq/job/approval state, and record explicit gaps. Hash chain is tamper-evident bookkeeping, not a digital signature.
 
-**Consequences**
-- Preserve original raw log/event bytes.
-- Decode every concatenated zstd frame.
-- Correlate `tool/call` and `tool/result` by `callId`.
-- Preserve sequence, job status, approval decisions, and explicit gaps.
-- Generate writeups from evidence records, not from model memory alone.
-- A hash chain is tamper-evident local bookkeeping, not a cryptographic signature.
-
-### ADR-009 — MCP access must pass through Manager
-
+### ADR-011 — MCP is the unified local-tool interface; no arbitrary host Shell
 **Status:** Accepted
 
-MCP servers are opt-in and execute outside the Harness sandbox. Manager declares and wraps the allowed MCP servers/tools. Every call goes through the per-call authorization broker and evidence recorder.
+Workers call typed MCP tools, especially ctf-exec, rather than unrestricted host Shell. Manager/Broker validates Task, Worker, tool, argv, cwd, inputs/outputs, network scope, and approvals. Workers never receive Docker Socket access.
 
-**Consequences**
-- No raw MCP tool bypass for Workers.
-- No credentials or broad server access passed through without explicit need.
-- Real MCP `tools/call` is not considered verified until a controlled integration test passes.
+### ADR-012 — Runtime Broker is the sole controlled Docker API caller
+**Status:** Accepted architecture target; Tier 2 not available
 
-### ADR-010 — Screenshot capture is explicit and attributable
+When an isolated Docker runtime is installed, Broker is the only component allowed to manage Docker lifecycle. Worker sessions and MCP clients receive no Docker Socket or raw Docker credentials. Audit reports Docker Engine/gVisor absent.
 
+### ADR-013 — Explicit screenshots; CLI/headless first
 **Status:** Accepted
 
-Use an explicit screenshot tool call, with Task/session/step identifiers and timestamp. Associate the image using the explicit call and a bounded time window; do not infer ownership from PID/HWND.
+Capture important program-running screenshots through an explicit operation, associated with Task/Worker/Step/session and timestamp. GUI is auxiliary. No silent continuous capture. Java/Qt/GPU capture remains unverified.
 
-**Consequences**
-- No silent background desktop capture.
-- Store screenshots in CAS and record their digests.
-- Java/Qt/GPU capture remains unverified.
-- GUI input injection is not a supported MVP dependency.
-
-### ADR-011 — Skill is delivered as a project bundle
-
+### ADR-014 — Markdown Writeup + evidence ZIP; PDF later
 **Status:** Accepted
 
-Deliver the user-facing command as a project-level Skill bundle with `SKILL.md`, category references, and scripts as needed. Use UTF-8 without BOM.
+Writeup follows actual analysis/operation sequence, preserves hypotheses, real outputs, failures, and screenshots, and is reproducible. Deliver Markdown plus evidence ZIP and SHA-256 manifest. PDF conversion is a later handoff.
 
-**Consequences**
-- Keep the Skill concise and route detailed material to references.
-- Skill instructions are not a security boundary.
-- The Cordis plugin/Manager implement enforcement and durable state.
-
-### ADR-012 — Cancellation must not overclaim
-
+### ADR-015 — Human submits Flag; First Blood is excluded
 **Status:** Accepted
 
-ACP cancel has only been verified as turn cancellation, not hard process termination.
+The Agent may identify a candidate Flag and explain its evidence. The user confirms and submits it. First Blood scanning is a separate project and not part of this MVP.
 
-**Consequences**
-- A cancellation request first becomes `cancel_requested`.
-- Do not mark `cancelled` until associated jobs/processes are confirmed quiescent.
-- If quiescence cannot be confirmed, expose the uncertainty and retain the task as unresolved.
-
-### ADR-013 — Learn from references; do not copy blindly
-
+### ADR-016 — Environment/toolchain setup is a separate workstream
 **Status:** Accepted
 
-External repositories are design references. Reuse of source code requires checking the specific repository license, attribution, notices, and any copyleft obligations. In particular, Open-ReverseLab is GPL-3.0; do not copy its code into this project without an explicit license-compliance decision.
+Product development defines preflight and execution contracts but does not silently install tools or alter the existing D:/CTF project or Harness profile/config. Those actions require explicit authorization.
 
-## Open implementation questions (not product-direction changes)
+### ADR-017 — Learn from references; do not copy blindly
+**Status:** Accepted
 
-1. Exact packaging/lifecycle of Manager Core relative to the Cordis Host Plugin; choose the smallest reliable deployment after a smoke test.
-2. Exact mechanism to disable/exclude `dsh-session-log-deepseek`; must be proven by a negative test.
-3. ACP Client implementation details, including executable path discovery and robust ND-JSON framing.
-4. Recovery behavior after ACP Server or Manager process failure.
+External repositories are design references. Source reuse requires checking license, attribution, notices, and copyleft obligations. Open-ReverseLab is GPL-3.0; do not copy its code without an explicit compatibility decision.
+
+## Open implementation questions
+
+1. Exact Manager/ACP Client bootstrap and lifecycle.
+2. Exact MCP server packaging/configuration for Manager control tools and ctf-exec.
+3. Exact supported mechanism to disable/exclude dsh-session-log-deepseek.
+4. ACP Client framing, timeouts, process supervision, and successful recovery.
 5. Reliable cancellation of Harness jobs/process trees.
-6. SQLite implementation/library and crash-safe transaction strategy.
+6. SQLite implementation and crash-safe transaction strategy.
 7. CAS retention, export, and deletion policy.
-8. Target profile format and broker grant schema.
-9. Whether later releases should use one ACP Server process per Task instead of one shared server.
+8. Target profile and Broker grant schema.
+9. Whether later releases need one ACP Server process per Task.
 10. Screenshot behavior for Java/Qt/GPU applications.
 
-These questions may be resolved during implementation without changing the accepted product contract above.
+Resolve these without silently changing the accepted product contract.

@@ -1,7 +1,6 @@
-# Local CTF challenge material and runtime state
+# Local CTF challenge Tasks and outputs
+tasks/*/
 .ctf-solver-data/
-tasks/*/work/
-tasks/*/evidence/
 challenge-files/
 challenge-uploads/
 captures/

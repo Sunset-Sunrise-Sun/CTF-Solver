@@ -1,93 +1,85 @@
 # CTF-Solver
 
-**A DeepSeek Harness-native CTF solving extension.** Start it once with `/ctf-solver`; keep solving in the same conversation without repeating the command.
+**A semi-autonomous CTF solving extension for DeepSeek Harness.** Start it once with /ctf-solver; keep solving in the same conversation without repeating the command.
 
-CTF-Solver does not replace DeepSeek Harness with another agent runtime. Harness remains responsible for model reasoning and tool execution. CTF-Solver adds the missing control plane around it: challenge/task lifecycle, independent ACP sessions, scoped approvals, durable evidence, screenshots, and reproducible writeups.
+CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skill and five specialist Skills, a Manager with an ACP Client, independent per-challenge Workers, a typed ctf-exec runtime interface, scoped approvals, durable evidence, and reproducible writeups. It is not a standalone CTF platform and does not introduce a second model loop.
 
-> **Project status (2026-11-10):** architecture baseline is being established. Harness ACP lifecycle and several integration primitives have been audited in a real local environment. The Manager, broker, evidence pipeline, and user-facing extension have **not** yet passed end-to-end implementation acceptance.
+> **Status (2026-11-10):** architecture baseline recorded. Harness ACP lifecycle and integration primitives have been audited locally. Manager, ctf-exec, Broker, evidence pipeline, and Skills have not passed end-to-end acceptance.
 
 ## Product contract
 
-- **One explicit entry:** `/ctf-solver` enters CTF mode for the current conversation.
-- **Persistent conversation mode:** subsequent messages, attachments, and “continue” requests remain in CTF mode. Do not ask the user to repeat the command for each challenge.
-- **Independent challenge tasks:** each challenge receives its own task record, workspace, and Harness ACP session.
-- **Bounded concurrency:** at most **2 active Workers**; additional tasks wait in FIFO order.
-- **Five core categories:** Web, Misc, Crypto, Reverse, and Pwn.
-- **Harness-native execution:** use Harness as the reasoning/tool runtime; do not create a second model/agent loop.
-- **Evidence-first delivery:** conclusions must be traceable to tool calls, outputs, files, and explicitly captured screenshots. Unknown or unverified claims stay marked as such.
-- **Human-controlled scope:** competition rules and target scope are checked before network or state-changing actions.
+- One explicit entry: /ctf-solver enters CTF mode for the current conversation.
+- Persistent mode: subsequent messages, attachments, and “continue” requests remain in CTF mode. Do not require the command again for each challenge.
+- Semi-autonomous: the Agent analyzes, plans, writes helper scripts, and runs permitted routine tools; sensitive actions require human approval.
+- Independent challenge Workers: each challenge receives its own Task, workspace, and Harness ACP session.
+- Bounded concurrency: at most **2 active Workers**; additional Tasks wait FIFO.
+- Five categories only: Web, Misc, Crypto, Reverse, and Pwn. First Blood scanning is a separate future project and excluded from this MVP.
+- CLI/headless first; GUI is auxiliary and used primarily for required program-running screenshots.
+- No arbitrary host Shell: Workers use typed ctf-exec through MCP; they receive neither unrestricted host Shell nor Docker Socket.
+- Evidence-first delivery: record actual argv, cwd, tool version, timestamps, exit code, stdout/stderr, files, and screenshots.
+- Human controls: approve untrusted-binary execution, software installation, and CTF target access; the user confirms and submits the Flag.
 
 ## Architecture at a glance
 
-```text
-User
-  │  /ctf-solver
-  ▼
-Project Skill ──► Thin Cordis Host Plugin / CTF tools
-                         │
-                         ▼
-                    Manager Core
-                    ├── Task queue (max 2, FIFO)
-                    ├── Policy + approval broker
-                    ├── ACP Client
-                    │      │
-                    │      └── dsh --profile acp (ACP Server)
-                    │             └── one session per task
-                    ├── Session-log ingestion
-                    ├── SQLite hash-chain + CAS evidence
-                    ├── Explicit screenshot capture
-                    └── Writeup generation
-```
+User → /ctf-solver Core Skill → CTF Manager → Manager ACP Client → dsh --profile acp (ACP Server) → one Worker session per Task.
 
-See [Product Spec](docs/PRODUCT_SPEC.md), [Architecture](docs/ARCHITECTURE.md), and [Decisions](docs/DECISIONS.md).
+Worker → typed ctf-exec MCP tool → Manager/Broker → Runtime → approved CLI/headless tool.
 
-## Non-negotiable safety boundary
+Manager stores authoritative state/events in SQLite, raw bytes in CAS, and produces a Markdown Writeup plus evidence ZIP. Five specialist Skills cover Web, Misc, Crypto, Reverse, and Pwn. Cordis Host Plugin provides lightweight optional hooks; it is not a second runtime.
 
-The current Harness sandbox is **not** an OS security boundary for untrusted binaries. WSL2 is present but the Ubuntu distribution is stopped; Docker Engine/gVisor are not installed. Until an isolated execution tier is installed and accepted:
+See [Product Spec](docs/PRODUCT_SPEC.md), [Architecture](docs/ARCHITECTURE.md), and [Execution Contract](docs/EXECUTION_CONTRACT.md).
 
-- static inspection and explicitly allowlisted, trusted tooling may proceed under the Manager policy;
-- challenge-provided executables, scripts, macros, or exploit payloads must not be run directly on the host;
-- network access is denied by default and must be granted per task/action/target through the external broker;
-- MCP and Cordis Host Plugin code are treated as trusted host-side components, not sandboxed Workers.
+## Safety and execution boundary
 
-Session-log delivery to the official API must be disabled/excluded and verified before any real CTF challenge content is processed. Details: [Security Model](docs/SECURITY.md).
+Public research material and documentation lookup may use the public internet. Competition targets are different: remote target access requires authorization for the specific Task and target; out-of-scope hosts, ports, and actions are blocked.
+
+The current Harness sandbox is not an OS security boundary for untrusted binaries. WSL2 is present but Ubuntu 24.04 is stopped; Docker Engine/gVisor are not installed. Until an isolated execution tier is installed and accepted:
+- use static inspection and approved trusted tools that do not execute challenge-provided code;
+- do not run challenge binaries, scripts, macros, exploit payloads, or untrusted installers directly on the host;
+- human approval is required for sensitive actions, but approval alone does not replace OS isolation;
+- Workers use typed ctf-exec; no arbitrary host Shell and no Docker Socket are exposed;
+- Broker is the sole controlled Docker API caller when Tier 2 is available.
+
+Session-log delivery to the official API must be disabled/excluded and verified before real challenge content is processed. See [Security Model](docs/SECURITY.md).
 
 ## Repository map
 
-- `docs/PRODUCT_SPEC.md` — user-facing behavior and product requirements.
-- `docs/ARCHITECTURE.md` — component boundaries and data flows.
-- `docs/DECISIONS.md` — accepted architecture decisions and unresolved implementation details.
-- `docs/SECURITY.md` — trust boundaries, execution tiers, approvals, and data handling.
-- `docs/ROADMAP.md` — phased implementation plan.
-- `docs/REFERENCE_PROJECTS.md` — external projects and the specific ideas worth learning from.
-- `docs/HARNESS_INTEGRATION_AUDIT_SUMMARY.md` — summary of the latest local capability audit.
-- `docs/ACCEPTANCE.md` — implementation and release gates.
+- docs/PRODUCT_SPEC.md — user-facing behavior and requirements.
+- docs/ARCHITECTURE.md — Manager, ACP, MCP, Runtime, evidence, and Cordis boundaries.
+- docs/EXECUTION_CONTRACT.md — typed ctf-exec interface; no arbitrary Shell.
+- docs/DECISIONS.md — accepted decisions and unresolved implementation details.
+- docs/SECURITY.md — trust boundaries, approvals, network scope, and execution tiers.
+- docs/ROADMAP.md — phased implementation plan and separate environment track.
+- docs/REFERENCE_PROJECTS.md — external projects and what to learn from them.
+- docs/HARNESS_INTEGRATION_AUDIT_SUMMARY.md — summary of the latest local capability audit.
+- docs/ACCEPTANCE.md — objective implementation/release gates.
 
 ## Current implementation status
 
 | Area | Status |
 |---|---|
-| Harness ACP Server lifecycle | Audited; 22/22 lifecycle checks passed in the local audit |
-| Independent ACP sessions/workspaces | Minimal demo verified; Manager integration not yet implemented |
-| Cordis Host Plugin hooks/tools | Capability audited; production plugin not yet implemented |
-| Manager ACP Client | Not implemented |
-| Task queue and 2-Worker limit | Product decision; not implemented |
-| External per-call policy broker | Required; not implemented |
-| Session-log external delivery disabled | P0 requirement; configuration and negative test pending |
+| Harness ACP Server lifecycle | Audited; 22/22 lifecycle checks passed |
+| Independent ACP sessions/workspaces | Minimal demo verified; Manager integration not implemented |
+| Core + five specialist Skills | Product contract; not implemented |
+| Manager ACP Client | Required; not implemented |
+| Typed ctf-exec + Runtime/Broker | Required; not implemented |
+| MCP mount/discovery/list | Verified; real tools/call not verified |
+| Cordis hooks | Capability audited; lightweight optional integration |
 | SQLite hash chain + CAS | Required; not implemented |
 | Multi-frame zstd ingestion | Parsing feasibility verified; production ingestion not implemented |
-| Screenshot capture and attribution | Capture primitives verified; Manager integration not implemented |
-| Writeup generation | Demo mechanism verified; production output/acceptance pending |
-| OS-isolated execution tier | Not available; P1 environment work |
+| Screenshot capture/attribution | Capture primitives verified; Manager integration not implemented |
+| Markdown Writeup + evidence ZIP | Required; product acceptance pending |
+| OS-isolated execution tier | Not available; separate P1 environment track |
 
 ## Development rules
 
-1. Do not change the product contract or architecture decisions silently. Update [Decisions](docs/DECISIONS.md) first.
-2. Do not copy third-party source code without checking its license and recording provenance.
-3. Keep challenge artifacts, logs, credentials, screenshots, databases, and CAS data out of Git.
-4. Use local synthetic fixtures for integration tests; do not contact public targets in tests.
-5. Never report a flag, exploit, screenshot, test, or completion state that was not actually verified.
-6. Treat the latest audit report as evidence, not as proof of untested behavior. See the explicit NOT VERIFIED list.
+1. Do not change the product contract or decisions silently. Update docs/DECISIONS.md first.
+2. Do not expose arbitrary host Shell or Docker Socket to a Worker.
+3. Do not automatically submit a Flag; the user verifies and submits it.
+4. Keep challenge files, logs, credentials, screenshots, databases, and CAS data out of Git.
+5. Keep environment/toolchain setup separate from product development. Do not modify the existing D:/CTF project or Harness profile/config, or install software, without explicit authorization.
+6. Do not copy third-party source code without checking its license and recording provenance.
+7. Never report a flag, exploit, screenshot, test, or completion state that was not actually verified.
 
 ## License
 

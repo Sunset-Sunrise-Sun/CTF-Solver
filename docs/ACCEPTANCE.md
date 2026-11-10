@@ -119,6 +119,10 @@ Before running arbitrary challenge-provided code:
 
 ## J. Two-round execution and release gates
 
+### Clean-room boundary
+- [ ] No old CTF Workbench / D:/CTF / D:/CTFworker code, database, API, UI, service, or runtime components are reused.
+- [ ] No reference-repository source is copied without license/provenance review and explicit owner approval.
+
 ### Round 1 — Complete Product Core
 - [ ] Manager ACP Client, Task registry, one-Task/one-session mapping, max-two FIFO scheduler, and persistence are implemented.
 - [ ] Manager control interface and Worker-facing typed ctf-exec MCP interface are implemented.

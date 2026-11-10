@@ -1,0 +1,58 @@
+{
+  "session_id": "session-4d788a62-ad4c-4e39-a9d1-41b949a3bc98",
+  "session_log": "<USER_HOME>\\.dsh\\sessions\\--D-CTF-SOLVER--\\session-4d788a62-ad4c-4e39-a9d1-41b949a3bc98\\session.v4.jsonl.zstd",
+  "frames": 1143,
+  "records": 1891,
+  "catalog_records_with_ctf_skills": [
+    {
+      "seq": 888,
+      "time": 1794305482378,
+      "type": "user/message",
+      "ctf_skills_present": [
+        "ctf-solver",
+        "ctf-web",
+        "ctf-misc"
+      ]
+    },
+    {
+      "seq": 899,
+      "time": 1794305501427,
+      "type": "user/message",
+      "ctf_skills_present": [
+        "ctf-solver",
+        "ctf-web",
+        "ctf-misc",
+        "ctf-crypto",
+        "ctf-reverse",
+        "ctf-pwn"
+      ]
+    },
+    {
+      "seq": 1885,
+      "time": 1794307562438,
+      "type": "assistant/message",
+      "ctf_skills_present": [
+        "ctf-solver",
+        "ctf-web",
+        "ctf-misc",
+        "ctf-crypto",
+        "ctf-reverse",
+        "ctf-pwn"
+      ]
+    },
+    {
+      "seq": 1886,
+      "time": 1794307562439,
+      "type": "tool/call",
+      "ctf_skills_present": [
+        "ctf-solver",
+        "ctf-web",
+        "ctf-misc",
+        "ctf-crypto",
+        "ctf-reverse",
+        "ctf-pwn"
+      ]
+    }
+  ],
+  "note": "The running DeepSeek Harness session's skill catalog was updated in-session after the six project-local .dsh/skills files were written; this summary lists the session-log records whose request/system catalog content contains the CTF Skills. It demonstrates live project-level Skill discovery in this session; Round 2 must re-verify entry semantics independently."
+}

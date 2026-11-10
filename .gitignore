@@ -1,0 +1,65 @@
+# Local CTF challenge Tasks and outputs.
+# NOTE: these are anchored to the project root. Patterns such as "evidence/"
+# would also ignore Python source packages named evidence (e.g.
+# ctf_solver/evidence/), which is why every runtime directory is root-anchored.
+/tasks/
+/.ctf-solver-data/
+/challenge-files/
+/challenge-uploads/
+/captures/
+/exports/
+/evidence/
+/scratch/
+
+# Harness local state and session logs (project root only)
+/.dsh/sessions/
+/.dsh/cache/
+*.jsonl.zst
+*.jsonl.zstd
+*.zst
+*.zstd
+
+# Databases and local indexes
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Local runtime outputs
+*.log
+*.tmp
+*.dump
+
+# Committed evidence logs: explicit, narrow exceptions to the local-runtime
+# *.log rule. These are audited test/integration logs referenced by the
+# acceptance reports, not transient debug output.
+!round1-evidence/raw/*.log
+!round2-evidence/raw/*.log
+
+# Python / test tooling
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+.venv/
+venv/
+
+# Local evidence bundles produced by tests (never committed raw runtime data)
+round1-evidence/runtime/
+round1-evidence/tmp/

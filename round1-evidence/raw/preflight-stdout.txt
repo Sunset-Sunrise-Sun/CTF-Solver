@@ -1,0 +1,72 @@
+CTF-Solver preflight (read-only)
+========================================
+root:      D:\CTF-SOLVER
+os:        Windows-11-10.0.26200-SP0
+python:    3.14.7 (<USER_HOME>\AppData\Local\Programs\Python\Python314\python.exe)
+node:      v24.19.0
+
+ACP launcher:
+  found:   True
+  command: <USER_HOME>\AppData\Local\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd
+  version: not_verified (preflight does not execute the launcher)
+
+Skills:
+  ctf-crypto: utf8=True bom=False frontmatter=True name=ctf-crypto
+  ctf-misc: utf8=True bom=False frontmatter=True name=ctf-misc
+  ctf-pwn: utf8=True bom=False frontmatter=True name=ctf-pwn
+  ctf-reverse: utf8=True bom=False frontmatter=True name=ctf-reverse
+  ctf-solver: utf8=True bom=False frontmatter=True name=ctf-solver
+  ctf-web: utf8=True bom=False frontmatter=True name=ctf-web
+
+Toolchain (available/missing; versions are probes, not installs):
+  7z           missing
+  binwalk      missing
+  gdb          missing
+  ghidra       missing
+  git          available ¡ª git version 2.55.0.windows.3
+  hashcat      missing
+  java         missing
+  java_jdk     missing
+  javac        missing
+  john         missing
+  nmap         missing
+  node         available ¡ª v24.19.0
+  python       available ¡ª Python 3.14.7
+  radare2      missing
+  rizin        missing
+  sage         missing
+  sqlmap       missing
+  tshark       missing
+  wireshark    missing
+
+Python modules:
+  Crypto               missing
+  PIL                  available (12.3.0)
+  angr                 missing
+  capstone             missing
+  compression.zstd     available
+  elftools             missing
+  pwn                  missing
+  scapy                missing
+  sqlite3              available
+  tkinter              available
+  unicorn              missing
+  z3                   missing
+  zlib                 available (1.0)
+  zstandard            available (0.25.0)
+
+Session-log privacy gate (P0):
+  project patch: D:\CTF-SOLVER\config\acp\cordis.patch.yml present=True disables_delivery=True
+  status:        MECHANISM_CONFIGURED_DELIVERY_UNVERIFIED
+  outbound test: NOT VERIFIED (requires a model request; blocked in Round 1)
+
+Isolation:
+  tier2_os_isolation: NOT AVAILABLE / NOT VERIFIED in this run (no install, no WSL/Docker start)
+  docker_cli_present: False
+  docker_daemon_state: not_verified (preflight does not start or connect to Docker)
+  wsl_cli_present: True
+  wsl_distribution_state: not_verified (preflight does not start WSL)
+  untrusted_challenge_code_execution: BLOCKED until a Tier 2 isolation environment is installed and accepted
+  gvisor_present: False
+
+No environment mutation performed. Summary: {"tools_available": ["git", "node", "python"], "tools_missing": ["7z", "binwalk", "gdb", "ghidra", "hashcat", "java", "java_jdk", "javac", "john", "nmap", "radare2", "rizin", "sage", "sqlmap", "tshark", "wireshark"], "python_modules_available": ["PIL", "compression.zstd", "sqlite3", "tkinter", "zlib", "zstandard"], "python_modules_missing": ["Crypto", "angr", "capstone", "elftools", "pwn", "scapy", "unicorn", "z3"], "skills_ok": true, "acp_launcher_found": true, "session_log_privacy_gate": "MECHANISM_CONFIGURED_DELIVERY_UNVERIFIED", "tier2_isolation": "NOT AVAILABLE / NOT VERIFIED in this run (no install, no WSL/Docker start)", "no_environment_mutation": true}

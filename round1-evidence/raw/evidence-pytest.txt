@@ -1,0 +1,20 @@
+# evidence-pipeline test log (task-2)
+# command (requested): python -m pytest tests/test_evidence_*.py tests/test_zstd_*.py -q
+# command (executed; PowerShell 5.1 does not glob native-command args, so globs are expanded to the file list below):
+#   $files = @(Get-ChildItem tests\test_evidence_*.py, tests\test_zstd_*.py); python -m pytest $files -q
+# files:
+#   D:\CTF-SOLVER\tests\test_evidence_cas.py
+#   D:\CTF-SOLVER\tests\test_evidence_ingest.py
+#   D:\CTF-SOLVER\tests\test_evidence_manifest.py
+#   D:\CTF-SOLVER\tests\test_evidence_normalize.py
+#   D:\CTF-SOLVER\tests\test_evidence_store.py
+#   D:\CTF-SOLVER\tests\test_evidence_support.py
+#   D:\CTF-SOLVER\tests\test_zstd_frames.py
+# python: Python 3.14.7
+# pytest: pytest 9.1.1
+# exit_code: 0
+# counts: 113 passed in 2.19s
+
+........................................................................ [ 63%]
+.........................................                                [100%]
+113 passed in 2.19s

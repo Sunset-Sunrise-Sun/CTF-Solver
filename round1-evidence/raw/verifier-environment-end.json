@@ -1,0 +1,15 @@
+{
+  "captured_at_utc": "2026-11-10T10:43:08Z",
+  "worker_status_sha256": "a28414c28d7b0df5c03ff7429083eaa2786a99d07e9ccc682399e9a20986dcac",
+  "worker_status_exit_code": 0,
+  "worker_status_unchanged": true,
+  "audit_sha256": "955136d156a878fc932243081cc42d72575bc4f65510dc03163cb689d7fe5373",
+  "audit_unchanged": true,
+  "global_profiles_mtimes_ns": {
+    "desktop": 1794246751302462400,
+    "headless": 1792831006035603700,
+    "node_modules": 1789451508630885400,
+    "web": 1791309041226890200
+  },
+  "global_profiles_unchanged": true
+}

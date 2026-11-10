@@ -1,0 +1,71 @@
+{
+  "ok": true,
+  "generated_at_utc": "20261110T130959Z",
+  "repo": "D:\\CTF-SOLVER",
+  "branch": "fix/round2-acceptance-remediation",
+  "overlay_working_tree": false,
+  "source_head": "0872b14681039a142c83aa6bf269be372190031b",
+  "source_status_sha256": "3d5cfc9ba08deb4890942ce4ed0d59bff0784a9d85ddacabcb06c569e4ea23cf",
+  "clone_dir": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-p8zz3b2r\\clone",
+  "steps": [
+    {
+      "command": [
+        "git",
+        "clone",
+        "--no-hardlinks",
+        "--branch",
+        "fix/round2-acceptance-remediation",
+        "D:\\CTF-SOLVER",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-p8zz3b2r\\clone"
+      ],
+      "returncode": 0,
+      "seconds": 0.474
+    },
+    {
+      "command": [
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "-m",
+        "pytest",
+        "tests",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "returncode": 0,
+      "seconds": 67.969
+    },
+    {
+      "command": [
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-p8zz3b2r\\clone\\scripts\\build_wheel.py",
+        "--repo",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-p8zz3b2r\\clone",
+        "--out",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-p8zz3b2r\\clone\\dist",
+        "--evidence-json",
+        "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-wheel-build-20261110T130959Z.json"
+      ],
+      "returncode": 0,
+      "seconds": 3.187
+    }
+  ],
+  "errors": [],
+  "logs": [
+    "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-20261110T130959Z.log"
+  ],
+  "clone_head": "0872b14681039a142c83aa6bf269be372190031b",
+  "clone_branch": "fix/round2-acceptance-remediation",
+  "source_core_autocrlf": "true",
+  "clone_core_autocrlf": "true",
+  "pytest": {
+    "returncode": 0,
+    "seconds": 67.969
+  },
+  "wheel_build": {
+    "returncode": 0,
+    "seconds": 3.187,
+    "evidence_json": "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-wheel-build-20261110T130959Z.json"
+  },
+  "temp_clone_kept": false,
+  "evidence_json": "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-20261110T130959Z.json"
+}

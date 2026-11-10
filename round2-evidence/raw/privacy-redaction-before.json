@@ -32,6 +32,11 @@
       "method": "byte-level replacement for follow-up test/integration evidence",
       "files_touched": 7,
       "occurrences_replaced": 14
+    },
+    {
+      "method": "byte-level replacement for final canonical-wheel-build evidence",
+      "files_touched": 1,
+      "occurrences_replaced": 12
     }
   ],
   "secrets": {

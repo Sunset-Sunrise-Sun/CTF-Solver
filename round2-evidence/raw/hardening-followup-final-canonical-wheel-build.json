@@ -1,42 +1,42 @@
 {
   "ok": true,
   "generated_at_utc": "2026-11-10T14:33:11Z",
-  "repo_root": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e",
+  "repo_root": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e",
   "branch": "fix/final-acceptance-followup",
   "head": "adba48a67efa557666fc3d837497c2cc926a7322",
   "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
-  "python_executable": "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
-  "pip_version": "pip 26.2.1 from C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\pip (python 3.14)",
-  "out_dir": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e\\dist",
+  "python_executable": "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+  "pip_version": "pip 26.2.1 from <USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\pip (python 3.14)",
+  "out_dir": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e\\dist",
   "commands": [
     {
       "command": [
-        "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
         "-m",
         "pip",
         "wheel",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e",
         "--no-deps",
         "--no-build-isolation",
         "--disable-pip-version-check",
         "--no-input",
         "--no-cache-dir",
         "-w",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e\\dist"
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e\\dist"
       ],
       "returncode": 0,
       "seconds": 1.494,
-      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.0-py3-none-any.whl size=222173 sha256=14eed36298d31a6cc3fdee749cf5e4cc18986cb266047e1b9573e9676621d83a\n  Stored in directory: C:\\Users\\28746\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-_u2tyqhr\\wheels\\ad\\97\\34\\d3bf4304267a414c79fee53e05276237c7c249f4778ab11aa2\nSuccessfully built ctf-solver\n",
+      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.0-py3-none-any.whl size=222173 sha256=14eed36298d31a6cc3fdee749cf5e4cc18986cb266047e1b9573e9676621d83a\n  Stored in directory: <USER_HOME>\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-_u2tyqhr\\wheels\\ad\\97\\34\\d3bf4304267a414c79fee53e05276237c7c249f4778ab11aa2\nSuccessfully built ctf-solver\n",
       "stderr_tail": "",
       "builder": "pip",
-      "produced_wheel": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e\\dist\\ctf_solver-0.1.0-py3-none-any.whl"
+      "produced_wheel": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e\\dist\\ctf_solver-0.1.0-py3-none-any.whl"
     }
   ],
   "errors": [],
   "builder": "pip",
   "wheel": {
     "filename": "ctf_solver-0.1.0-py3-none-any.whl",
-    "path": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
+    "path": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-followup-final-3b1498b0bdbe4a218f3de6d89d30d85e\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
     "size": 222173,
     "sha256": "14eed36298d31a6cc3fdee749cf5e4cc18986cb266047e1b9573e9676621d83a"
   },
@@ -72,7 +72,7 @@
       "ok": true,
       "import_command": {
         "command": [
-          "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
           "-c",
           "import ctf_solver.evidence.store, ctf_solver.manager.service, ctf_solver.intake; from ctf_solver import __version__; print(__version__)"
         ],
@@ -83,7 +83,7 @@
       },
       "version_command": {
         "command": [
-          "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
           "-m",
           "ctf_solver",
           "version"

@@ -1,0 +1,13 @@
+# ACP Client / transport / fake-server test run (Round 1, task-1)
+
+timestamp_local: 2026-11-10T18:21:01+08:00
+python: Python 3.14.7
+git_commit: 960252ab48d1810401a460f6b035b76348b2f520
+cwd: D:\CTF-SOLVER
+command (PowerShell-safe expansion): python -m pytest <tests/test_acp_*.py> -q -p no:cacheprovider
+files: tests/test_acp_client.py, tests/test_acp_contract.py, tests/test_acp_permission.py, tests/test_acp_support.py, tests/test_acp_transport.py
+
+........................................................................ [ 98%]
+.                                                                        [100%]
+73 passed in 18.98s
+exit_code: 0

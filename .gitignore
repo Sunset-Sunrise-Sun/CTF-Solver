@@ -6,6 +6,7 @@ challenge-uploads/
 captures/
 exports/
 evidence/
+scratch/
 
 # Harness local state and session logs
 .dsh/sessions/
@@ -37,3 +38,19 @@ credentials/
 *.log
 *.tmp
 *.dump
+
+# Python / test tooling
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+.venv/
+venv/
+
+# Local evidence bundles produced by tests (never committed raw runtime data)
+round1-evidence/runtime/
+round1-evidence/tmp/

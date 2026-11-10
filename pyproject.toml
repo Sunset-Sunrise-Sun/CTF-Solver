@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ctf-solver"
+version = "0.1.0"
+description = "Semi-autonomous CTF solving extension for DeepSeek Harness (Round 1 candidate)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [{ name = "CTF-Solver project" }]
+dependencies = [
+  # Intentionally empty: Round 1 must run with the existing environment only.
+  # Compression support is taken from the standard library (Python >= 3.14
+  # `compression.zstd`) or the already-installed `zstandard` package; the
+  # implementation probes both and fails closed with a clear diagnostic.
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+ctf-solver = "ctf_solver.cli:main"
+
+[tool.setuptools]
+packages = [
+  "ctf_solver",
+  "ctf_solver.core",
+  "ctf_solver.storage",
+  "ctf_solver.acp",
+  "ctf_solver.evidence",
+  "ctf_solver.policy",
+  "ctf_solver.runtime",
+  "ctf_solver.mcp",
+  "ctf_solver.manager",
+  "ctf_solver.delivery",
+  "ctf_solver.preflight",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+markers = [
+  "real_acp: zero-model-call smoke test against the locally installed Harness ACP server (opt-in)",
+  "slow: slower deterministic tests",
+]

@@ -4,7 +4,16 @@
 
 CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skill and five specialist Skills, a Manager with an ACP Client, independent per-challenge Workers, a typed ctf-exec runtime interface, scoped approvals, durable evidence, and reproducible writeups. It is not a standalone CTF platform and does not introduce a second model loop.
 
-> **Status (2026-11-10):** architecture baseline recorded. Harness ACP lifecycle and integration primitives have been audited locally. Manager, ctf-exec, Broker, evidence pipeline, and Skills have not passed end-to-end acceptance.
+> **Status (2026-11-10):** Round 1 implementation candidate on branch
+> `feat/round1-complete-product-core` (based on the frozen documentation commit
+> `960252a`). The complete product core (Manager/ACP Client, FIFO scheduler, Manager and
+> Worker MCP interfaces, typed `ctf-exec`, Broker/Runtime, six Skills, preflight,
+> multi-frame zstd evidence pipeline with SQLite hash chain + CAS, screenshots,
+> Writeup/ZIP) is implemented with deterministic tests and a zero-model-call real ACP
+> lifecycle smoke test. Round 1 does **not** claim final MVP acceptance: the
+> main-conversation `/ctf-solver` → Manager tool path and the session-log negative
+> delivery test remain BLOCKED/NOT VERIFIED for Round 2 (see
+> [Round 1 architecture notes](docs/ROUND_1_ARCHITECTURE_NOTES.md)).
 
 ## Product contract
 
@@ -53,26 +62,33 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 - docs/TWO_ROUND_EXECUTION_PLAN.md — canonical execution index.
 - docs/ROUND_1_IMPLEMENTATION_TASK.md — complete first-round product implementation.
 - docs/ROUND_2_INTEGRATION_TASK.md — second-round Harness integration and end-to-end closure.
+- docs/INTERFACES.md — frozen Round 1 module contracts (implementation boundary record).
+- docs/ROUND_1_ARCHITECTURE_NOTES.md — what Round 1 proves and the remaining Harness integration limits.
+- docs/LOCAL_OPERATION.md — no-install local operation, preflight, testing and data layout.
 - docs/REFERENCE_PROJECTS.md — external projects and what to learn from them.
 - docs/HARNESS_INTEGRATION_AUDIT_SUMMARY.md — summary of the latest local capability audit.
 - docs/ACCEPTANCE.md — objective implementation/release gates.
 
-## Current implementation status
+## Current implementation status (Round 1 candidate)
 
 | Area | Status |
 |---|---|
-| Harness ACP Server lifecycle | Audited; 22/22 lifecycle checks passed |
-| Independent ACP sessions/workspaces | Minimal demo verified; Manager integration not implemented |
-| Core + five specialist Skills | Product contract; not implemented |
-| Manager ACP Client | Required; not implemented |
-| Typed ctf-exec + Runtime/Broker | Required; not implemented |
-| MCP mount/discovery/list | Verified; real tools/call not verified |
-| Cordis hooks | Capability audited; lightweight optional integration |
-| SQLite hash chain + CAS | Required; not implemented |
-| Multi-frame zstd ingestion | Parsing feasibility verified; production ingestion not implemented |
-| Screenshot capture/attribution | Capture primitives verified; Manager integration not implemented |
-| Markdown Writeup + evidence ZIP | Required; product acceptance pending |
-| OS-isolated execution tier | Not available; separate P1 environment track |
+| Manager control MCP server + loopback IPC | Implemented; deterministic tests + end-to-end fake-ACP stack test |
+| ACP Client (stdio ND-JSON JSON-RPC 2.0) | Implemented; fake-server matrix + zero-model-call real ACP smoke test PASS |
+| Task/Worker registry, one session/workspace per Task | Implemented; SQLite persisted before ready; recovery without duplicate sessions |
+| Two-Worker FIFO scheduler | Implemented; 2 active + 3rd queued + promotion + failure isolation tested |
+| Worker MCP `ctf-exec` (typed argv, env identity) | Implemented; stdio MCP tests + Manager IPC chain tested |
+| Broker approvals/network grants, fail-closed | Implemented with deny/allow matrix, redirect/DNS revalidation logic |
+| Runtime trusted tools | Tier 0 internal + Tier 1 fixed-argv probes; no challenge-code execution |
+| Core Skill + five specialist Skills | Implemented under `.dsh/skills/`; UTF-8 no BOM; observed discovered by the local Harness |
+| Read-only preflight/doctor | Implemented; no environment mutation tested |
+| Multi-frame zstd + SQLite hash chain + CAS + derived JSONL | Implemented; tamper/gap/idempotency/determinism tests |
+| Explicit screenshots | Capturer implemented + blank/failure handling tested; desktop capture NOT VERIFIED in Round 1 |
+| Markdown Writeup + evidence ZIP + manifest | Implemented; deterministic + independently verified |
+| Main-conversation `/ctf-solver` → Manager tools | **BLOCKED** for Round 2 (no supported project-scoped MCP registration) |
+| Session-log negative delivery canary | **BLOCKED** (requires a model call; mechanism verified in isolated profile) |
+| Model-mediated Worker / `session/prompt` | **BLOCKED by design** (ADR-020) |
+| OS-isolated execution tier | Not available; separate future environment track |
 
 ## Development rules
 

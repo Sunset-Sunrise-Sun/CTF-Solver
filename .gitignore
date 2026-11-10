@@ -1,16 +1,19 @@
-# Local CTF challenge Tasks and outputs
-tasks/*/
-.ctf-solver-data/
-challenge-files/
-challenge-uploads/
-captures/
-exports/
-evidence/
-scratch/
+# Local CTF challenge Tasks and outputs.
+# NOTE: these are anchored to the project root. Patterns such as "evidence/"
+# would also ignore Python source packages named evidence (e.g.
+# ctf_solver/evidence/), which is why every runtime directory is root-anchored.
+/tasks/
+/.ctf-solver-data/
+/challenge-files/
+/challenge-uploads/
+/captures/
+/exports/
+/evidence/
+/scratch/
 
-# Harness local state and session logs
-.dsh/sessions/
-.dsh/cache/
+# Harness local state and session logs (project root only)
+/.dsh/sessions/
+/.dsh/cache/
 *.jsonl.zst
 *.jsonl.zstd
 *.zst

@@ -208,3 +208,56 @@ emits `task_completed` and promotes FIFO. A close failure keeps the Task status 
 slot, records a diagnostic and returns a structured `AcpError`; repeated completion is
 idempotent. Terminal Tasks refuse new executions/flags and are never marked interrupted
 by restart recovery.
+
+---
+
+## 10. Final acceptance hardening (2026-11-10, second patch)
+
+### Dual-record approval verification (P0-1)
+
+`ApprovalGrantService.create_grant_from_approval()` now verifies **two independent
+records** before consumption:
+
+1. the approvals row (approval_id/task_id/action_kind/canonical payload/action_digest/
+   status/confirmation_channel/confirmation_id/confirmation_os_user), and
+2. exactly one `approval_decided` event for that approval in the **intact**
+   `EvidenceStore` hash chain, with matching task_id, approved=true, action_digest,
+   confirmation_id, confirmation_os_user and `local_console` channel.
+
+Missing, duplicate/conflicting, inconsistent or chain-invalid decision events fail
+closed. `confirm_approval()` now treats the decision event as mandatory: if the event
+append or verification fails, the approval row is invalidated (CANCELLED) and the call
+raises, so it can never later create a grant. The atomic one-shot consumption, TTL,
+max_calls, cross-Task and CAS guarantees are preserved.
+
+Threat-model limit (explicit, not overstated): this detects inconsistency between the
+approvals table and an independently chained confirmation event, and isolated edits to
+either (or attempts to delete/modify events that break the chain). It does **not** claim
+resistance to an attacker who can rewrite the entire SQLite database, the whole event
+chain and all metadata in a mutually consistent way; there is no external anchor/signature
+in this development cycle.
+
+### ACP launch boundary (P0-2)
+
+There is no production ACP path that can omit the project privacy patch. The default
+factory treats `config.acp_command` and the test-only
+`CTF_SOLVER_TEST_ACP_COMMAND` environment override only as a **launcher** and always
+appends `--profile acp --patch <absolute-project-patch>`; launchers that try to supply
+their own `--profile`/`--patch` are rejected. The public Manager CLI no longer has
+`--acp-command`; fake-ACP integration tests use the environment/dependency-injection
+boundary. Missing or relative patch paths fail closed. `--capture-mode fake` does not
+affect ACP protection.
+
+### Completion evidence consistency (P0-3)
+
+`complete_task()` now uses a durable `completion_pending` intermediate state:
+preconditions → durable pending state (slot held, new execution/flag rejected) → ACP
+session close (rollback to the previous active state on close failure) → mandatory
+`task_completed` event append and chain verification → strict `evidence_head` persistence
+→ Worker stop/slot release → durable `completed` status → evidence re-verification → FIFO
+pump. Any event/head/chain/worker/status failure leaves the Task unfinished (normally
+`completion_pending`) and returns an error; it never reports success without durable
+completion evidence. Restart recovery finalizes a pending completion only when the
+completion event is present and the chain is intact, otherwise marks the Task
+`interrupted` (never `completed`). Repeat completion remains idempotent and re-verifies
+the durable completion evidence.

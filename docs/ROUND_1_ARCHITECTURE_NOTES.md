@@ -85,7 +85,7 @@ Round 1 verified the **supported mechanism** without touching global configurati
   no transport started). The composed configuration contains
   `- id: session-log-deepseek … config: { enabled: false }`.
 - Only the temporary `DSH_HOME` was written (`profiles/acp/*`). The live
-  `C:\Users\28746\.dsh\profiles\desktop` profile was not modified (mtime unchanged),
+  `<USER_HOME>\.dsh\profiles\desktop` profile was not modified (mtime unchanged),
   and no stray global `profiles` directory remains.
 
 **Still BLOCKED:** the required *negative outbound-delivery canary test* proves a

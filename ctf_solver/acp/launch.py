@@ -96,9 +96,12 @@ def _build(launcher: object, *, comspec: str, patch_args: list[str] | None = Non
     entries = _validate_launcher(launcher)
     executable, rest = entries[0], entries[1:]
     extra = list(patch_args or [])
+    # Protected arguments are appended after the launcher's own fixed arguments.
+    # This keeps interpreter-style test launchers (``python -m fake_server``) valid
+    # while still guaranteeing ``--profile acp --patch <abs>`` on every launch.
     if executable.lower().endswith(_CALL_SCRIPT_EXTENSIONS):
-        return [comspec, "/c", executable, *ACP_PROFILE_ARGS, *extra, *rest]
-    return [executable, *ACP_PROFILE_ARGS, *extra, *rest]
+        return [comspec, "/c", executable, *rest, *ACP_PROFILE_ARGS, *extra]
+    return [executable, *rest, *ACP_PROFILE_ARGS, *extra]
 
 
 def build_acp_command(

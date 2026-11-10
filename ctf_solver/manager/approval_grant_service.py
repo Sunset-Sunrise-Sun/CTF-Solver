@@ -26,7 +26,7 @@ from typing import Any, Mapping
 
 from ..core.canonical import canonical_json, sha256_hex
 from ..core.config import SolverConfig
-from ..core.errors import NotFoundError, StateError, ValidationError
+from ..core.errors import NotFoundError, StateError, StorageError, ValidationError
 from ..core.ids import new_id
 from ..core.protocols import Clock, EvidenceSink, SystemClock
 from ..core.types import (
@@ -371,6 +371,137 @@ class ApprovalGrantService:
         except Exception as exc:  # noqa: BLE001 - durable store remains authoritative
             self._event_errors.append(f"{event_type}: {type(exc).__name__}: {exc}")
 
+    def _append_event_required(
+        self, task_id: str, event_type: str, payload: dict[str, Any]
+    ) -> str:
+        """Append a decision evidence event and propagate any write failure.
+
+        A human confirmation is only usable if its independent evidence record is
+        durably stored; callers must fail closed when this raises.
+        """
+
+        try:
+            return self.evidence.append_event(
+                task_id=task_id,
+                source="manager",
+                source_id=f"manager:{event_type}:{uuid.uuid4().hex}",
+                event_type=event_type,
+                payload=payload,
+                timestamp=self.clock.now_ms(),
+            )
+        except Exception as exc:  # noqa: BLE001 - evidence failure is fatal here
+            raise StorageError(
+                f"could not persist {event_type} evidence: {type(exc).__name__}: {exc}",
+                details={"event_type": event_type, "task_id": task_id},
+            ) from exc
+
+    @staticmethod
+    def _event_payload(event: Mapping[str, Any]) -> Mapping[str, Any]:
+        payload = event.get("payload")
+        return payload if isinstance(payload, Mapping) else {}
+
+    def _decision_events(self, approval_id: str, task_id: str) -> list[Mapping[str, Any]]:
+        lister = getattr(self.evidence, "list_events", None)
+        if not callable(lister):
+            raise StateError(
+                "the evidence store cannot list decision events; refusing to trust an "
+                "unverifiable approval confirmation"
+            )
+        try:
+            events = lister(task_id=task_id, event_type="approval_decided")
+        except Exception as exc:  # noqa: BLE001 - evidence read failure fails closed
+            raise StateError(
+                f"could not read approval decision evidence: {type(exc).__name__}: {exc}"
+            ) from exc
+        matches: list[Mapping[str, Any]] = []
+        for event in events or []:
+            if not isinstance(event, Mapping):
+                raise StateError("approval decision evidence contains a malformed event")
+            payload = self._event_payload(event)
+            if str(payload.get("approval_id") or "") == str(approval_id):
+                matches.append(event)
+        return matches
+
+    def _verify_decision_evidence(
+        self, record: ApprovalRecord, *, require_approved: bool
+    ) -> Mapping[str, Any]:
+        """Cross-check an approval row against its independent hash-chain event.
+
+        The Manager stores the human decision twice: in the approvals table and
+        as an ``approval_decided`` event inside the append-only evidence hash
+        chain. This method requires the chain to be intact and the event to be
+        unique and field-for-field consistent with the row. It defends against a
+        tampered approvals row (including payload+digest rewrites) and isolated
+        event edits/deletions.
+
+        Threat-model limit (not overstated): an attacker able to atomically
+        rewrite the entire SQLite database, the whole event chain and all
+        associated metadata consistently is not defeated by this check; there is
+        no external anchor/signature in this development cycle.
+        """
+
+        chain_status = getattr(self.evidence, "chain_status", None)
+        if not callable(chain_status):
+            raise StateError(
+                "the evidence store cannot verify the hash chain; refusing to trust "
+                "an unverifiable approval confirmation"
+            )
+        try:
+            status = chain_status()
+        except Exception as exc:  # noqa: BLE001
+            raise StateError(
+                f"evidence hash-chain verification failed: {type(exc).__name__}: {exc}"
+            ) from exc
+        if not bool(getattr(status, "ok", False)):
+            raise StateError(
+                "evidence hash chain is not intact; refusing to trust an approval confirmation"
+            )
+
+        events = self._decision_events(record.approval_id, record.task_id)
+        if len(events) != 1:
+            raise StateError(
+                f"approval {record.approval_id} has {len(events)} approval_decided "
+                "evidence event(s); exactly one consistent human confirmation is required"
+            )
+        event = events[0]
+        if str(event.get("task_id") or "") != str(record.task_id):
+            raise StateError("approval decision evidence belongs to a different Task")
+        payload = self._event_payload(event)
+        expected_approved = record.status is ApprovalStatus.APPROVED
+        if require_approved and not expected_approved:
+            raise StateError(
+                f"approval {record.approval_id} is {record.status.value}; a network "
+                "grant requires an APPROVED human-confirmed approval"
+            )
+        checks: list[tuple[str, Any, Any]] = [
+            ("task_id", payload.get("task_id"), record.task_id),
+            ("action_kind", payload.get("action_kind"), record.action_kind),
+            (
+                "action_digest",
+                str(payload.get("action_digest") or "").strip().lower(),
+                str(record.action_digest or "").strip().lower(),
+            ),
+            ("approved", payload.get("approved"), expected_approved),
+            ("confirmation_channel", payload.get("confirmation_channel"), CHANNEL_LOCAL_CONSOLE),
+            ("confirmation_id", payload.get("confirmation_id"), record.confirmation_id),
+            (
+                "confirmation_os_user",
+                payload.get("confirmation_os_user"),
+                record.confirmation_os_user,
+            ),
+        ]
+        for field, observed, expected in checks:
+            if observed != expected:
+                raise StateError(
+                    f"approval decision evidence field {field!r} is inconsistent with "
+                    f"approval {record.approval_id}; refusing to use it"
+                )
+        if not record.confirmation_id or not record.confirmation_os_user:
+            raise StateError(
+                "approval confirmation is missing its local-console identity fields"
+            )
+        return payload
+
     # ------------------------------------------------------------------
     # Approval request
     # ------------------------------------------------------------------
@@ -498,23 +629,40 @@ class ApprovalGrantService:
             confirmation=confirmation,
             note=str(note or ""),
         )
-        self._emit(
-            decided.task_id,
-            "approval_decided",
-            {
-                "approval_id": decided.approval_id,
-                "task_id": decided.task_id,
-                "action_kind": decided.action_kind,
-                "action_digest": decided.action_digest,
-                "approved": decided.status is ApprovalStatus.APPROVED,
-                "approver": decided.approver,
-                "confirmation_channel": decided.confirmation_channel,
-                "confirmation_id": decided.confirmation_id,
-                "confirmation_os_user": decided.confirmation_os_user,
-                "decided_at": decided.decided_at,
-                "note": decided.confirmation_note or "",
-            },
-        )
+        try:
+            self._append_event_required(
+                decided.task_id,
+                "approval_decided",
+                {
+                    "approval_id": decided.approval_id,
+                    "task_id": decided.task_id,
+                    "action_kind": decided.action_kind,
+                    "action_digest": decided.action_digest,
+                    "approved": decided.status is ApprovalStatus.APPROVED,
+                    "approver": decided.approver,
+                    "confirmation_channel": decided.confirmation_channel,
+                    "confirmation_id": decided.confirmation_id,
+                    "confirmation_os_user": decided.confirmation_os_user,
+                    "decided_at": decided.decided_at,
+                    "note": decided.confirmation_note or "",
+                },
+            )
+            # The decision is only usable if the independent event is present in
+            # an intact chain and matches the row exactly.
+            self._verify_decision_evidence(decided, require_approved=False)
+        except Exception as exc:  # noqa: BLE001 - invalidate then fail closed
+            try:
+                self.store.invalidate_approval(
+                    approval_id,
+                    reason=f"decision evidence not durable: {type(exc).__name__}",
+                )
+            except Exception:  # noqa: BLE001
+                pass
+            raise StateError(
+                "the human decision could not be durably evidenced; the approval was "
+                "invalidated and cannot be used to create a grant",
+                details={"approval_id": approval_id},
+            ) from exc
         return decided
 
     # ------------------------------------------------------------------
@@ -612,6 +760,9 @@ class ApprovalGrantService:
 
         # 1. Re-derive the approved, immutable payload and verify its digest.
         payload = self._verified_payload(approval, require_approved=True)
+        # 1b. Cross-check the row against the independent human-decision event in
+        #     the intact evidence hash chain (dual-record tamper detection).
+        self._verify_decision_evidence(approval, require_approved=True)
         approved_ttl = payload["grant_ttl_s"]
         approved_calls = payload["max_calls"]
 

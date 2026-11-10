@@ -484,6 +484,28 @@ class ManagerStore:
             )
             return cursor.rowcount == 1
 
+    def invalidate_approval(self, approval_id: str, *, reason: str = "") -> bool:
+        """Make a decided approval unusable (fail-closed evidence compensation).
+
+        Used when the human decision was persisted but its independent evidence
+        event could not be durably written/verified. The row becomes CANCELLED so
+        no later grant can rely on it; confirmation fields stay intact for audit.
+        """
+
+        with self._tx():
+            cursor = self.conn.execute(
+                "UPDATE approvals SET status = ?, note = ? WHERE approval_id = ?"
+                " AND status IN (?, ?)",
+                (
+                    ApprovalStatus.CANCELLED.value,
+                    f"invalidated: {str(reason)[:500]}",
+                    approval_id,
+                    ApprovalStatus.PENDING.value,
+                    ApprovalStatus.APPROVED.value,
+                ),
+            )
+            return cursor.rowcount == 1
+
     def list_approvals(self, *, task_id: str | None = None) -> list[ApprovalRecord]:
         query = "SELECT * FROM approvals"
         params: list[Any] = []

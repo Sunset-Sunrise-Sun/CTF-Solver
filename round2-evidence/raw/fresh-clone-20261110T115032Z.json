@@ -6,7 +6,7 @@
   "overlay_working_tree": true,
   "source_head": "8615af6f552813d50ed2f429b45ef4bdfe65e326",
   "source_status_sha256": "e44dc777746a5194673026260c158e96ce0bd816e389d376f26af91da70e3dc8",
-  "clone_dir": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone",
+  "clone_dir": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone",
   "steps": [
     {
       "command": [
@@ -16,14 +16,14 @@
         "--branch",
         "feat/round2-harness-integration",
         "D:\\CTF-SOLVER",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone"
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone"
       ],
       "returncode": 0,
       "seconds": 0.918
     },
     {
       "command": [
-        "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
         "-m",
         "pytest",
         "tests",
@@ -36,12 +36,12 @@
     },
     {
       "command": [
-        "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone\\scripts\\build_wheel.py",
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone\\scripts\\build_wheel.py",
         "--repo",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone",
         "--out",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone\\dist",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone\\dist",
         "--evidence-json",
         "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-wheel-build-20261110T115032Z.json"
       ],

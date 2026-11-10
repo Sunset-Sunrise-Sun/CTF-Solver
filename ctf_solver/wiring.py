@@ -57,34 +57,46 @@ def _acp_launch_command(
     executable = launcher[0]
     base = [str(item) for item in launcher[1:]]
     if executable.lower().endswith((".cmd", ".bat")):
-        return [os.environ.get("COMSPEC", "cmd.exe"), "/c", executable, "--profile", "acp", *base]
-    return [executable, "--profile", "acp", *base]
+        return [os.environ.get("COMSPEC", "cmd.exe"), "/c", executable, *base, "--profile", "acp"]
+    return [executable, *base, "--profile", "acp"]
 
 
 def default_acp_factory(config: SolverConfig) -> AcpClientFactory:
     def factory():
         from .acp.client import AcpClient
 
-        command = config.acp_command
-        if command is None:
-            # Round 2 P0-3: the Manager-managed default ACP launch must compose
-            # the project privacy patch. Missing/invalid patch fails closed.
-            patch_path = config.privacy_patch_path
-            if not patch_path.is_file():
+        # Round 2 final hardening P0-2: there is no unprotected production ACP
+        # launch path. The project privacy patch is mandatory; a runner override
+        # (test dependency injection or config.acp_command) is treated only as a
+        # *launcher* and receives the protected profile/patch arguments too.
+        patch_path = config.privacy_patch_path
+        if not patch_path.is_file():
+            raise ConfigError(
+                f"the project Harness privacy patch is missing: {patch_path}; "
+                "refusing to launch an unprotected ACP Worker"
+            )
+        launcher = config.extra.get("launcher_override") or config.acp_command
+        if launcher is not None:
+            if not isinstance(launcher, (list, tuple)):
+                raise ConfigError("ACP launcher override must be an argv array")
+            entries = list(launcher)
+            if not entries or not all(isinstance(item, str) and item for item in entries):
+                raise ConfigError("ACP launcher override must be non-empty strings")
+            forbidden = {"--profile", "--patch"}
+            if any(item in forbidden or item.startswith("--patch=") for item in entries):
                 raise ConfigError(
-                    f"the project Harness privacy patch is missing: {patch_path}; "
-                    "refusing to launch an unprotected ACP Worker"
+                    "ACP launcher overrides must not supply --profile/--patch; the "
+                    "Manager appends the audited protected arguments itself"
                 )
-            launcher = discover_acp_command()
-            if launcher is None:
+            command = _acp_launch_command(entries, privacy_patch=str(patch_path))
+        else:
+            discovered = discover_acp_command()
+            if discovered is None:
                 raise ConfigError(
                     "the audited Harness ACP launcher (dsh) was not found; set "
-                    "CTF_SOLVER_ACP_COMMAND or --acp-command to the exact launcher path"
+                    "CTF_SOLVER_ACP_COMMAND to the exact launcher path"
                 )
-            command = _acp_launch_command(launcher, privacy_patch=str(patch_path))
-        # An explicit acp_command is treated as a complete caller-supplied argv
-        # (used by fake-ACP integration tests); the default real launch above is
-        # the path that must and does include --profile acp --patch <abs path>.
+            command = _acp_launch_command(discovered, privacy_patch=str(patch_path))
         env = build_acp_env(base=os.environ, dsh_home=config.extra.get("dsh_home"))
         env.setdefault("PYTHONPATH", str(Path(__file__).resolve().parent.parent))
         env.setdefault("PYTHONUTF8", "1")

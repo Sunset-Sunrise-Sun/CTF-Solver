@@ -1,7 +1,7 @@
 {
   "skill_discovery": {
     "session_id": "session-4d788a62-ad4c-4e39-a9d1-41b949a3bc98",
-    "session_log": "C:\\Users\\28746\\.dsh\\sessions\\--D-CTF-SOLVER--\\session-4d788a62-ad4c-4e39-a9d1-41b949a3bc98\\session.v4.jsonl.zstd",
+    "session_log": "<USER_HOME>\\.dsh\\sessions\\--D-CTF-SOLVER--\\session-4d788a62-ad4c-4e39-a9d1-41b949a3bc98\\session.v4.jsonl.zstd",
     "frames": 2041,
     "records": 3340,
     "catalog_records": [
@@ -93,7 +93,7 @@
     "note": "Records are from the running Harness session's own persisted log; the catalog changed from three to six CTF Skills after the .dsh/skills files were written. This is real Harness project-level Skill discovery evidence (session-log side)."
   },
   "source_analysis": {
-    "app_asar": "C:\\Users\\28746\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\app.asar",
+    "app_asar": "<USER_HOME>\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\app.asar",
     "entries": 22102,
     "relevant_entries": 939,
     "extracted": [

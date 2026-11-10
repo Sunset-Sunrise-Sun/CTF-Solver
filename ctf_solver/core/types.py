@@ -47,6 +47,7 @@ class TaskStatus(str, enum.Enum):
     AWAITING_APPROVAL = "awaiting_approval"
     BLOCKED = "blocked"
     CANCEL_REQUESTED = "cancel_requested"
+    COMPLETION_PENDING = "completion_pending"
     CANCELLED = "cancelled"
     COMPLETED = "completed"
     PARTIAL = "partial"
@@ -63,6 +64,7 @@ SLOT_OCCUPYING_TASK_STATUSES: frozenset[TaskStatus] = frozenset(
         TaskStatus.AWAITING_APPROVAL,
         TaskStatus.BLOCKED,
         TaskStatus.CANCEL_REQUESTED,
+        TaskStatus.COMPLETION_PENDING,
     }
 )
 
@@ -93,6 +95,7 @@ TASK_TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
             TaskStatus.AWAITING_APPROVAL,
             TaskStatus.BLOCKED,
             TaskStatus.CANCEL_REQUESTED,
+            TaskStatus.COMPLETION_PENDING,
             TaskStatus.COMPLETED,
             TaskStatus.PARTIAL,
             TaskStatus.FAILED,
@@ -103,6 +106,7 @@ TASK_TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
         {
             TaskStatus.RUNNING,
             TaskStatus.CANCEL_REQUESTED,
+            TaskStatus.COMPLETION_PENDING,
             TaskStatus.COMPLETED,
             TaskStatus.FAILED,
             TaskStatus.CANCELLED,
@@ -114,6 +118,7 @@ TASK_TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
             TaskStatus.RUNNING,
             TaskStatus.BLOCKED,
             TaskStatus.CANCEL_REQUESTED,
+            TaskStatus.COMPLETION_PENDING,
             TaskStatus.COMPLETED,
             TaskStatus.FAILED,
             TaskStatus.INTERRUPTED,
@@ -123,6 +128,7 @@ TASK_TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
         {
             TaskStatus.RUNNING,
             TaskStatus.CANCEL_REQUESTED,
+            TaskStatus.COMPLETION_PENDING,
             TaskStatus.COMPLETED,
             TaskStatus.FAILED,
             TaskStatus.INTERRUPTED,
@@ -130,6 +136,20 @@ TASK_TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
     ),
     TaskStatus.CANCEL_REQUESTED: frozenset(
         {TaskStatus.CANCELLED, TaskStatus.FAILED, TaskStatus.INTERRUPTED}
+    ),
+    TaskStatus.COMPLETION_PENDING: frozenset(
+        {
+            TaskStatus.COMPLETED,
+            TaskStatus.PARTIAL,
+            TaskStatus.FAILED,
+            TaskStatus.INTERRUPTED,
+            # Used only to roll back when ACP session close fails before any
+            # completion evidence is written.
+            TaskStatus.RUNNING,
+            TaskStatus.PAUSED,
+            TaskStatus.BLOCKED,
+            TaskStatus.AWAITING_APPROVAL,
+        }
     ),
     TaskStatus.INTERRUPTED: frozenset({TaskStatus.CANCELLED, TaskStatus.FAILED}),
     TaskStatus.CANCELLED: frozenset(),

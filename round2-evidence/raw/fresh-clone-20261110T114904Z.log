@@ -1,10 +1,10 @@
 ===== git clone =====
-git clone --no-hardlinks --branch feat/round2-harness-integration D:\CTF-SOLVER C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone
-Cloning into 'C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone'...
+git clone --no-hardlinks --branch feat/round2-harness-integration D:\CTF-SOLVER <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone
+Cloning into '<USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone'...
 done.
 
 ===== clone pytest =====
-C:\Users\28746\AppData\Local\Programs\Python\Python314\python.exe -m pytest tests -q -p no:cacheprovider (cwd=C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone)
+<USER_HOME>\AppData\Local\Programs\Python\Python314\python.exe -m pytest tests -q -p no:cacheprovider (cwd=<USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone)
 exit=1
 ........................................................................ [ 10%]
 ........................................................................ [ 21%]
@@ -128,4 +128,4 @@ FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[
 6 failed, 648 passed, 1 skipped, 3 xpassed in 40.67s
 
 ===== ERROR =====
-clone has no scripts/build_wheel.py (branch HEAD does not contain the Round 2 packaging work; run with --overlay-working-tree or commit first): C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone\scripts\build_wheel.py
+clone has no scripts/build_wheel.py (branch HEAD does not contain the Round 2 packaging work; run with --overlay-working-tree or commit first): <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-u9_gdpy1\clone\scripts\build_wheel.py

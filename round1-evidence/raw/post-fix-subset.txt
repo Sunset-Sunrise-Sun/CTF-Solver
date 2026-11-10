@@ -19,7 +19,7 @@ ctf_solver\mcp\client.py:210: OSError
 
 The above exception was the direct cause of the following exception:
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1746/test_full_round1_stack0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1746/test_full_round1_stack0')
 
     @pytest.fixture()
     def stack(tmp_path: Path):
@@ -83,7 +83,7 @@ ctf_solver\mcp\client.py:210: OSError
 
 The above exception was the direct cause of the following exception:
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1746/test_manager_serves_control_wh0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1746/test_manager_serves_control_wh0')
 
     def test_manager_serves_control_while_acp_unavailable(tmp_path: Path) -> None:
         """The control plane must not pretend Workers run when ACP cannot start."""

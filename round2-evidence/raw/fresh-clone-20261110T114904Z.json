@@ -6,7 +6,7 @@
   "overlay_working_tree": false,
   "source_head": "8615af6f552813d50ed2f429b45ef4bdfe65e326",
   "source_status_sha256": "0fe2345bb886fc33c918be1a3dd202f2461d04a14e89cd4df83480dba3671083",
-  "clone_dir": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-u9_gdpy1\\clone",
+  "clone_dir": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-u9_gdpy1\\clone",
   "steps": [
     {
       "command": [
@@ -16,14 +16,14 @@
         "--branch",
         "feat/round2-harness-integration",
         "D:\\CTF-SOLVER",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-u9_gdpy1\\clone"
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-u9_gdpy1\\clone"
       ],
       "returncode": 0,
       "seconds": 0.725
     },
     {
       "command": [
-        "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
         "-m",
         "pytest",
         "tests",
@@ -37,7 +37,7 @@
   ],
   "errors": [
     "clone pytest failed with exit code 1",
-    "clone has no scripts/build_wheel.py (branch HEAD does not contain the Round 2 packaging work; run with --overlay-working-tree or commit first): C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-u9_gdpy1\\clone\\scripts\\build_wheel.py"
+    "clone has no scripts/build_wheel.py (branch HEAD does not contain the Round 2 packaging work; run with --overlay-working-tree or commit first): <USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-u9_gdpy1\\clone\\scripts\\build_wheel.py"
   ],
   "logs": [
     "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-20261110T114904Z.log"

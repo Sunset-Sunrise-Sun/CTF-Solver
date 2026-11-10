@@ -1,15 +1,15 @@
 {
-  "started_at": "2026-11-10T13:06:30.227719+00:00",
+  "started_at": "2026-11-10T13:50:36.275530+00:00",
   "steps": {
     "start": {
       "acp": {
         "diagnostics": {
           "state": "ready",
-          "pid": 39072,
+          "pid": 41996,
           "command": [
             "C:\\Windows\\system32\\cmd.exe",
             "/c",
-            "C:\\Users\\28746\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
+            "<USER_HOME>\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
             "--profile",
             "acp",
             "--patch",
@@ -19,7 +19,7 @@
           "pending_requests": 0,
           "last_error": null,
           "stderr_tail": "",
-          "started_at": 1794315990638,
+          "started_at": 1794318636747,
           "request_count": 1,
           "response_count": 1,
           "malformed_lines": 0,
@@ -52,7 +52,7 @@
         "error": "",
         "alive": true
       },
-      "ipc_url": "tcp://127.0.0.1:55204",
+      "ipc_url": "tcp://127.0.0.1:61768",
       "active_workers": 0,
       "queued_tasks": 0,
       "db_path": "D:\\CTF-SOLVER\\.ctf-solver-data\\manager.sqlite",
@@ -94,9 +94,9 @@
       "ctf-pwn": 0
     },
     "fifo": {
-      "t1": "t-55b8933e2c764206abe8076a86e3cbff",
-      "t2": "t-221202fd67c34bef899a36bf92bea08c",
-      "t3": "t-8398e1546a2041f9af67b4d45963689a",
+      "t1": "t-9ac106f0288c4dc8b82480b277bd487d",
+      "t2": "t-75b7a5db92a646628e63c300553046c7",
+      "t3": "t-fb6d3fdd5c8e4eeda020215eeb448e1c",
       "cancelled_t2": "cancelled",
       "promoted_t3": "running"
     },
@@ -109,7 +109,7 @@
         "manager_argv": [
           "C:\\Windows\\system32\\cmd.exe",
           "/c",
-          "C:\\Users\\28746\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
+          "<USER_HOME>\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd",
           "--profile",
           "acp",
           "--patch",
@@ -131,58 +131,58 @@
       "can_be_called_delivery_verified": false
     },
     "restart_recovery": {
-      "t-8398e1546a2041f9af67b4d45963689a": "interrupted"
+      "t-fb6d3fdd5c8e4eeda020215eeb448e1c": "interrupted"
     },
     "acp_child_mcp_mount": {
-      "t-55b8933e2c764206abe8076a86e3cbff": {
-        "initialize_at_ms": 1794315993420,
+      "t-9ac106f0288c4dc8b82480b277bd487d": {
+        "initialize_at_ms": 1794318639445,
         "initialize_received": true,
-        "pid": 31368,
+        "pid": 43896,
         "protocol_version": "2025-06-18",
         "server_name": "ctf-exec",
         "server_version": "0.1.0",
-        "task_id": "t-55b8933e2c764206abe8076a86e3cbff",
+        "task_id": "t-9ac106f0288c4dc8b82480b277bd487d",
         "tool_names": [
           "ctf_exec"
         ],
-        "tools_list_at_ms": 1794315993426,
+        "tools_list_at_ms": 1794318639451,
         "tools_list_received": true
       },
-      "t-221202fd67c34bef899a36bf92bea08c": {
-        "initialize_at_ms": 1794315993841,
+      "t-75b7a5db92a646628e63c300553046c7": {
+        "initialize_at_ms": 1794318639823,
         "initialize_received": true,
-        "pid": 13720,
+        "pid": 23068,
         "protocol_version": "2025-06-18",
         "server_name": "ctf-exec",
         "server_version": "0.1.0",
-        "task_id": "t-221202fd67c34bef899a36bf92bea08c",
+        "task_id": "t-75b7a5db92a646628e63c300553046c7",
         "tool_names": [
           "ctf_exec"
         ],
-        "tools_list_at_ms": 1794315993844,
+        "tools_list_at_ms": 1794318639825,
         "tools_list_received": true
       }
     },
     "completion": {
       "e2e_status": "completed",
       "result_state": "solved_flag_candidate",
-      "ended_at": 1794315998718,
-      "independent_mcp_tools_call": 33740,
-      "acp_spawned_child_pid": 39092,
+      "ended_at": 1794318644169,
+      "independent_mcp_tools_call": 38284,
+      "acp_spawned_child_pid": 42000,
       "same_child_tools_call": "NOT VERIFIED (zero-model-call gate)"
     }
   },
   "e2e": {
-    "task_id": "t-9946f14c12a84d0e8d836f1c11b74455",
+    "task_id": "t-b2c6c3f649a6437ca450b198ab500fdc",
     "final_status": "completed",
     "result_state": "solved_flag_candidate",
-    "ended_at": 1794315998718,
+    "ended_at": 1794318644169,
     "writeup": "D:\\CTF-SOLVER\\round2-evidence\\end-to-end\\writeup.md",
     "zip": "D:\\CTF-SOLVER\\round2-evidence\\end-to-end\\evidence.zip",
     "candidate_flag": "flag{synthetic_round2_e2e}",
     "screenshot_sha256": "d6803009a0751bfc97fcfd81284e98ecae39704fd1b8624061a351c71f030043",
-    "acp_child_pid": 39092,
-    "independent_mcp_pid": 33740,
+    "acp_child_pid": 42000,
+    "independent_mcp_pid": 38284,
     "note": "Worker tool calls were executed through the typed MCP ctf_exec interface by an independent MCP process; no model call. ACP-spawned child initialize/tools-list is separately verified; same-child tools/call is NOT VERIFIED under the zero-model-call gate."
   },
   "passed": [
@@ -236,7 +236,7 @@
     "tools/call for the synthetic E2E was executed by an independent MCP stdio process (ctf-exec identity from the real Worker token), while initialize/tools-list evidence comes from the actual ACP-spawned child. Under the zero-model-call gate, same-child tools/call is NOT VERIFIED.",
     "BLOCKED: requires a model request; no model call is authorized"
   ],
-  "finished_at": "2026-11-10T13:06:41.764040+00:00",
+  "finished_at": "2026-11-10T13:50:46.967583+00:00",
   "model_calls": 0,
   "session_prompt_calls": 0,
   "real_ctf_targets": 0

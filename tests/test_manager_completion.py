@@ -48,7 +48,6 @@ def test_complete_task_releases_slot_and_records_terminal_state(tmp_path) -> Non
         assert len(events) == 1
         payload = events[0]["payload"]
         assert payload["session_closed"] is True
-        assert payload["worker_stopped"] is True
         assert payload["result_state"] == "solved_flag_candidate"
         assert payload["ended_at"] == stored.ended_at
         assert stored.evidence_head

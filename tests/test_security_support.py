@@ -82,6 +82,31 @@ class RecordingEvidence:
     def of_type(self, event_type: str) -> list[dict[str, Any]]:
         return [event for event in self.events if event["event_type"] == event_type]
 
+    def list_events(
+        self,
+        *,
+        task_id: str | None = None,
+        event_type: str | None = None,
+        after_seq: int | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        items = list(self.events)
+        if task_id is not None:
+            items = [event for event in items if event["task_id"] == task_id]
+        if event_type is not None:
+            items = [event for event in items if event["event_type"] == event_type]
+        if limit is not None:
+            items = items[: int(limit)]
+        return items
+
+    def chain_status(self):
+        from ctf_solver.core.types import ChainStatus
+
+        return ChainStatus(ok=True, records=len(self.events), head_hash="f" * 64)
+
+    def chain_head(self) -> tuple[int, str]:
+        return (len(self.events), "f" * 64)
+
 
 @dataclass
 class SecurityEnvironment:

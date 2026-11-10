@@ -169,3 +169,23 @@ control-tool response does not echo local paths.
   interrupted without duplicate sessions.
 - Raw logs: `round2-evidence/raw/round2-integration.log`,
   `round2-integration-summary.json`, `round2-privacy-gate-result.json`.
+
+---
+
+## 10. Final acceptance hardening evidence (2026-11-10, second patch)
+
+- The real integration run was repeated after the hardening patch: **43/43 checks PASS**
+  with zero model calls, including normal E2E completion with durable `task_completed`
+  evidence, protocol-level MCP child initialize/tools-list evidence, restart recovery and
+  the live Manager ACP argv / isolated effective privacy configuration.
+- `default_acp_factory()` has no unprotected production launch path: `config.acp_command`
+  and the test-only `CTF_SOLVER_TEST_ACP_COMMAND` launcher are always wrapped with
+  `--profile acp --patch <absolute project patch>`; the public manager CLI
+  `--acp-command` flag was removed and fake ACP uses the explicit test boundary.
+- The completion lifecycle now fails closed on evidence failures: a synthetic
+  `task_completed` append failure, `evidence_head` failure, chain failure, Worker status
+  failure or final Task status failure never reports `completed`; the Task remains
+  `completion_pending` (or its original status on session-close failure) with the slot
+  held and is safely retryable/recoverable. The E2E final state remains `completed` with
+  concrete `result_state`, real `ended_at`, stopped Worker, unique completion event and
+  matching `evidence_head`.

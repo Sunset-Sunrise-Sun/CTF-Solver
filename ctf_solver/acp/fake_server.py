@@ -978,6 +978,16 @@ def build_parser() -> argparse.ArgumentParser:
         description="Deterministic fake ACP server (ND-JSON JSON-RPC 2.0 over stdio).",
     )
     parser.add_argument(
+        "--profile",
+        default="acp",
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--patch",
+        default=None,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
         "--scenario",
         choices=(
             "normal",

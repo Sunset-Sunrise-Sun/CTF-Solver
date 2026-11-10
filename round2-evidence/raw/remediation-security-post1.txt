@@ -3,7 +3,7 @@
 ================================== FAILURES ===================================
 _______ test_grant_creation_binds_task_target_profile_and_confirmation ________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_grant_creation_binds_task0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1810/test_grant_creation_binds_task0')
 
     def test_grant_creation_binds_task_target_profile_and_confirmation(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -302,7 +302,7 @@ ctf_solver\manager\approval_grant_service.py:204: ValueError
 
 The above exception was the direct cause of the following exception:
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_remote_target_details_are0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1810/test_remote_target_details_are0')
 
     def test_remote_target_details_are_canonicalized_before_digesting(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -388,7 +388,7 @@ E           ctf_solver.core.errors.ValidationError: invalid remote_target approv
 ctf_solver\manager\approval_grant_service.py:327: ValidationError
 _________ test_unsafe_target_fields_rejected[path_prefix-/api\x1b[2J] _________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_unsafe_target_fields_reje4')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1810/test_unsafe_target_fields_reje4')
 field = 'path_prefix', value = '/api\x1b[2J'
 
     @pytest.mark.parametrize(
@@ -424,7 +424,7 @@ E               TypeError: request_remote_approval() got an unexpected keyword a
 tests\test_round2_remediation_security.py:279: TypeError
 ______ test_unsafe_target_fields_rejected[path_prefix-/api\r\nINJECTED] _______
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_unsafe_target_fields_reje5')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1810/test_unsafe_target_fields_reje5')
 field = 'path_prefix', value = '/api\r\nINJECTED'
 
     @pytest.mark.parametrize(
@@ -460,7 +460,7 @@ E               TypeError: request_remote_approval() got an unexpected keyword a
 tests\test_round2_remediation_security.py:279: TypeError
 ___________ test_unsafe_target_fields_rejected[path_prefix-/a/../b] ___________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_unsafe_target_fields_reje6')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1810/test_unsafe_target_fields_reje6')
 field = 'path_prefix', value = '/a/../b'
 
     @pytest.mark.parametrize(
@@ -496,7 +496,7 @@ E               TypeError: request_remote_approval() got an unexpected keyword a
 tests\test_round2_remediation_security.py:279: TypeError
 __________ test_unsafe_target_fields_rejected[path_prefix-/api?x=1] ___________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1810/test_unsafe_target_fields_reje7')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1810/test_unsafe_target_fields_reje7')
 field = 'path_prefix', value = '/api?x=1'
 
     @pytest.mark.parametrize(

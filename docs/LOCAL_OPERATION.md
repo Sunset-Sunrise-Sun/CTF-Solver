@@ -200,3 +200,19 @@ live in-flight cancel/permission round trips, and real desktop capture are NOT V
   `tools/list`; the integration script checks its PID ancestry against the ACP server.
   A separate MCP stdio process is used for `tools/call`; same-child `tools/call` remains
   NOT VERIFIED without a model turn.
+
+## 4d. Final acceptance hardening notes
+
+- Completion uses a durable `completion_pending` state. If `task_completed` evidence,
+  `evidence_head`, the hash chain, Worker stop or final Task status fails, the Task is
+  left in a retryable pending state (or rolled back on session-close failure); it is never
+  reported completed without durable evidence. A restart finalizes a pending completion
+  only with a valid completion event and intact chain, otherwise it becomes
+  `interrupted`.
+- The Manager has no public `--acp-command` flag. Real ACP always launches through the
+  protected `--profile acp --patch <absolute project patch>` builder; fake ACP tests use
+  the `CTF_SOLVER_TEST_ACP_COMMAND` test boundary (still protected) or dependency
+  injection.
+- Network grant creation requires both the approvals row and exactly one matching
+  `approval_decided` event in the intact evidence hash chain; a self-consistent
+  payload+digest rewrite in SQLite is rejected.

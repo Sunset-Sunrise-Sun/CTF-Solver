@@ -22,19 +22,20 @@ from ctf_solver.mcp.client import McpStdioClient
 from tests.support.proc import PROJECT_ROOT, child_env, terminate, wait_until
 
 
-def _manager_command(root: Path, logs: Path, record: Path, session_root: Path) -> list[str]:
-    fake = (
+def _fake_acp_launcher(logs: Path, record: Path) -> str:
+    return (
         f"{sys.executable} -m ctf_solver.acp.fake_server --scenario normal "
         f"--session-log {logs} --record {record}"
     )
+
+
+def _manager_command(root: Path, logs: Path, record: Path, session_root: Path) -> list[str]:
     return [
         sys.executable,
         "-m",
         "ctf_solver.mcp.manager_server",
         "--root",
         str(root),
-        "--acp-command",
-        fake,
         "--capture-mode",
         "fake",
         "--session-log-root",
@@ -54,7 +55,7 @@ def stack(tmp_path: Path):
     session_root.mkdir()
     client = McpStdioClient(
         _manager_command(root, logs, record, session_root),
-        env=child_env(),
+        env=child_env(CTF_SOLVER_TEST_ACP_COMMAND=_fake_acp_launcher(logs, record)),
         cwd=str(PROJECT_ROOT),
         request_timeout=90.0,
     )
@@ -302,12 +303,12 @@ def test_manager_serves_control_while_acp_unavailable(tmp_path: Path) -> None:
             "ctf_solver.mcp.manager_server",
             "--root",
             str(root),
-            "--acp-command",
-            "definitely-not-a-real-acp-command-xyz",
             "--capture-mode",
             "fake",
         ],
-        env=child_env(),
+        env=child_env(
+            CTF_SOLVER_TEST_ACP_COMMAND="definitely-not-a-real-acp-command-xyz"
+        ),
         cwd=str(PROJECT_ROOT),
         request_timeout=60.0,
     )

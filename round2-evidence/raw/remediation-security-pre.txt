@@ -44,7 +44,7 @@ E           ctf_solver.security.textsafe.UnsafeTextError: confirmation summary m
 ctf_solver\security\textsafe.py:121: UnsafeTextError
 _____________ test_request_approval_is_pending_and_never_decided ______________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_request_approval_is_pendi0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_request_approval_is_pendi0')
 
     def test_request_approval_is_pending_and_never_decided(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -69,7 +69,7 @@ E             Use -v to get more diff
 tests\test_security_approval_grant.py:99: AssertionError
 ___________ test_confirm_rejection_is_recorded_and_cannot_authorize ___________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_confirm_rejection_is_reco0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_confirm_rejection_is_reco0')
 
     def test_confirm_rejection_is_recorded_and_cannot_authorize(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -111,7 +111,7 @@ E       KeyError: 'path'
 tests\test_security_approval_grant.py:63: KeyError
 _______________ test_grant_requires_a_human_confirmed_approval ________________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_grant_requires_a_human_co0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_grant_requires_a_human_co0')
 
     def test_grant_requires_a_human_confirmed_approval(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -144,7 +144,7 @@ E       KeyError: 'path'
 tests\test_security_approval_grant.py:63: KeyError
 _______ test_grant_creation_binds_task_target_profile_and_confirmation ________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_grant_creation_binds_task0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_grant_creation_binds_task0')
 
     def test_grant_creation_binds_task_target_profile_and_confirmation(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -177,7 +177,7 @@ E       KeyError: 'path'
 tests\test_security_approval_grant.py:63: KeyError
 ________________ test_grant_consumes_the_approval_exactly_once ________________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_grant_consumes_the_approv0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_grant_consumes_the_approv0')
 
     def test_grant_consumes_the_approval_exactly_once(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -208,7 +208,7 @@ E       KeyError: 'path'
 tests\test_security_approval_grant.py:63: KeyError
 _______ test_grant_target_or_profile_mismatch_fails_before_consumption ________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_grant_target_or_profile_m0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_grant_target_or_profile_m0')
 
     def test_grant_target_or_profile_mismatch_fails_before_consumption(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -239,7 +239,7 @@ E       KeyError: 'path'
 tests\test_security_approval_grant.py:63: KeyError
 ____________ test_tampered_approval_payload_or_digest_fails_closed ____________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_tampered_approval_payload0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_tampered_approval_payload0')
 
     def test_tampered_approval_payload_or_digest_fails_closed(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -270,7 +270,7 @@ E       KeyError: 'path'
 tests\test_security_approval_grant.py:63: KeyError
 __________ test_cross_task_approval_cannot_mint_another_tasks_grant ___________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_cross_task_approval_canno0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_cross_task_approval_canno0')
 
     def test_cross_task_approval_cannot_mint_another_tasks_grant(tmp_path) -> None:
         env = build_environment(tmp_path, extra_task_ids=("t-security02",))
@@ -303,7 +303,7 @@ E           KeyError: 'path'
 tests\test_security_approval_grant.py:500: KeyError
 _________________ test_revoke_grant_is_durable_and_idempotent _________________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_revoke_grant_is_durable_a0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_revoke_grant_is_durable_a0')
 
     def test_revoke_grant_is_durable_and_idempotent(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -336,7 +336,7 @@ E       KeyError: 'path'
 tests\test_security_approval_grant.py:63: KeyError
 _______________ test_list_approvals_and_grants_are_task_scoped ________________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_list_approvals_and_grants0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_list_approvals_and_grants0')
 
     def test_list_approvals_and_grants_are_task_scoped(tmp_path) -> None:
         env = build_environment(tmp_path, extra_task_ids=("t-security02",))
@@ -375,7 +375,7 @@ E       KeyError: 'path'
 tests\test_security_approval_grant.py:63: KeyError
 ________ test_remote_target_details_are_canonicalized_before_digesting ________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_remote_target_details_are0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_remote_target_details_are0')
 
     def test_remote_target_details_are_canonicalized_before_digesting(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -444,7 +444,7 @@ E           ctf_solver.core.errors.ValidationError: a remote_target approval req
 ctf_solver\manager\approval_grant_service.py:313: ValidationError
 ________ test_atomic_grant_creation_across_connections_only_one_winner ________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_atomic_grant_creation_acr0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_atomic_grant_creation_acr0')
 
     def test_atomic_grant_creation_across_connections_only_one_winner(tmp_path) -> None:
         env = build_environment(tmp_path)
@@ -457,7 +457,7 @@ tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest
 tests\test_security_store.py:236: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-env = SecurityEnvironment(tmp_path=WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_atomic_gr...1700000000000, updated_at=1700000000000, started_at=None, ended_at=None, evidence_head=None, notes=''), extra_tasks={})
+env = SecurityEnvironment(tmp_path=WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_atomic_gr...1700000000000, updated_at=1700000000000, started_at=None, ended_at=None, evidence_head=None, notes=''), extra_tasks={})
 decided = ApprovalRecord(approval_id='apr-1c6ea87c45da42e1a9d7d73ca8dd6b51', task_id='t-security01', action_kind='remote_target'...ole', confirmation_id='25cfb79c-c783-4ef9-9e65-25934033eb4d', confirmation_os_user='human-owner', confirmation_note='')
 grant_id = 'grant-race01', task_id = None
 
@@ -568,7 +568,7 @@ ctf_solver\manager\approval_grant_service.py:88: ValueError
 
 The above exception was the direct cause of the following exception:
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1809/test_service_emits_frozen_even0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_service_emits_frozen_even0')
 
     def test_service_emits_frozen_events_into_real_evidence_store(tmp_path) -> None:
         """The real SQLite evidence chain accepts the approval/grant event payloads."""

@@ -21,7 +21,7 @@ product scope or two-round decision changed.
 | P0-3 privacy launch | only the standalone `--dump-config` helper used `--patch`; the real Manager ACP launch (`default_acp_factory`) did **not** pass the project privacy patch. | Default Manager launch is the absolute `dsh --profile acp --patch <project>/config/acp/cordis.patch.yml` argv with isolated `DSH_HOME`, failing closed if the patch is missing/relative; integration verifies both the live argv (A) and the isolated effective config (B). |
 | P0-4 completion lifecycle | `TaskStatus.COMPLETED` existed but the Manager had no completion interface; E2E Writeups showed `running`/`unknown`. | `ManagerService.complete_task()` + MCP `ctf_task_complete` implement prechecks, close-session-before-slot-release, grant revocation, terminal persistence, evidence event/head, FIFO promotion and close-failure rollback. Synthetic E2E ends `completed` with real `ended_at`/`result_state` and final Writeup/ZIP. |
 | P1 MCP mount evidence | handshake was written at process start (spawn-only proof). | Handshake is written only after the ACP-spawned MCP child answers `initialize`, then records `tools/list` names/PID/Task/token hash/protocol; integration verifies PID ancestry against the ACP server and distinguishes the independent `tools/call` process. |
-| P1 logs/manifest | `*.log` ignored key logs; manifest hashed CRLF working-tree bytes and had wrong counts/2 unexplained mismatches. | Narrow evidence-log exceptions added; key logs committed. `FINAL_FILE_MANIFEST.txt` now hashes **canonical Git blob bytes**, is self-excluded, corrected to 255 entries, and verifies 100% in a clean clone. |
+| P1 logs/manifest | `*.log` ignored key logs; manifest hashed CRLF working-tree bytes and had wrong counts/2 unexplained mismatches. | Narrow evidence-log exceptions added; key logs committed. `FINAL_FILE_MANIFEST.txt` now hashes **canonical Git blob bytes**, is self-excluded, corrected to 261 entries, and verifies 100% in a clean clone. |
 
 Real zero-model-call Harness integration: **43/43 checks PASS** (was 30 before this patch).
 Full tests: **978 passed / 4 documented skips** (default) and **979 passed / 3 skips**
@@ -210,9 +210,15 @@ not claimed.
   `!round1-evidence/raw/*.log` and `!round2-evidence/raw/*.log`. The previously
   uncommitted `round2-integration.log` and fresh-clone logs are now tracked; transient
   debug logs remain ignored.
+- Count correction (final acceptance review): at commit `c45299d` the repository had
+  **262 tracked files**; the manifest excludes itself explicitly, so it lists
+  **261 entries**. The earlier report text saying 255 was wrong and is corrected here.
+  The manifest header no longer cites a manifest/report commit (that would create a
+  circular reference); it cites only the implementation commit `0872b14`, which exists
+  in history.
 - `round2-evidence/FINAL_FILE_MANIFEST.txt` regenerated from **Git blob bytes** via
   `git cat-file` (canonical LF), self-excluded, header/entry counts corrected. It has
-  **255 entries** and 0 mismatches when checked against the Git blobs; a clean clone
+  **261 entries** and 0 mismatches when checked against the Git blobs; a clean clone
   reproduces the same bytes and verifies 100%.
 - The earlier CRLF-worktree hash mismatch and the off-by-one counts are documented as
   fixed; there are no unexplained entries.
@@ -230,7 +236,7 @@ not claimed.
 | Completion lifecycle tests | 9 passed | 0 | `round2-evidence/raw/remediation-completion1.txt` |
 | Strict clean clone of implementation commit `0872b14` | **978 passed / 4 skipped**; wheel built and verified in clone | 0 | `round2-evidence/raw/fresh-clone-20261110T130959Z.{json,log}`, `remediation-fresh-clone-console.txt` |
 | Canonical wheel (clean-clone build) | `ctf_solver-0.1.0-py3-none-any.whl`, **215,106 B**, SHA-256 `9AAF9286BC451A397698D718534A885B5CCEDCEA6C3E1FC6BC9014627E2F558C`, 64 members | 0 | `round2-evidence/raw/remediation-canonical-wheel-build.json` |
-| Git-blob manifest | 255 entries, 0 mismatches vs Git blobs; clean-clone verification 100% | 0 | `round2-evidence/FINAL_FILE_MANIFEST.txt` |
+| Git-blob manifest | 261 entries, 0 mismatches vs Git blobs; clean-clone verification 100% | 0 | `round2-evidence/FINAL_FILE_MANIFEST.txt` |
 
 Canonical commands:
 
@@ -258,7 +264,7 @@ the implementation commit in a clean clone reproduces it exactly.
 | P0-3 privacy patch in actual Manager ACP launch (A) + effective isolated config (B) | **PASS (A/B configuration evidence)**; external-delivery canary **BLOCKED** (no model request) |
 | P0-4 normal completion lifecycle, close-before-release, E2E `completed`, restart separation | **PASS** |
 | P1 protocol-level ACP child initialize/tools-list evidence + PID ancestry | **PASS**; same-child `tools/call` **NOT VERIFIED** (zero-model gate) |
-| P1 evidence logs committed; Git-blob manifest 255 entries verified 100% in clean clone | **PASS** |
+| P1 evidence logs committed; Git-blob manifest 261 entries verified 100% in clean clone | **PASS** |
 | Security negative matrix (policy/approval/schema/exec/intake/session-log) | **PASS** |
 | 2 Workers + FIFO, restart recovery, synthetic E2E, Writeup/ZIP, wheel/fresh clone | **PASS** |
 | Main-conversation `/ctf-solver` → Manager tools | **BLOCKED** (no supported project-scoped MCP registration; owner decision) |

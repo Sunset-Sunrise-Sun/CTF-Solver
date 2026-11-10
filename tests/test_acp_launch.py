@@ -42,8 +42,8 @@ def test_executable_launcher_gets_audited_profile_args() -> None:
 
 def test_extra_launcher_arguments_follow_the_profile_flag() -> None:
     command = launch.build_acp_command([r"C:\tools\dsh.exe", "--foo", "bar"])
-    assert command == [r"C:\tools\dsh.exe", "--profile", "acp", "--foo", "bar"]
-    assert command[1:3] == ["--profile", "acp"]
+    assert command == [r"C:\tools\dsh.exe", "--foo", "bar", "--profile", "acp"]
+    assert command[-2:] == ["--profile", "acp"]
 
 
 @pytest.mark.parametrize("suffix", [".cmd", ".CMD", ".bat", ".Bat"])
@@ -57,7 +57,7 @@ def test_cmd_launcher_is_wrapped_by_comspec(suffix: str) -> None:
 
 def test_cmd_wrapper_keeps_extra_arguments_after_profile_args() -> None:
     command = launch.build_acp_command([r"C:\tools\dsh.cmd", "--extra", "1"])
-    assert command == [COMSPEC, "/c", r"C:\tools\dsh.cmd", "--profile", "acp", "--extra", "1"]
+    assert command == [COMSPEC, "/c", r"C:\tools\dsh.cmd", "--extra", "1", "--profile", "acp"]
 
 
 def test_build_acp_command_uses_environment_comspec(monkeypatch) -> None:

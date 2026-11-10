@@ -26,8 +26,12 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 RAW = REPO / "round2-evidence" / "raw"
-INSTALL = Path(
-    r"C:\Users\28746\AppData\Local\Programs\DeepSeek Harness\resources\app.asar"
+INSTALL = (
+    Path(os.environ.get("LOCALAPPDATA", ""))
+    / "Programs"
+    / "DeepSeek Harness"
+    / "resources"
+    / "app.asar"
 )
 SKILLS = ("ctf-solver", "ctf-web", "ctf-misc", "ctf-crypto", "ctf-reverse", "ctf-pwn")
 

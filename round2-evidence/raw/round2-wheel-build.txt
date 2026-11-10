@@ -5,13 +5,13 @@
   "branch": "feat/round2-harness-integration",
   "head": "8615af6f552813d50ed2f429b45ef4bdfe65e326",
   "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
-  "python_executable": "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
-  "pip_version": "pip 26.2.1 from C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\pip (python 3.14)",
+  "python_executable": "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+  "pip_version": "pip 26.2.1 from <USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\pip (python 3.14)",
   "out_dir": "D:\\CTF-SOLVER\\dist",
   "commands": [
     {
       "command": [
-        "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
         "-m",
         "pip",
         "wheel",
@@ -26,7 +26,7 @@
       ],
       "returncode": 0,
       "seconds": 1.613,
-      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.0-py3-none-any.whl size=204840 sha256=6278b15ffee1c61433618fcaad05fe169c6e2c7f51864655203a2b4b82167fe2\n  Stored in directory: C:\\Users\\28746\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-dsxqwail\\wheels\\b9\\b8\\33\\e6a489ec79f82c83e7a20081770505815d45a72c26e0a7967c\nSuccessfully built ctf-solver\n",
+      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.0-py3-none-any.whl size=204840 sha256=6278b15ffee1c61433618fcaad05fe169c6e2c7f51864655203a2b4b82167fe2\n  Stored in directory: <USER_HOME>\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-dsxqwail\\wheels\\b9\\b8\\33\\e6a489ec79f82c83e7a20081770505815d45a72c26e0a7967c\nSuccessfully built ctf-solver\n",
       "stderr_tail": "",
       "builder": "pip",
       "produced_wheel": "D:\\CTF-SOLVER\\dist\\ctf_solver-0.1.0-py3-none-any.whl"
@@ -72,7 +72,7 @@
       "ok": true,
       "import_command": {
         "command": [
-          "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
           "-c",
           "import ctf_solver.evidence.store, ctf_solver.manager.service, ctf_solver.intake; from ctf_solver import __version__; print(__version__)"
         ],
@@ -83,7 +83,7 @@
       },
       "version_command": {
         "command": [
-          "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
           "-m",
           "ctf_solver",
           "version"

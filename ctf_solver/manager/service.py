@@ -12,7 +12,7 @@ import sys
 import threading
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from ..core.canonical import canonical_json, sha256_hex, sha256_text
 from ..core.config import SolverConfig
@@ -451,18 +451,46 @@ class ManagerService(ManagerControl):
         return {"interrupted": interrupted, "reason": reason}
 
     def recover(self) -> dict[str, Any]:
-        """Reload durable state; never create duplicate sessions for a Task."""
+        """Reload durable state; never create duplicate sessions for a Task.
+
+        A previous process may have crashed in ``completion_pending`` (after the
+        ACP session was closed, possibly after the completion event was written
+        but before the final status). Recovery finalizes only when the durable
+        completion evidence is present and valid; otherwise it marks the Task
+        interrupted with a diagnostic and never reports it completed.
+        """
 
         recovered: list[dict[str, Any]] = []
         with self._lock:
             for task in self.store.list_active_tasks():
                 worker = self.store.get_worker_for_task(task.task_id)
+                previous = task.status.value
+                if task.status is TaskStatus.COMPLETION_PENDING:
+                    try:
+                        finalized = self._recover_completion_pending(task, worker)
+                        recovered.append(finalized)
+                    except Exception as exc:  # noqa: BLE001
+                        self._diagnostic(
+                            "completion_recovery_failed", str(exc), task_id=task.task_id
+                        )
+                        self._event_errors.append(
+                            f"recover completion {task.task_id}: {exc}"
+                        )
+                        recovered.append(
+                            {
+                                "task_id": task.task_id,
+                                "previous_status": previous,
+                                "status": task.status.value,
+                                "session_duplicate_created": False,
+                                "error": f"{type(exc).__name__}: {exc}",
+                            }
+                        )
+                    continue
                 if worker is not None:
                     try:
                         self.store.set_worker_status(worker.worker_id, WorkerStatus.STOPPED)
                     except Exception:  # noqa: BLE001
                         pass
-                previous = task.status.value
                 try:
                     self.store.set_task_status(
                         task.task_id,
@@ -492,6 +520,109 @@ class ManagerService(ManagerControl):
                 )
             queued = [task.task_id for task in self.store.list_queued()]
         return {"interrupted": recovered, "queued": queued}
+
+    def _recover_completion_pending(
+        self, task: TaskRecord, worker: WorkerRecord | None
+    ) -> dict[str, Any]:
+        """Finalize or safely interrupt a completion interrupted by a crash."""
+
+        task_id = task.task_id
+        previous = task.status.value
+        events: list[dict[str, Any]] = []
+        evidence_ok = False
+        try:
+            evidence_ok = True
+            events = self._completion_events(task_id)
+            if len(events) == 1:
+                self._require_chain_intact(task_id)
+        except Exception:  # noqa: BLE001
+            evidence_ok = False
+
+        payload: Mapping[str, Any] = {}
+        if evidence_ok and len(events) == 1:
+            candidate = events[0].get("payload")
+            if isinstance(candidate, Mapping):
+                payload = candidate
+        result_state = str(payload.get("result_state") or "")
+        ended_at = payload.get("ended_at")
+        can_complete = (
+            evidence_ok
+            and len(events) == 1
+            and str(events[0].get("task_id") or "") == task_id
+            and result_state not in {"", "unknown"}
+            and isinstance(ended_at, int)
+            and int(ended_at) > 0
+        )
+
+        if can_complete:
+            try:
+                if worker is not None and worker.status is not WorkerStatus.STOPPED:
+                    self.store.set_worker_status(worker.worker_id, WorkerStatus.STOPPED)
+                head_hash = self._require_chain_intact(task_id)
+                self._persist_evidence_head_strict(task_id, head_hash)
+                completed = self.store.set_task_status(
+                    task_id,
+                    TaskStatus.COMPLETED,
+                    result_state=result_state,
+                    ended_at=int(ended_at),
+                    notes="completion recovered from durable evidence after restart",
+                )
+                self._verify_completed_task_evidence(completed)
+                self._diagnostic(
+                    "completion_recovered",
+                    "recovered completion_pending with durable completion evidence",
+                    task_id=task_id,
+                )
+                return {
+                    "task_id": task_id,
+                    "previous_status": previous,
+                    "status": TaskStatus.COMPLETED.value,
+                    "result_state": result_state,
+                    "ended_at": int(ended_at),
+                    "session_duplicate_created": False,
+                    "recovered_completion": True,
+                }
+            except Exception as exc:  # noqa: BLE001 - fall through to interruption
+                self._diagnostic(
+                    "completion_recovery_finalize_failed", str(exc), task_id=task_id
+                )
+
+        # No trustworthy completion evidence: never report completed. Release the
+        # slot only as part of a clearly interrupted/aborted outcome.
+        if worker is not None:
+            try:
+                self.store.set_worker_status(worker.worker_id, WorkerStatus.STOPPED)
+            except Exception:  # noqa: BLE001
+                pass
+        interrupted = self.store.set_task_status(
+            task_id,
+            TaskStatus.INTERRUPTED,
+            result_state="completion_interrupted",
+            ended_at=self.clock.now_ms(),
+            notes=(
+                "Manager restart during completion: completion evidence was missing or "
+                "invalid; the Task was NOT marked completed and can be investigated."
+            ),
+        )
+        self._emit(
+            task_id,
+            "task_interrupted",
+            {
+                "reason": "completion_recovery_without_evidence",
+                "previous_status": previous,
+                "resumed": False,
+                "session_duplicate_created": False,
+            },
+            worker_id=worker.worker_id if worker else None,
+            session_id=interrupted.acp_session_id,
+        )
+        return {
+            "task_id": task_id,
+            "previous_status": previous,
+            "status": TaskStatus.INTERRUPTED.value,
+            "session_duplicate_created": False,
+            "recovered_completion": False,
+        }
 
     # ------------------------------------------------------------------
     # Control API: Tasks
@@ -701,6 +832,10 @@ class ManagerService(ManagerControl):
                 TaskStatus.FAILED,
             }:
                 raise StateError(f"Task {task_id} is already terminal ({task.status.value})")
+            if task.status is TaskStatus.COMPLETION_PENDING:
+                raise StateError(
+                    f"Task {task_id} completion is pending; retry complete_task instead of cancel"
+                )
             if task.status is TaskStatus.QUEUED:
                 self.store.set_task_status(
                     task_id, TaskStatus.CANCELLED, ended_at=self.clock.now_ms()
@@ -779,6 +914,298 @@ class ManagerService(ManagerControl):
     # Task completion lifecycle (Round 2 P0-4)
     # ------------------------------------------------------------------
 
+    _COMPLETION_ACTIVE_STATUSES = frozenset(
+        {
+            TaskStatus.RUNNING,
+            TaskStatus.PAUSED,
+            TaskStatus.AWAITING_APPROVAL,
+            TaskStatus.BLOCKED,
+        }
+    )
+
+    def _completion_events(self, task_id: str) -> list[dict[str, Any]]:
+        lister = getattr(self.evidence, "list_events", None)
+        if not callable(lister):
+            raise StateError(
+                "the evidence store cannot list completion events; refusing to complete"
+            )
+        try:
+            events = lister(task_id=task_id, event_type="task_completed")
+        except Exception as exc:  # noqa: BLE001
+            raise StateError(
+                f"could not read task_completed evidence: {type(exc).__name__}: {exc}"
+            ) from exc
+        return [dict(event) for event in (events or []) if isinstance(event, Mapping)]
+
+    def _require_chain_intact(self, task_id: str) -> str:
+        status_reader = getattr(self.evidence, "chain_status", None)
+        if not callable(status_reader):
+            raise StateError("the evidence store cannot verify the hash chain")
+        try:
+            status = status_reader()
+        except Exception as exc:  # noqa: BLE001
+            raise StateError(
+                f"evidence chain status failed: {type(exc).__name__}: {exc}"
+            ) from exc
+        if not bool(getattr(status, "ok", False)):
+            raise StateError(
+                f"Task {task_id} evidence hash chain is not intact; refusing to complete"
+            )
+        try:
+            head = self.evidence.chain_head()
+        except Exception as exc:  # noqa: BLE001
+            raise StateError(
+                f"evidence chain head is unavailable: {type(exc).__name__}: {exc}"
+            ) from exc
+        head_hash = head[1] if isinstance(head, tuple) and len(head) == 2 else ""
+        if not head_hash:
+            raise StateError("evidence chain has no head hash; refusing to complete")
+        return str(head_hash)
+
+    def _persist_evidence_head_strict(self, task_id: str, head_hash: str) -> None:
+        try:
+            self.store.update_task_fields(task_id, evidence_head=head_hash)
+            persisted = self.store.require_task(task_id)
+        except Exception as exc:  # noqa: BLE001
+            raise StorageError(
+                f"could not persist evidence_head for Task {task_id}: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
+        if str(persisted.evidence_head or "") != str(head_hash):
+            raise StorageError(
+                f"evidence_head persistence verification failed for Task {task_id}"
+            )
+
+    def _completion_event_payload(
+        self, task_id: str, worker: WorkerRecord, result_state: str
+    ) -> dict[str, Any]:
+        events = self._completion_events(task_id)
+        if len(events) > 1:
+            raise StateError(
+                f"Task {task_id} has {len(events)} task_completed events; exactly one "
+                "is required"
+            )
+        if events:
+            event = events[0]
+            if str(event.get("task_id") or "") != str(task_id):
+                raise StateError("task_completed evidence belongs to another Task")
+            payload = event.get("payload") if isinstance(event.get("payload"), Mapping) else {}
+            if payload.get("result_state") != result_state:
+                raise StateError(
+                    "existing task_completed evidence has a different result_state; "
+                    "refusing to complete"
+                )
+            if not isinstance(payload.get("ended_at"), int) or int(payload["ended_at"]) <= 0:
+                raise StateError("existing task_completed evidence has no valid ended_at")
+            return dict(payload)
+
+        ended_at = int(self.clock.now_ms())
+        payload = {
+            "status": TaskStatus.COMPLETED.value,
+            "result_state": result_state,
+            "ended_at": ended_at,
+            "session_id": worker.acp_session_id,
+            "session_closed": True,
+            "worker_id": worker.worker_id,
+        }
+        try:
+            self.evidence.append_event(
+                task_id=task_id,
+                worker_id=worker.worker_id,
+                session_id=worker.acp_session_id,
+                source="manager",
+                source_id=f"manager:task_completed:{uuid.uuid4().hex}",
+                event_type="task_completed",
+                payload=payload,
+                timestamp=ended_at,
+            )
+        except Exception as exc:  # noqa: BLE001 - evidence is mandatory here
+            raise StorageError(
+                f"task_completed evidence append failed: {type(exc).__name__}: {exc}",
+                details={"task_id": task_id, "phase": "task_completed_append"},
+            ) from exc
+        # Verify the event really is in the chain (not just that append returned).
+        self._require_chain_intact(task_id)
+        events = self._completion_events(task_id)
+        if len(events) != 1:
+            raise StorageError(
+                f"task_completed evidence verification failed: {len(events)} event(s)",
+                details={"task_id": task_id, "phase": "task_completed_verify"},
+            )
+        return payload
+
+    def _verify_completed_task_evidence(self, task: TaskRecord) -> dict[str, Any]:
+        self._require_chain_intact(task.task_id)
+        events = self._completion_events(task.task_id)
+        if len(events) != 1:
+            raise StateError(
+                f"completed Task {task.task_id} lacks exactly one task_completed event "
+                f"({len(events)} found); refusing to report completion"
+            )
+        payload = events[0].get("payload") if isinstance(events[0].get("payload"), Mapping) else {}
+        if payload.get("result_state") != task.result_state:
+            raise StateError("completed Task result_state and evidence disagree")
+        if int(payload.get("ended_at") or 0) != int(task.ended_at or 0):
+            raise StateError("completed Task ended_at and evidence disagree")
+        try:
+            head = self.evidence.chain_head()
+        except Exception as exc:  # noqa: BLE001
+            raise StateError(f"evidence chain head unavailable: {exc}") from exc
+        head_hash = str(head[1]) if isinstance(head, tuple) and len(head) == 2 else ""
+        if not head_hash or str(task.evidence_head or "") != head_hash:
+            raise StateError(
+                "completed Task evidence_head does not match the evidence chain head"
+            )
+        return dict(payload)
+
+    def _finalize_completion(
+        self,
+        task_id: str,
+        worker: WorkerRecord,
+        result_state: str,
+        note: str,
+        *,
+        session_already_closed: bool,
+    ) -> dict[str, Any]:
+        """Finish a completion from ``completion_pending`` with mandatory evidence.
+
+        Ordering: durable completion event → strict evidence_head persistence →
+        Worker stop/slot release → durable completed status → FIFO pump. Any
+        failure before the final status leaves the Task in ``completion_pending``
+        with its Worker slot held (or, if the Worker already stopped, returns a
+        detectable pending state) so it can be retried/recovered safely.
+        """
+
+        task = self.store.require_task(task_id)
+        if task.status is not TaskStatus.COMPLETION_PENDING:
+            raise StateError(
+                f"Task {task_id} is not completion_pending (status={task.status.value})"
+            )
+        if task.result_state != result_state:
+            raise StateError(
+                "completion_pending result_state changed; refusing to complete"
+            )
+        if worker.task_id != task_id or worker.acp_session_id != task.acp_session_id:
+            raise StateError("Worker/session ownership no longer matches the Task")
+
+        # Revoke grants before the completion event; idempotent on retry.
+        revoked: list[str] = []
+        for grant in self.store.list_grants(task_id=task_id):
+            if grant.status is GrantStatus.ACTIVE:
+                try:
+                    self.revoke_grant(grant.grant_id)
+                    revoked.append(grant.grant_id)
+                except Exception as exc:  # noqa: BLE001
+                    raise StorageError(
+                        f"could not revoke grant {grant.grant_id} before completion: "
+                        f"{type(exc).__name__}: {exc}",
+                        details={"task_id": task_id, "phase": "grant_revocation"},
+                    ) from exc
+
+        payload = self._completion_event_payload(task_id, worker, result_state)
+        ended_at = int(payload["ended_at"])
+        head_hash = self._require_chain_intact(task_id)
+        self._persist_evidence_head_strict(task_id, head_hash)
+
+        # Stop accepting/executing is guaranteed by completion_pending + IPC guard;
+        # now release the Worker slot only after the completion evidence is durable.
+        try:
+            self.store.set_worker_status(worker.worker_id, WorkerStatus.STOPPED)
+        except Exception as exc:  # noqa: BLE001
+            raise StorageError(
+                f"could not stop Worker {worker.worker_id} for completion: "
+                f"{type(exc).__name__}: {exc}",
+                details={"task_id": task_id, "phase": "worker_stop"},
+            ) from exc
+        try:
+            completed = self.store.set_task_status(
+                task_id,
+                TaskStatus.COMPLETED,
+                result_state=result_state,
+                ended_at=ended_at,
+                notes=(note or "Task completed through the Manager lifecycle")[:2000],
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise StorageError(
+                f"Task completion status could not be persisted: "
+                f"{type(exc).__name__}: {exc}",
+                details={"task_id": task_id, "phase": "task_status"},
+            ) from exc
+        # Re-verify the durable completion invariants after the final write.
+        self._verify_completed_task_evidence(completed)
+        snapshot = {
+            "task_id": task_id,
+            "status": TaskStatus.COMPLETED.value,
+            "result_state": completed.result_state,
+            "ended_at": completed.ended_at,
+            "worker_stopped": True,
+            "session_closed": bool(session_already_closed),
+            "slot_released": True,
+            "revoked_grants": revoked,
+            "evidence_head": completed.evidence_head,
+            "already_completed": False,
+        }
+        try:
+            self.pump()
+        except Exception as exc:  # noqa: BLE001 - completion state is already durable
+            self._diagnostic(
+                "completion_fifo_pump_failed", str(exc), task_id=task_id
+            )
+        return snapshot
+
+    def _completion_preconditions(
+        self, task: TaskRecord, worker: WorkerRecord, *, allow_missing_session_log: bool
+    ) -> None:
+        task_id = task.task_id
+        pending_approvals = [
+            record
+            for record in self.store.list_approvals(task_id=task_id)
+            if record.status is ApprovalStatus.PENDING
+        ]
+        if pending_approvals:
+            raise StateError(
+                f"Task {task_id} has {len(pending_approvals)} pending approval(s); "
+                "resolve them before completing"
+            )
+        unfinished = self.store.count_unfinished_executions(task_id)
+        if unfinished:
+            raise StateError(
+                f"Task {task_id} has {unfinished} unfinished execution(s); "
+                "wait for them to settle before completing"
+            )
+        if not allow_missing_session_log and not self._has_ingested_session_log(task_id):
+            raise StateError(
+                f"Task {task_id} has no ingested session log; ingest the real "
+                "Harness session evidence before completing"
+            )
+        security_diagnostics = [
+            item
+            for item in self._diagnostics
+            if item.get("code") in {"acp_permission_unknown_session", "session_lookup_error"}
+        ]
+        if security_diagnostics:
+            raise StateError(
+                f"Task {task_id} has unresolved ACP security diagnostics; resolve them "
+                "before completing"
+            )
+        if self._event_errors:
+            raise StateError(
+                "the Manager has unresolved evidence errors; refusing to declare completion"
+            )
+        self._refresh_evidence_head(task_id)
+        refreshed = self.store.require_task(task_id)
+        if not refreshed.evidence_head:
+            raise StateError(
+                f"Task {task_id} has no persisted evidence head; refusing to complete"
+            )
+        self._require_chain_intact(task_id)
+        if not worker.task_id or worker.task_id != task_id:
+            raise StateError(f"Task {task_id} has no matching Worker; refusing to complete")
+        if not task.acp_session_id or worker.acp_session_id != task.acp_session_id:
+            raise StateError(
+                f"Task {task_id} Worker/session ownership does not match; refusing to complete"
+            )
+
     def complete_task(
         self,
         task_id: str,
@@ -787,13 +1214,14 @@ class ManagerService(ManagerControl):
         note: str = "",
         allow_missing_session_log: bool = False,
     ) -> dict[str, Any]:
-        """Complete a Task through the Manager lifecycle.
+        """Complete a Task with mandatory, durable completion evidence.
 
-        The Task may only become ``completed`` after all preconditions hold and
-        the ACP Session close has been **confirmed**. On close failure the Task
-        keeps its current status and the Worker slot stays held. Completion is
-        idempotent: repeating it returns the existing terminal snapshot without
-        emitting a second event or releasing anything twice.
+        The Task first enters the slot-holding intermediate state
+        ``completion_pending``; the ACP session is closed; then the
+        ``task_completed`` event and ``evidence_head`` must be durably persisted
+        before the Worker slot is released and the Task becomes ``completed``.
+        Any failure yields a retryable pending state (or the original state when
+        session close failed) and never reports success without evidence.
         """
 
         from ..security.textsafe import UnsafeTextError, normalize_field
@@ -816,6 +1244,8 @@ class ManagerService(ManagerControl):
             task = self.store.require_task(task_id)
             worker = self.store.get_worker_for_task(task_id)
             if task.status is TaskStatus.COMPLETED:
+                # Idempotent, but only if the durable completion evidence exists.
+                self._verify_completed_task_evidence(task)
                 return {
                     "task_id": task_id,
                     "status": TaskStatus.COMPLETED.value,
@@ -823,94 +1253,81 @@ class ManagerService(ManagerControl):
                     "ended_at": task.ended_at,
                     "worker_stopped": worker is None or worker.status is WorkerStatus.STOPPED,
                     "session_closed": True,
+                    "slot_released": True,
                     "already_completed": True,
                 }
-            if task.status not in {
-                TaskStatus.RUNNING,
-                TaskStatus.PAUSED,
-                TaskStatus.AWAITING_APPROVAL,
-                TaskStatus.BLOCKED,
-            }:
-                raise StateError(
-                    f"Task {task_id} status {task.status.value} cannot be completed; "
-                    "only an active (running/paused/blocked/awaiting-approval) Task can"
-                )
             if task_id in self._completing:
                 raise StateError(f"Task {task_id} completion is already in progress")
-
-            # --- preconditions -------------------------------------------------
-            if worker is None or worker.task_id != task_id:
+            if task.status is TaskStatus.COMPLETION_PENDING:
+                if not task.result_state or task.result_state == "unknown":
+                    raise StateError(
+                        f"Task {task_id} has no concrete pending result_state; "
+                        "refusing to finalize"
+                    )
+                if normalized_result != task.result_state:
+                    raise StateError(
+                        "completion_pending result_state does not match the requested "
+                        "result_state; retry with the original value"
+                    )
+                if worker is None:
+                    raise StateError(
+                        f"Task {task_id} completion_pending has no Worker mapping"
+                    )
+                self._completing.add(task_id)
+                try:
+                    return self._finalize_completion(
+                        task_id,
+                        worker,
+                        task.result_state,
+                        safe_note,
+                        session_already_closed=True,
+                    )
+                finally:
+                    self._completing.discard(task_id)
+            if task.status not in self._COMPLETION_ACTIVE_STATUSES:
+                raise StateError(
+                    f"Task {task_id} status {task.status.value} cannot be completed; "
+                    "only an active Task can"
+                )
+            if worker is None:
                 raise StateError(
                     f"Task {task_id} has no Worker/session mapping; refusing to complete"
                 )
-            if not task.acp_session_id or worker.acp_session_id != task.acp_session_id:
-                raise StateError(
-                    f"Task {task_id} Worker/session ownership does not match; refusing to complete"
-                )
-            pending_approvals = [
-                record
-                for record in self.store.list_approvals(task_id=task_id)
-                if record.status is ApprovalStatus.PENDING
-            ]
-            if pending_approvals:
-                raise StateError(
-                    f"Task {task_id} has {len(pending_approvals)} pending approval(s); "
-                    "resolve them before completing"
-                )
-            unfinished = self.store.count_unfinished_executions(task_id)
-            if unfinished:
-                raise StateError(
-                    f"Task {task_id} has {unfinished} unfinished execution(s); "
-                    "wait for them to settle before completing"
-                )
-            if not allow_missing_session_log:
-                ingested = self._has_ingested_session_log(task_id)
-                if not ingested:
-                    raise StateError(
-                        f"Task {task_id} has no ingested session log; ingest the real "
-                        "Harness session evidence before completing"
-                    )
-            security_diagnostics = [
-                item
-                for item in self._diagnostics
-                if item.get("code")
-                in {"acp_permission_unknown_session", "session_lookup_error"}
-            ]
-            if security_diagnostics:
-                raise StateError(
-                    f"Task {task_id} has unresolved ACP security diagnostics; resolve them "
-                    "before completing"
-                )
-            if self._event_errors:
-                raise StateError(
-                    "the Manager has unresolved evidence errors; refusing to declare completion"
-                )
-            self._refresh_evidence_head(task_id)
-            task = self.store.require_task(task_id)
-            chain_ok = True
-            try:
-                chain_status = self.evidence.chain_status()
-                chain_ok = bool(getattr(chain_status, "ok", True))
-            except Exception as exc:  # noqa: BLE001
-                raise StateError(f"evidence chain status is unavailable: {exc}") from exc
-            if not chain_ok:
-                raise StateError(f"Task {task_id} evidence chain is not intact")
-            if not task.evidence_head:
-                raise StateError(
-                    f"Task {task_id} has no persisted evidence head; refusing to complete"
-                )
+            self._completion_preconditions(
+                task, worker, allow_missing_session_log=allow_missing_session_log
+            )
             if self._acp is None or not self._acp_ready or not self._acp.is_alive():
                 raise AcpError(
                     "ACP client is not ready; cannot confirm session close for completion",
                     details={"task_id": task_id, "reason_code": "completion_acp_unavailable"},
                 )
 
-            # --- close the session first; only then release the slot ----------
+            previous_status = task.status
             self._completing.add(task_id)
             try:
+                # Durable intermediate state: holds the Worker slot, refuses new
+                # executions, is never reported as completed, and survives restart.
+                self.store.set_task_status(
+                    task_id,
+                    TaskStatus.COMPLETION_PENDING,
+                    result_state=normalized_result,
+                    notes=(safe_note or "completion started")[:2000],
+                )
                 try:
                     self._acp.close_session(worker.acp_session_id)
-                except Exception as exc:  # noqa: BLE001 - fail closed, keep slot
+                except Exception as exc:  # noqa: BLE001 - roll back, keep slot
+                    try:
+                        self.store.set_task_status(
+                            task_id,
+                            previous_status,
+                            notes=f"completion aborted (session close failed): {exc}"[:2000],
+                        )
+                    except Exception as rollback_exc:  # noqa: BLE001
+                        self._diagnostic(
+                            "task_completion_rollback_failed",
+                            str(rollback_exc),
+                            task_id=task_id,
+                        )
                     self._diagnostic(
                         "task_completion_session_close_failed",
                         str(exc),
@@ -919,64 +1336,23 @@ class ManagerService(ManagerControl):
                     )
                     raise AcpError(
                         "ACP session close failed; the Task remains "
-                        f"{task.status.value} and the Worker slot is still held",
+                        f"{previous_status.value} and the Worker slot is still held",
                         details={
                             "task_id": task_id,
                             "session_id": worker.acp_session_id,
                             "worker_id": worker.worker_id,
                             "reason_code": "session_close_failed",
-                            "task_status": task.status.value,
+                            "task_status": previous_status.value,
                             "slot_released": False,
                         },
                     ) from exc
-
-                revoked: list[str] = []
-                for grant in self.store.list_grants(task_id=task_id):
-                    if grant.status is GrantStatus.ACTIVE:
-                        self.revoke_grant(grant.grant_id)
-                        revoked.append(grant.grant_id)
-                self.store.set_worker_status(worker.worker_id, WorkerStatus.STOPPED)
-                ended_at = int(self.clock.now_ms())
-                completed = self.store.set_task_status(
+                return self._finalize_completion(
                     task_id,
-                    TaskStatus.COMPLETED,
-                    result_state=normalized_result,
-                    ended_at=ended_at,
-                    notes=(safe_note or "Task completed through the Manager lifecycle")[:2000],
+                    worker,
+                    normalized_result,
+                    safe_note,
+                    session_already_closed=True,
                 )
-                self._emit(
-                    task_id,
-                    "task_completed",
-                    {
-                        "status": TaskStatus.COMPLETED.value,
-                        "result_state": normalized_result,
-                        "ended_at": ended_at,
-                        "session_id": worker.acp_session_id,
-                        "session_closed": True,
-                        "worker_stopped": True,
-                        "slot_released": True,
-                        "revoked_grants": revoked,
-                        "quiescent": True,
-                    },
-                    worker_id=worker.worker_id,
-                    session_id=worker.acp_session_id,
-                )
-                self._refresh_evidence_head(task_id)
-                completed = self.store.require_task(task_id)
-                snapshot = {
-                    "task_id": task_id,
-                    "status": TaskStatus.COMPLETED.value,
-                    "result_state": normalized_result,
-                    "ended_at": ended_at,
-                    "worker_stopped": True,
-                    "session_closed": True,
-                    "slot_released": True,
-                    "revoked_grants": revoked,
-                    "evidence_head": completed.evidence_head,
-                    "already_completed": False,
-                }
-                self.pump()  # FIFO promotion only after the slot was released
-                return snapshot
             finally:
                 self._completing.discard(task_id)
 
@@ -1076,7 +1452,7 @@ class ManagerService(ManagerControl):
             TaskStatus.INTERRUPTED,
         }:
             raise StateError(f"Task {task_id} is terminal ({task.status.value})")
-        if task_id in self._completing:
+        if task.status is TaskStatus.COMPLETION_PENDING or task_id in self._completing:
             raise StateError(f"Task {task_id} is completing; no new candidate Flag is accepted")
         if not str(flag).strip():
             raise ValidationError("candidate Flag must not be empty")
@@ -1263,7 +1639,7 @@ class ManagerService(ManagerControl):
         task = self.store.get_task(worker.task_id)
         if task is None:
             raise IpcError("Worker Task no longer exists", reason_code="task_missing")
-        if task.task_id in self._completing:
+        if task.task_id in self._completing or task.status is TaskStatus.COMPLETION_PENDING:
             raise IpcError(
                 "Task is completing; new execution requests are refused",
                 reason_code="task_completing",

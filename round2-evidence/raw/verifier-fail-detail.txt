@@ -2,7 +2,7 @@ FF                                                                       [100%]
 ================================== FAILURES ===================================
 ______________ test_manager_two_active_third_fifo_and_promotion _______________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1804/test_manager_two_active_third_0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1804/test_manager_two_active_third_0')
 
     def test_manager_two_active_third_fifo_and_promotion(tmp_path: Path) -> None:
         service, fake, store, evidence, _config = _build_manager(tmp_path)

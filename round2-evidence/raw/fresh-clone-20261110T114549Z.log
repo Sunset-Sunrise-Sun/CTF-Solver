@@ -1,6 +1,6 @@
 ===== git clone =====
-git clone --no-hardlinks --branch feat/round2-harness-integration D:\CTF-SOLVER C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone
-Cloning into 'C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone'...
+git clone --no-hardlinks --branch feat/round2-harness-integration D:\CTF-SOLVER <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone
+Cloning into '<USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone'...
 done.
 
 ===== working-tree overlay =====
@@ -16,7 +16,7 @@ done.
   "errors": []
 }
 ===== clone pytest =====
-C:\Users\28746\AppData\Local\Programs\Python\Python314\python.exe -m pytest tests -q -p no:cacheprovider (cwd=C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone)
+<USER_HOME>\AppData\Local\Programs\Python\Python314\python.exe -m pytest tests -q -p no:cacheprovider (cwd=<USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone)
 exit=1
 ........................................................................ [  7%]
 ........................................................................ [ 15%]
@@ -259,7 +259,7 @@ E        +    where <built-in method startswith of str object at 0x000001DE660D8
 tests\test_skills.py:32: AssertionError
 _________________________ test_broker_approval_matrix _________________________
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1779/test_broker_approval_matrix0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1779/test_broker_approval_matrix0')
 
     def test_broker_approval_matrix(tmp_path: Path) -> None:
         stack = build_stack(tmp_path / "stack")
@@ -369,47 +369,47 @@ FAILED tests/test_verification_round1.py::test_broker_approval_matrix - Asser...
 8 failed, 906 passed, 4 skipped in 59.83s
 
 ===== clone wheel build =====
-C:\Users\28746\AppData\Local\Programs\Python\Python314\python.exe C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone\scripts\build_wheel.py --repo C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone --out C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone\dist --evidence-json D:\CTF-SOLVER\round2-evidence\raw\fresh-clone-wheel-build-20261110T114549Z.json (cwd=C:\Users\28746\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone)
+<USER_HOME>\AppData\Local\Programs\Python\Python314\python.exe <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone\scripts\build_wheel.py --repo <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone --out <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone\dist --evidence-json D:\CTF-SOLVER\round2-evidence\raw\fresh-clone-wheel-build-20261110T114549Z.json (cwd=<USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-x18skxa2\clone)
 exit=0
 {
   "ok": true,
   "generated_at_utc": "2026-11-10T11:46:53Z",
-  "repo_root": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone",
+  "repo_root": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone",
   "branch": "feat/round2-harness-integration",
   "head": "8615af6f552813d50ed2f429b45ef4bdfe65e326",
   "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
-  "python_executable": "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
-  "pip_version": "pip 26.2.1 from C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\pip (python 3.14)",
-  "out_dir": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone\\dist",
+  "python_executable": "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+  "pip_version": "pip 26.2.1 from <USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\pip (python 3.14)",
+  "out_dir": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone\\dist",
   "commands": [
     {
       "command": [
-        "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
         "-m",
         "pip",
         "wheel",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone",
         "--no-deps",
         "--no-build-isolation",
         "--disable-pip-version-check",
         "--no-input",
         "--no-cache-dir",
         "-w",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone\\dist"
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone\\dist"
       ],
       "returncode": 0,
       "seconds": 1.494,
-      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.0-py3-none-any.whl size=204723 sha256=6791129f6579ebfa0948d3cbe4ccdaecaade471d158ace004f19e88388f6d041\n  Stored in directory: C:\\Users\\28746\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-8rzi_r5u\\wheels\\16\\e6\\15\\8140fcec79e7a5c823a0b0bd829fe902e570080e4dffa29a0d\nSuccessfully built ctf-solver\n",
+      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.0-py3-none-any.whl size=204723 sha256=6791129f6579ebfa0948d3cbe4ccdaecaade471d158ace004f19e88388f6d041\n  Stored in directory: <USER_HOME>\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-8rzi_r5u\\wheels\\16\\e6\\15\\8140fcec79e7a5c823a0b0bd829fe902e570080e4dffa29a0d\nSuccessfully built ctf-solver\n",
       "stderr_tail": "",
       "builder": "pip",
-      "produced_wheel": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone\\dist\\ctf_solver-0.1.0-py3-none-any.whl"
+      "produced_wheel": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone\\dist\\ctf_solver-0.1.0-py3-none-any.whl"
     }
   ],
   "errors": [],
   "builder": "pip",
   "wheel": {
     "filename": "ctf_solver-0.1.0-py3-none-any.whl",
-    "path": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
+    "path": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
     "size": 204723,
     "sha256": "6791129f6579ebfa0948d3cbe4ccdaecaade471d158ace004f19e88388f6d041"
   },
@@ -445,7 +445,7 @@ exit=0
       "ok": true,
       "import_command": {
         "command": [
-          "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
           "-c",
           "import ctf_solver.evidence.store, ctf_solver.manager.service, ctf_solver.intake; from ctf_solver import __version__; print(__version__)"
         ],
@@ -456,7 +456,7 @@ exit=0
       },
       "version_command": {
         "command": [
-          "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
           "-m",
           "ctf_solver",
           "version"

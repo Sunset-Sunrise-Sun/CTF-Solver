@@ -86,7 +86,7 @@ ctf_solver\manager\approval_grant_service.py:88: ValueError
 
 The above exception was the direct cause of the following exception:
 
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1813/test_manager_approvals_grants_0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1813/test_manager_approvals_grants_0')
 
     def test_manager_approvals_grants_flag_and_screenshots(tmp_path: Path) -> None:
         service, fake, store, evidence, _config = _build_manager(tmp_path)
@@ -175,7 +175,7 @@ ctf_solver\manager\approval_grant_service.py:329: ValidationError
 ______________ test_default_acp_launch_command_includes_profile _______________
 
 monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001A47106D2B0>
-tmp_path = WindowsPath('C:/Users/28746/AppData/Local/Temp/pytest-of-28746/pytest-1813/test_default_acp_launch_comman0')
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1813/test_default_acp_launch_comman0')
 
     def test_default_acp_launch_command_includes_profile(monkeypatch, tmp_path) -> None:
         from ctf_solver.core.config import SolverConfig

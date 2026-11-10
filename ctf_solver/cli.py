@@ -33,8 +33,6 @@ def _cmd_manager(args: argparse.Namespace) -> int:
         print(f"unknown manager action: {args.action}", file=sys.stderr)
         return 2
     argv = ["--root", args.root, "--capture-mode", args.capture_mode]
-    if args.acp_command:
-        argv += ["--acp-command", args.acp_command]
     return manager_main(argv)
 
 
@@ -257,7 +255,6 @@ def build_parser() -> argparse.ArgumentParser:
     manager = sub.add_parser("manager", help="Manager control MCP server (stdio)")
     manager.add_argument("action", choices=["serve"])
     manager.add_argument("--root", default=".")
-    manager.add_argument("--acp-command", default=None)
     manager.add_argument("--capture-mode", default="desktop", choices=["desktop", "fake"])
     manager.set_defaults(func=_cmd_manager)
 

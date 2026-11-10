@@ -253,13 +253,103 @@ def test_default_acp_launch_command_includes_profile(monkeypatch, tmp_path) -> N
     assert Path(command[0]).name.lower() in {"cmd.exe", "cmd"}
 
 
-def test_manager_server_treats_explicit_acp_command_as_complete() -> None:
-    from ctf_solver.mcp.manager_server import _parse_acp_command
+def test_manager_server_has_no_public_acp_command_bypass(monkeypatch) -> None:
+    from ctf_solver.mcp.manager_server import _test_launcher_from_env
 
-    assert _parse_acp_command(None) is None
-    assert _parse_acp_command("") is None
-    parsed = _parse_acp_command("python -m ctf_solver.acp.fake_server")
-    assert parsed == ["python", "-m", "ctf_solver.acp.fake_server"]
+    monkeypatch.delenv("CTF_SOLVER_TEST_ACP_COMMAND", raising=False)
+    assert _test_launcher_from_env() is None
+    monkeypatch.setenv("CTF_SOLVER_TEST_ACP_COMMAND", "python -m fake_server --scenario normal")
+    assert _test_launcher_from_env() == ["python", "-m", "fake_server", "--scenario", "normal"]
+
+
+def test_explicit_config_launcher_cannot_bypass_privacy_patch(monkeypatch, tmp_path) -> None:
+    from ctf_solver.core.config import SolverConfig
+    from ctf_solver.core.errors import ConfigError
+    from ctf_solver.wiring import default_acp_factory
+
+    config = SolverConfig(
+        root=tmp_path / "project",
+        acp_command=[str(tmp_path / "fake-acp.exe"), "--scenario", "normal"],
+    )
+    client = default_acp_factory(config)()
+    command = client.diagnostics()["command"]
+    assert "--profile" in command and "acp" in command
+    assert "--patch" in command
+    assert Path(command[command.index("--patch") + 1]).is_absolute()
+    assert command[0].endswith("fake-acp.exe")
+
+    # A caller cannot smuggle its own --profile/--patch through the launcher.
+    for bad in (
+        [str(tmp_path / "fake-acp.exe"), "--profile", "acp"],
+        [str(tmp_path / "fake-acp.exe"), "--patch", str(tmp_path / "evil.yml")],
+        [str(tmp_path / "fake-acp.exe"), "--patch=evil.yml"],
+    ):
+        with pytest.raises(ConfigError):
+            default_acp_factory(
+                SolverConfig(root=tmp_path / "project", acp_command=bad)
+            )()
+
+
+def test_env_acp_command_override_still_gets_privacy_patch(monkeypatch, tmp_path) -> None:
+    from ctf_solver.core.config import SolverConfig
+    from ctf_solver.wiring import default_acp_factory
+
+    launcher = tmp_path / "dsh.exe"
+    launcher.write_bytes(b"MZ-synthetic")
+    monkeypatch.setenv("CTF_SOLVER_ACP_COMMAND", str(launcher))
+    client = default_acp_factory(SolverConfig(root=tmp_path / "project"))()
+    command = client.diagnostics()["command"]
+    assert command[0].endswith("dsh.exe")
+    assert "--profile" in command and "acp" in command
+    assert "--patch" in command
+    assert Path(command[command.index("--patch") + 1]).is_absolute()
+
+
+def test_default_factory_fails_closed_for_missing_or_relative_patch(tmp_path) -> None:
+    from ctf_solver.core.config import SolverConfig
+    from ctf_solver.core.errors import ConfigError
+    from ctf_solver.wiring import default_acp_factory
+
+    launcher = tmp_path / "dsh.exe"
+    launcher.write_bytes(b"MZ-synthetic")
+    missing = tmp_path / "missing-patch.yml"
+    config = SolverConfig(
+        root=tmp_path / "project",
+        acp_command=[str(launcher)],
+        extra={"privacy_patch": str(missing)},
+    )
+    with pytest.raises(ConfigError):
+        default_acp_factory(config)()
+    relative = SolverConfig(
+        root=tmp_path / "project",
+        acp_command=[str(launcher)],
+        extra={"privacy_patch": "config/acp/cordis.patch.yml"},
+    )
+    with pytest.raises(ConfigError):
+        default_acp_factory(relative)()
+
+
+def test_manager_server_rejects_removed_acp_command_flag(tmp_path) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "ctf_solver.mcp.manager_server",
+            "--root",
+            str(tmp_path / "project"),
+            "--acp-command",
+            "fake",
+        ],
+        cwd=str(PROJECT_ROOT),
+        env=child_env(),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=60,
+    )
+    assert result.returncode == 2
+    assert "unrecognized arguments" in (result.stderr or "")
 
 
 def test_approval_cli_without_tty_fails_closed(tmp_path) -> None:

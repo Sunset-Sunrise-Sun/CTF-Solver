@@ -19,7 +19,7 @@ Verification command (isolated temporary `DSH_HOME`, zero model calls, no transp
 
 ```powershell
 $env:DSH_HOME = "<temporary-empty-directory>"
-& cmd /c '"C:\Users\28746\AppData\Local\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" --profile acp --patch "D:\CTF-SOLVER\config\acp\cordis.patch.yml" --dump-config'
+& cmd /c '"<USER_HOME>\AppData\Local\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd" --profile acp --patch "D:\CTF-SOLVER\config\acp\cordis.patch.yml" --dump-config'
 ```
 
 Result: exit code 0; the composed configuration contains:
@@ -32,7 +32,7 @@ Result: exit code 0; the composed configuration contains:
 ```
 
 Only the temporary `DSH_HOME` was written (`profiles/acp/*`). The live
-`C:\Users\28746\.dsh\profiles\desktop` profile was not modified, and no global
+`<USER_HOME>\.dsh\profiles\desktop` profile was not modified, and no global
 `profiles` directory remained after verification. Raw output:
 `round1-evidence/raw/privacy-gate-dump-config.txt`,
 `round1-evidence/raw/privacy-gate-result.txt`,

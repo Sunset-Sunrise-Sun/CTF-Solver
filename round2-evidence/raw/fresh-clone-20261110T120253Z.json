@@ -6,7 +6,7 @@
   "overlay_working_tree": false,
   "source_head": "d69b9493c480e81c3908b58f361e84262c0cc646",
   "source_status_sha256": "eabfff60d5a47bc23ce556e912d40346df37e004ef6ed3045fcbcdc21d21d9f8",
-  "clone_dir": "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone",
+  "clone_dir": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone",
   "steps": [
     {
       "command": [
@@ -16,14 +16,14 @@
         "--branch",
         "feat/round2-harness-integration",
         "D:\\CTF-SOLVER",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone"
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone"
       ],
       "returncode": 0,
       "seconds": 0.991
     },
     {
       "command": [
-        "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
         "-m",
         "pytest",
         "tests",
@@ -36,12 +36,12 @@
     },
     {
       "command": [
-        "C:\\Users\\28746\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone\\scripts\\build_wheel.py",
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone\\scripts\\build_wheel.py",
         "--repo",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone",
         "--out",
-        "C:\\Users\\28746\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone\\dist",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-xub3si40\\clone\\dist",
         "--evidence-json",
         "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-wheel-build-20261110T120253Z.json"
       ],

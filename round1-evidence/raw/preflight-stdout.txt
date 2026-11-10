@@ -2,12 +2,12 @@ CTF-Solver preflight (read-only)
 ========================================
 root:      D:\CTF-SOLVER
 os:        Windows-11-10.0.26200-SP0
-python:    3.14.7 (C:\Users\28746\AppData\Local\Programs\Python\Python314\python.exe)
+python:    3.14.7 (<USER_HOME>\AppData\Local\Programs\Python\Python314\python.exe)
 node:      v24.19.0
 
 ACP launcher:
   found:   True
-  command: C:\Users\28746\AppData\Local\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd
+  command: <USER_HOME>\AppData\Local\Programs\DeepSeek Harness\resources\runtime\cli\bin\dsh.cmd
   version: not_verified (preflight does not execute the launcher)
 
 Skills:

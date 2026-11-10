@@ -8,13 +8,19 @@ project-scoped integration and is a Round 2 acceptance item (see
 
 Run::
 
-    python -m ctf_solver.mcp.manager_server --root . \
-        [--acp-command "<command string>"] [--capture-mode desktop|fake]
+    python -m ctf_solver.mcp.manager_server --root . [--capture-mode desktop|fake]
+
+The production ACP launch always goes through the audited protected launcher
+(``--profile acp --patch <absolute project patch>``); there is no public CLI flag
+that can substitute an unprotected real ACP command. Fake-ACP integration tests
+inject a test-only launcher via the ``CTF_SOLVER_TEST_ACP_COMMAND`` environment
+variable, which is still wrapped with the protected arguments.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import shlex
 import sys
 from typing import Any, Callable
@@ -362,32 +368,27 @@ def build_server(manager: ManagerControl) -> McpServer:
     )
 
 
-def _parse_acp_command(text: str | None) -> list[str] | None:
-    """Parse an explicit, complete ACP server command.
+def _test_launcher_from_env() -> list[str] | None:
+    """Return a test-only launcher override, or ``None`` in production.
 
-    The default (``--acp-command`` omitted) is intentionally ``None`` so the
-    wiring layer discovers the audited Harness launcher and builds the exact
-    verified argv ``dsh --profile acp`` (including the ``--profile acp``
-    arguments). A caller-provided command is treated as complete and is not
-    rewritten, which is what fake-ACP integration tests need.
+    This is deliberately an environment variable rather than a public CLI flag:
+    it is consumed only by fake-ACP integration tests, and the wiring layer still
+    appends the mandatory ``--profile acp --patch <absolute project patch>``
+    arguments. It therefore cannot bypass the privacy boundary.
     """
 
-    if not text or not str(text).strip():
+    text = (os.environ.get("CTF_SOLVER_TEST_ACP_COMMAND") or "").strip()
+    if not text:
         return None
-    return shlex.split(str(text), posix=False)
+    parts = shlex.split(text, posix=False)
+    if not parts:
+        return None
+    return parts
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CTF-Solver Manager control MCP server")
     parser.add_argument("--root", default=".", help="Project root (runtime data stays here, outside Git)")
-    parser.add_argument(
-        "--acp-command",
-        default=None,
-        help=(
-            "Complete ACP server command string (used by tests/fake ACP). Omit to use the "
-            "audited Harness launcher as 'dsh --profile acp'."
-        ),
-    )
     parser.add_argument("--capture-mode", default="desktop", choices=["desktop", "real-window", "fake"])
     parser.add_argument("--max-workers", type=int, default=2)
     parser.add_argument(
@@ -425,9 +426,11 @@ def main(argv: list[str] | None = None) -> int:
         extra["session_log_root"] = str(args.session_log_root)
     if args.intake_dir:
         extra["intake_dir"] = str(args.intake_dir)
+    test_launcher = _test_launcher_from_env()
+    if test_launcher is not None:
+        extra["launcher_override"] = test_launcher  # type: ignore[assignment]
     config = SolverConfig(
         root=args.root,
-        acp_command=_parse_acp_command(args.acp_command),
         max_active_workers=max(1, min(2, args.max_workers)),
         capture_mode=args.capture_mode,
         extra=extra,

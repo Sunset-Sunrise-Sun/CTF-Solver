@@ -166,7 +166,9 @@ class SolverConfig:
 
         configured = (self.extra.get("privacy_patch") or "").strip()
         if configured:
-            return Path(os.path.abspath(os.path.expanduser(configured)))
+            # Deliberately keep a caller-supplied relative path relative so the
+            # launch builder can reject it (the privacy patch must be absolute).
+            return Path(os.path.expanduser(configured))
         return Path(__file__).resolve().parents[2] / "config" / "acp" / "cordis.patch.yml"
 
     def ensure_runtime_dirs(self) -> None:

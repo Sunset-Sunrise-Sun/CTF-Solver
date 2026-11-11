@@ -240,6 +240,18 @@ screenshots/CAS under `D:\CTF-SOLVER\.ctf-solver-data\cas\sha256\`.
 
 ---
 
+### 5.1 Final independent verifier verdict
+
+- **Verdict: PASS** on the frozen HEAD `48a70da` (tree `3047e79d…`; `git status` empty
+  before/after). `git diff --name-only 726e741 48a70da -- ctf_solver tests .dsh
+  pyproject.toml` is empty, proving the post-freeze change was evidence-only.
+- Re-run on `48a70da`: full suite **1114 passed, 1 failed (the acknowledged base-identical
+  baseline-drift test), 5 skipped**; committed-JUnit gate **2 passed** (blocker
+  resolved); focused 8 files **180 passed, 2 skipped**; targeted runtime-status /
+  completion-note / Lead-label **4 passed**; skills `ok=true, found=6`; matrices
+  contract/deps **24/24**, security/service **29/29**, migration/determinism **12/12**.
+  See `raw/VERIFIER_REPORT.md` and `raw/verifier/FINAL2_*`.
+
 ## 6. Running in the existing DeepSeek Harness environment
 
 This was verified live, not just by unit tests:

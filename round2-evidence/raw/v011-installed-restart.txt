@@ -1,0 +1,2 @@
+{"phase": "before_restart", "status": "running", "session": "d8ecaaf0-60a0-407a-8ce0-6c627767d63d"}
+{"phase": "after_restart", "acp_ready": true, "status": "interrupted", "worker": {"worker_id": "w-c62427b41624449684489dd22877c05d", "task_id": "t-77d5d0346b1d494b83a86b49858219c5", "acp_session_id": "d8ecaaf0-60a0-407a-8ce0-6c627767d63d", "workspace_path": "D:\\CTF-SOLVER-review\\v011-install-test\\restart-root-final\\tasks\\t-77d5d0346b1d494b83a86b49858219c5\\work", "status": "stopped", "created_at": 1794378704441, "updated_at": 1794378707587}, "sessions_created": null}

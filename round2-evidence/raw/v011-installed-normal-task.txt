@@ -1,0 +1,21 @@
+{
+  "task_id": "t-874f3ac600c6477091149e6ea6828456",
+  "conversation_id": "normal",
+  "title": "should-run",
+  "category": "misc",
+  "workspace_path": "D:\\CTF-SOLVER-review\\v011-install-test\\normal-root-final\\tasks\\t-874f3ac600c6477091149e6ea6828456\\work",
+  "source": "",
+  "scope_profile": "synthetic-local",
+  "acp_session_id": "c8d879bc-e0c1-42cc-8e5e-e236612107e8",
+  "worker_id": "w-74eda0e3dd014396bb7964dad8b203fa",
+  "status": "running",
+  "result_state": "unknown",
+  "flag_state": "none",
+  "flag_value": null,
+  "created_at": 1794378716172,
+  "updated_at": 1794378716847,
+  "started_at": 1794378716846,
+  "ended_at": null,
+  "evidence_head": "75796a063145fd4a8ca093f7e0b9c98945703ef3580cc53934ba9a960a62b77c",
+  "notes": ""
+}

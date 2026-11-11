@@ -1,9 +1,9 @@
-# Final acceptance Git-blob file manifest
-# sha256/size are computed from canonical Git blob bytes (LF checkout), not working-tree CRLF bytes.
+# CTF-Solver v0.1.1 installation hardening Git-blob manifest
+# sha256/size are canonical Git blob bytes (LF checkout), not working-tree CRLF bytes.
 # This manifest is explicitly excluded from its own entries.
-# It cites only the existing implementation commit; it never cites the commit containing this file.
-implementation_commit=25d6eefd7e58c9233971a8fba8c43ad17bd27a37
-entry_count=343
+# It cites only the v0.1.1 implementation commit; it never cites the commit containing this file.
+implementation_commit=c0ca9471f0f114599cdbcb065391736dee01d5bc
+entry_count=374
 
 0a6ccdf71a7e78c64f9e38f316f7d852abae69cc97ce9c2d15595587b91da554       2853  .dsh/skills/ctf-crypto/SKILL.md
 e5d18dffc1a07b4287ea68ec090242621ce8616da998411cce1f72eba08c741c       2644  .dsh/skills/ctf-misc/SKILL.md
@@ -13,21 +13,21 @@ b6a7a849331e979f48cd0cec9c488e4cd8f7b25b9af5e406064888c8da8e95b2       3077  .ds
 654002e63e9424a5d25f0c3c0075623a8eb9cc058555a7d24dfadc06279a9066       2755  .dsh/skills/ctf-web/SKILL.md
 5c42c306acfde9c142cb81599406f18c9fab6275f13b04da01900abecc5045a9        567  .gitattributes
 7b1c0f3311e2ae6f32e31f154734b24246a8f1b0b607e2492702a58506e41cae       1229  .gitignore
-7aab8c301f8fa08e4b9fc19aeb408b064babf1739b0dfb6146bffb4031c00c99      11247  README.md
-bad6fa99dc60cac4ba8e76ebd1c70b1d2051250613febc953f342a8887a7e71f       1209  config/acp/cordis.patch.yml
-5b27937a6fb409c22b2d1d88780d874b2528099552c74ee2afa0c8c18643c293        126  ctf_solver/__init__.py
+97d4fc8fa584eba01974df011787e70818aaa18f6d33cb1b384ad22e3b4fe35f       9367  INSTALLATION_GUIDE.md
+cb9cc8ca392e0689febd588469718af04a7db83f731256d559ff79755193779b      11480  README.md
+14394894a3fb938318455353799d4805b546c4b1d52f82df229ff242142359ba        126  ctf_solver/__init__.py
 0c43eb45b78bfbcfb3da44e3b913d2f67bf525dd352e789bcc9145edbfed8f01        164  ctf_solver/__main__.py
 77bfbf3a4d200ecc8ec1c77ac5b74cf0f431178cf6d8731f9c48fa961cc4f58f       1004  ctf_solver/acp/__init__.py
 0133d75f5f1a4ca7c6f1cca11d5b7f9088b74374a66f9fad2786153dabe08648      19607  ctf_solver/acp/client.py
-f00844a153774d06ed9575378ed7eb17ae21f4c9678e6230fa5d6e124e67baa3      40070  ctf_solver/acp/fake_server.py
+b33dc7c11514753ca4e4aa7e6542659d9574abd79bb2a5a7cfbe5c1f7c335c5d      40070  ctf_solver/acp/fake_server.py
 952e4ed7722aaf4ae4db2df6068f9a5cb9fe5124ff5efe68f237cef693134b2c       5940  ctf_solver/acp/launch.py
-da327f8e26b4935558325d77347f859cbeda61e966040f99339418524379f1ea      11555  ctf_solver/acp/models.py
+f698fc51301a14fd1e47709be3f6e714a63e992f5484f37d92f14203066e8736      11555  ctf_solver/acp/models.py
 f7421ec1d4b7e526ca03450daef79ed8513e129287403fe761d8ccfe1d5fea44      24579  ctf_solver/acp/transport.py
-b22ef9501b0111124c7187d0b2f596d9392e9e78f33ad6896fe1ef6ca97eb544      14243  ctf_solver/cli.py
+b85bb2c80856bdbfb908c0598b16520a1340127a6b3556bb5c956d75d1434ecb      14925  ctf_solver/cli.py
 e40252463ccdb993902808c691abb792d4c9f22de93c67fae746c7f52f4eae02         63  ctf_solver/core/__init__.py
 70b177fad5f929753d2ee2c024214142fb042718b474840d8f5c817da86fa8b4       2320  ctf_solver/core/canonical.py
-0164e2cdf62da5ab1fe3fb35f45a7a991651006a957abb7639e3e1023483b7e4       8697  ctf_solver/core/config.py
-cbe4e6f4b2d37bf85f6d7cee1fb27161fdeda56c7626fe3317a7a69adb61743d       5596  ctf_solver/core/errors.py
+b3f9ac245c0d22e205acb8189aa626b8fcde52a81cd94659558d8023b90edd3e       8700  ctf_solver/core/config.py
+85cdb7f1194e490bb3d1480656796bab06bc941fe3f7700ebb886c6518803eb3       5853  ctf_solver/core/errors.py
 d75e3aa40a93fad1653a5d9ad8b76c75615fc1b4699c4631f9107cc7dfa60b1c       1238  ctf_solver/core/ids.py
 ee6e1d90eb07260595777c8e7aadf791fddff200e767ed73f180c0ce3ce13b65       2486  ctf_solver/core/paths.py
 f3521575f6573f38d4fb49c5531dd9679b83885de76848dc0d6ac617e6be728c       6573  ctf_solver/core/protocols.py
@@ -49,21 +49,22 @@ dd4b3159127e372c2b157606b9c925a6056a1bceca19dc554315dbb03fe21b29         80  ctf
 31112e49b99cdab945dd22acefef27f85f91edea68f2918dd21f056b94288b63      41851  ctf_solver/manager/approval_grant_service.py
 38c89e0875ae72a04ee7267a8c2acd12ec0222de78ad6b6993d8abdcd3f93dc7       5499  ctf_solver/manager/ipc.py
 84df195a85fad8458fb43f47fb52db1e8eee2a7e0f2b99d2a6c5901324a4d9d4       1889  ctf_solver/manager/scheduler.py
-786f4bd6007a51fef53f2d8988ea999423d517f584d6983836c29473c85e494c      77546  ctf_solver/manager/service.py
+324108e101e6a9ef3562b2696ab433223bc59fb00ceda0db1e162b87329f2b95      78963  ctf_solver/manager/service.py
 8ab55b44de2bb6dec764da67ddd471595fbd0b890e15308430318176afa7b171      18395  ctf_solver/manager/session_logs.py
 b05187c8c6803f7121e872f78fdc3dd4e3f21ff07ceb118e62a243eb5dcb6dbc      48807  ctf_solver/manager/store.py
 12a688e5d1a019c42949ff5b24712823e04cd13d4fa70efa7f911249f0229abc         70  ctf_solver/mcp/__init__.py
 a59ece3f199514436dec7d1ab55fb85b4a2294f13760a26d75001cd73ccd99da       4625  ctf_solver/mcp/bridge.py
-2948070784931898db69d2d96856fb9275a035442e9fa783d8a71bd245c4249e      11629  ctf_solver/mcp/client.py
-41a7377360f8fc43db52e0fed90db876387c1fa2e3c8b1c0cd78cc705ed5bc60       9875  ctf_solver/mcp/exec_server.py
-252288cb869aefa00e16052c78abfa46b3c89a232f0179acdce732ce5a8c9b81      18850  ctf_solver/mcp/manager_server.py
-d6656a8ec2c2f922643b910b16e180a1d8b63f8382796ad6c2a465e2db1ac312      12248  ctf_solver/mcp/protocol.py
+a28010e1c737d4db97a23ee5fe07a5a72a2be7a6c7e1a211ccd35cd59619e795      11629  ctf_solver/mcp/client.py
+9ef5a0d55815370256cd3c3e6cd68e50623fd46393edcb3026e498026e588681      10211  ctf_solver/mcp/exec_server.py
+d2030b1f35d727db643e065b73c46f72fb8120be1ae6515434b3f3560880a5c8      18850  ctf_solver/mcp/manager_server.py
+5fd4f478761c159dba7d9fe8b30890db502bd2cb52ef90cfba95c05d74a826a7      12248  ctf_solver/mcp/protocol.py
 8f5de7ed7a79cef81ada222ab7abb74bf7ee4a8e5839a836ccf21f505c92c309      16208  ctf_solver/mcp/schema.py
 ee1686a7c11cd1aae08b2c4e57cd063f6bd653ca63f0e638632f3ad2acabbea0        921  ctf_solver/policy/__init__.py
 4d0cd7c1d417d60577808047f23a94deb35aed7fe1246202f6d3006d37f50c1b      50926  ctf_solver/policy/broker.py
 f3f339f3cf5eb4b0371de187978f56e93ab905c1ce9816dd60380ed7a30ad825      12610  ctf_solver/policy/models.py
 1a877d4ffa338e19130c6a00fa7e503730eee2207f8c790563e617ca62f15232         44  ctf_solver/preflight/__init__.py
-6c96c6908d648210ea1c64716bd714f56782eea930c3769dc9407515ee1c3668      15505  ctf_solver/preflight/doctor.py
+e94354832c68b62d6c4cc66060a3115407c1e83d108b4a68627f9945fada3f91      15702  ctf_solver/preflight/doctor.py
+bad6fa99dc60cac4ba8e76ebd1c70b1d2051250613febc953f342a8887a7e71f       1209  ctf_solver/resources/acp/cordis.patch.yml
 ff1d2f42f6d0e2209589180aef7ab91b617d451caf6f5f4321275c6c6df43713       1735  ctf_solver/runtime/__init__.py
 0b2303ff7a04b036562699afe16f5cf5db0c5b8112ddda7909f021a3ee73fb52      12193  ctf_solver/runtime/catalog.py
 d2e30f8ff940d9db8fac577d410bbef3e4c3a761574750ce387c49aafacf8d08      12918  ctf_solver/runtime/executor.py
@@ -82,7 +83,7 @@ c924d80cf15c9ec88323a34ef9d0fbf802c64d46f0174442e35709d4bacfb3cf      13207  ctf
 0ef01b8bc72309b958f5132fceaa641e99d4e5087ba73741aea7e0e6c7c9ed33      10018  docs/FINAL_ACCEPTANCE_REPORT.md
 6acaf7342a826414c5d0216b6918866093491f8ac4c1972a616d60cfdf31d755       6361  docs/HARNESS_INTEGRATION_AUDIT_SUMMARY.md
 44eab7bedf86d0771916f4e72fa8c2a2732dd2b0cb0df4a1b2cfc795c5ccadfc      31518  docs/INTERFACES.md
-73437f75090cd7c2375203690a89c1baa30c32da44caf5e97fcf16c030414692      10793  docs/LOCAL_OPERATION.md
+640abfed93ca7710766e73ec937f74eb1d42f9d4ee1eec32d1d2ff069fc8e1dc       9056  docs/LOCAL_OPERATION.md
 9375b1c1ca3ecc655df3774f5e73d375cd219c1badfee628c09f7058f806ad27       1445  docs/PHASE1_IMPLEMENTATION_TASK.md
 546f855a9dbbd02dc170a30dc4243156f6881c733226405ea091731a36aa5a6d       7823  docs/PRODUCT_SPEC.md
 5dccd1304869b43f5c2abc63d8a2074391bdcc4d03b3db415e7152d7d4d4ba92       4204  docs/REFERENCE_PROJECTS.md
@@ -101,7 +102,8 @@ bf888d5931bb53151b7ddca8409eba4a07854845eacd96ff66013ecad96ce310      18459  doc
 a66bc88b08f8283962c9845056bc66feb6cb8236de440ddc7a2765db54f4753a      15512  docs/ROUND_2_SECURITY_CHANGES.md
 bacf33d2472fcd43a3c3124f8f84fab0aa0c6d746a3ac4f50de8d75ae909b0a8       7718  docs/SECURITY.md
 f810e20a674033d957c7db7ef8a7320ebfa83dacceab6291cd7b9db2f3877d95       8642  docs/TWO_ROUND_EXECUTION_PLAN.md
-c7ce83e3a8e4f3d1bde6970760972519ec708d14e35436f99484e7e664a152d0       1762  pyproject.toml
+1b70ee2d41f89f8add718a494034a55998b83781fedcecf174360af9003bf454      13962  docs/V0.1.1_INSTALLATION_HARDENING_REPORT.md
+84be4e75149fb37d941d2f446afc7a3ee60f30640b59b8e5031b5468341b6785       1762  pyproject.toml
 6431a61c527317dda5b54fb1ede63ba75c8bc20a06d6950bbad4f7e709e11fa6      15322  round1-evidence/FILE_MANIFEST.txt
 e1529474277688e6968bc29bace10d895411f6852dd06a03bbed8a140a68b130       1045  round1-evidence/environment-snapshot.txt
 f8401236556495a73577c0bd76d206758146040ab22dbabdd7f95f19df54983a       2358  round1-evidence/privacy-gate.md
@@ -235,7 +237,11 @@ f6d94009d8d3c1ce2b2c67f05e9eecf1023c22834e431e36272fa4c4626a2e56     123878  rou
 2cbb3cd3a99f68c038240fc3ede74db6e456e5e9ab33ab06205082cdcffd562b     118740  round2-evidence/raw/junit-remediation-with-real-acp.xml
 9a111ed870eb4b7c3579279ecc3edc4552e1111d0dcd623c77f386ad734ab014     109741  round2-evidence/raw/junit-round2-default.xml
 40830d078546bd8e30bec2b053834ed4b1984a9bc6cee28909337d7f79fc50cf     109456  round2-evidence/raw/junit-round2-with-real-acp.xml
-2804ac8ecb5dfc8bbd3f1a76a36c85b9faf1e0d590b4614bd9c4eadf3159019c      11370  round2-evidence/raw/junit-xml-verification.json
+024845f26488c74904f22b9b6c34effeee77f0ce2ea99c4b386752d6ad97c6a3     127131  round2-evidence/raw/junit-v011-default.xml
+ca36977e7932ef7268be301a605a43c6b129d14a735e12d8310111509f01c4b5     124360  round2-evidence/raw/junit-v011-venv-default.xml
+3db0507b1cba90ab4da28ffd48b1d91baad355e99b9252881ecee8b73cc9c2a3     124075  round2-evidence/raw/junit-v011-venv-with-real-acp.xml
+3063e0ea02da2b83e6e0bf3ab23379cce3abd89feed7d7e1ff4f778fc5bde00f     126846  round2-evidence/raw/junit-v011-with-real-acp.xml
+b9a669967ba0c65d272370807053bf553dbc1bb8911c4c0b335d1edfdc8a5eb7      13732  round2-evidence/raw/junit-xml-verification.json
 7e0ed193e89699728a5c0ca4cdd84e977c3e142c34f347e27c5037fa02cdc38c       8152  round2-evidence/raw/packaging-build-wheel-probe.txt
 1de2419750c0ee9d69eb8cb17c375d76df7a69f3908e7a57930ca800ee77f1c2       8174  round2-evidence/raw/packaging-build-wheel.txt
 aae9300bdecdad237bcfc01b983abc81f722930c94cdf74424eddc7f52f5127a      21100  round2-evidence/raw/packaging-fresh-clone-strict.txt
@@ -273,6 +279,30 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855          0  rou
 86a1d46cb1a7dd373cec652271697af339a9e0ee56e7ef4d6eb965d162f9c8af       2161  round2-evidence/raw/round2-skill-discovery-session.json
 557742e5048af785eed2479785c63ba6191d73f78ffd3aec09334365fd9037a2       3936  round2-evidence/raw/round2-wheel-build.txt
 d0a21753317d7d12cf82c9530c0528736f010050711933f9d148b47a9a7ded31        770  round2-evidence/raw/security-pytest.txt
+b9c8c0c79af5cebdcd8ee4d6f668181f1550569c890ef9cf00f0f9ea19da86ac     127443  round2-evidence/raw/v011-final-clean-clone-junit.xml
+9c314a0f8398a0327202d2f5bad5037c41feea629ea7a1c15b4aa159f7d9d143       1728  round2-evidence/raw/v011-final-clean-clone-real-acp.txt
+c30fa6a16d8af9da61f6c5da083244862f07a8512df675db1106681993c6b70f       1863  round2-evidence/raw/v011-final-clean-clone-tests.txt
+33462c6a99625eab08d240eed432f85986ed1507d87af35594507f3fddb900d3        349  round2-evidence/raw/v011-final-clean-clone-wheel.txt
+1fe588c46bd94bd394ade4af733e6b736cdf6127adcfc019520d49f1dc2387f6        181  round2-evidence/raw/v011-focused1.txt
+3fa55b901ab482286cb8afc48b334b02e3fdd90781495bec44614b8c26f16fa9       1863  round2-evidence/raw/v011-full-default.txt
+54f4a49136ecf7eb00b4c4a85e6eda6dd6866bd1f776b46d3aa3068ff9a32a4c       1727  round2-evidence/raw/v011-full-with-real-acp.txt
+95ffbb94ec0205fcd0cddd0a2d39454ba2f605e5b97500fd574cd2f6d8ce21fd        129  round2-evidence/raw/v011-installed-acp-failure.txt
+7d728c49465156864a3f8a46dd8f8e92f2eae5607a1c95aed562e7f2b2f06b9f       5227  round2-evidence/raw/v011-installed-manager-mcp.txt
+1c8bf0d99a0fd7cbe937f989c4cb3d64e71ac67ecf9a14962fae20a768c37bbb       1156  round2-evidence/raw/v011-installed-manager-smoke.txt
+f28678d70253e0a58ee43b79c035b88d7341682fc9910437263a9ab4735ebc34        744  round2-evidence/raw/v011-installed-normal-task.txt
+22e6e62811851adf3219d7b9ce5290831ee465ecdbd4d49a6b1ede48284f8db8      12442  round2-evidence/raw/v011-installed-privacy-dump-config.txt
+a7f09b03e6adc3c09f9b3fce7cf594c948751d4f98a4d07d25cbf147eb2c4bcd        577  round2-evidence/raw/v011-installed-restart.txt
+576b5082261be8a1547ee52ce76d46e1944c1be817aa36fbb462f57712297bcb       1687  round2-evidence/raw/v011-installed-worker-mcp.txt
+44c6992a4c885857627d1231f039ac831b9ec1c2d6ca00d6ecc5f6a419ac717c       9945  round2-evidence/raw/v011-integration-summary.json
+f88353be15967020d0fc1a4158dff8349fa3c7f97ba51b7dcc18942b77f8adca       7664  round2-evidence/raw/v011-integration-systempy.txt
+7093e6bbf5caea86e3a6f28e4edb82c47044cba46db682ef403837b7678645c4       7665  round2-evidence/raw/v011-integration-venv.txt
+26e53d1648fc5dfa46973d04a0de529efa163363b5c1a0c391fde9aeaa72469f       7590  round2-evidence/raw/v011-integration.log
+ca7bff7c62b27e3a35c77fddb41e8b272b9eba127a8fd85cf8e1d1c62e1daeba       3829  round2-evidence/raw/v011-junit-verify.txt
+6183828bef9d909b0008468160e2802fcb1207be37b244626840b598489fdfa2       1863  round2-evidence/raw/v011-venv-default.txt
+84e2753a48485d08e2d18912c4036539a9cfbde8c9307ac81514a803bba2d419         98  round2-evidence/raw/v011-venv-pid-test.txt
+f347ed2b0044c93c650889b99388c543ac8191108afadfe1e0aaff9fa01cb1e6       1727  round2-evidence/raw/v011-venv-with-real-acp.txt
+038ef9f6476a2140fa9259614ac568aa5629daf68df62d8faaa364ce15eeefb9       4323  round2-evidence/raw/v011-wheel-build.json
+6c3af49c9ac680efbc3c5d0314d01e74fa426bf2182d99a690714d079d7558e5       1412  round2-evidence/raw/v011-wheel-provenance.json
 ce1805dc58cb0e4b8badbb240526bab055f2f1a5da173a5c170c991814c7636a         99  round2-evidence/raw/verifier-afterfix.txt
 45409df2a3eac7f164ad17e6faf75e8be171a76ea125803a96621da865769c1b       3451  round2-evidence/raw/verifier-fail-detail.txt
 b2fc6b8ffdbf56b4ffd0a0a58f412c49385154883364014982f85620f67740f2       3873  round2-evidence/raw/wheel-build.json
@@ -280,9 +310,9 @@ d5ba752deb702c7d6311ba85e5140226dd4ed0fb19656682ed8c892ecd88b7fd      21286  scr
 87d0471c1850ee568ca29ed705525acba6fbfba041443e7c4208fb6bf602191e      15916  scripts/fresh_clone_check.py
 dd87e4e0f2e35ac22a50bf4048878694e6e6996c19d3285aa4d202e70ac82cfe       2227  scripts/mcp_probe_server.py
 0eb1dba8cd693975c59c5d5d7e151f197a83b6aed837e5976acb7aee37a190e7       7905  scripts/round2_harness_analysis.py
-f8a6dbbb5f8e91c4a2793fee81d3a8af6a11a99bb52e31b957ad45e355f54d95      34347  scripts/round2_integration.py
-43f7d9b01d83f5ce46c74a782f20a301694e87207cb668c644f39f1bb046a4d8       6667  scripts/verify_junit_xml.py
-16c62bb0fcfdee860615cf28c34cda01354e4d7ea72f909ccdd71bf094c84b4c      10427  scripts/verify_wheel_provenance.py
+9ebcaa439944e11e027634ad3ca502fbfd69d0075a105d8255d7b6f118ed7bea      34433  scripts/round2_integration.py
+ba14880b3fa86d2561bd92b17b11bb7d12766ba5b74298bdd150fd606ffc833c       7197  scripts/verify_junit_xml.py
+dafbc61edfebeaaf727b57410a7be03baf6819ae4b8f95e8f2f126af4701d1b1      11379  scripts/verify_wheel_provenance.py
 9d37a1d8bec119060de5302a309e3f341227a4ed999c6ce649f5fdcb7a8c6295       2434  scripts/window_probe.py
 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b          1  tests/__init__.py
 7aac6cf42e9e92dbf938e1fff928772a72ffb11bdd434047f8ea2144b4ef0134         79  tests/support/__init__.py
@@ -313,16 +343,17 @@ bbdc20cf3010aa0f8af062eb39f4b431ead98c1238fe6b4484c04ebd27d670f1       7753  tes
 e13e895ab84145294eb3dccb9fc36da4315fe1ddc69b3334b119582d6c3c725d      15264  tests/test_evidence_normalize.py
 d4f05d3219a1a2d86c553fda3aa757883ff5d2dd7caa6f678f141cbb39e836e6      25839  tests/test_evidence_store.py
 4c40d54f215811e831d4e6d16a9ee2e014e2b3632eb535eea5292a640ca2c1df       7605  tests/test_evidence_support.py
+e2c2e0e92b8f42110cd64b2559c2c15f4065f8fae4c2eafaf8700d58d284cf4a       5754  tests/test_installation_hardening.py
 e63d679c3209e14cffd9a9127bd3b05187f2b1a4f3c554605aa33bc114aa9905      19766  tests/test_intake.py
-d5b4e1bc203aa6f9d1fa8f3dea853969ffd6cbc1835399ad2fe77f4b9a534774      13180  tests/test_integration_stack.py
+699c1cbe47584932261df7cd18d4c7dc541df04d1610a2564a1120c9cfb065bd      13404  tests/test_integration_stack.py
 96a7fccbf824f9118ea3802ff002544ed0eab95fc6b55d260f80d15f1d18ed1d      11099  tests/test_manager_completion.py
 b9b6dc4d3c513887659badc714a8933478309b9fbb27952b05726d5b1a690783       5741  tests/test_manager_ipc.py
 33d8e54469e599470c9279bf93c1cb6db254284ea8732c731aebfd47048e118d      20513  tests/test_manager_service.py
-661a0a6e55ee4737c4361e5f220a659c566852ba0166512fae57d355fba6cf1e      12098  tests/test_mcp_exec_server.py
+4b1144535c5d7445064cf322f77441c16df49f5bae491ba16b493b4fbe407c90      12400  tests/test_mcp_exec_server.py
 c26675523581b011de6ef6a7dd8b1718cb8294f75ff1e18b5b3a956fec9b6f20       7243  tests/test_mcp_manager_server.py
 37e07a9a15d1b6a13d8b82de5fb6ae45459cb987d77c3927888519a7571adebe       6925  tests/test_mcp_protocol.py
 bb4c628818837bfd03c8a02dc326d04f0e7a2742f2014adc2b05fd3c8984052f      16820  tests/test_mcp_schema.py
-b4ae6807353763d96a4b00023ca64b064d92db214bd9c11fbfb1f6d3d141924d       4365  tests/test_preflight.py
+50d1a150bc04c253f4e9f194ef528a6e9d94a025d3af4a1e259335ef5bfdd2f3       4199  tests/test_preflight.py
 42229c64b2c718b13692bf10a9676c5f8879dbbc5311ff29187c91818663d8cb       3584  tests/test_real_acp_smoke.py
 6587fbd77879c0a2872dd3c108f3f8811b5b039b65ac3cecb5904bcd0aec5eba      18132  tests/test_round2_acceptance_hardening.py
 7c2ccc9f4bc21a97412d488c2ec8871b73a2f84ca28e5ea8b823f26bfa7bd211       6189  tests/test_round2_chain_snapshot.py
@@ -343,8 +374,8 @@ f7ddbe66d2e72748a9215cee406ef418bcca4f9755534911e3572793c44ca8d2       9309  tes
 bb872f3dcb20e80312fb17818dc38126ebd2f564b7a56959c30804e3619fa062       8864  tests/test_security_support.py
 8eaedf2591ec50907376176d4970c0ebdc0238dae603bdf34d457fb005319b10      21738  tests/test_session_log_resolver.py
 5174d013f4c33d7cc48390e32503774029a1ec2fb20e92f7e026019764ad4ea5       3405  tests/test_skills.py
-dd639bea2943433a6083274c4613ef3ec604948f67072a6c1b85de49a8a04d2e      87218  tests/test_verification_round1.py
-34b40896a75a51235af87a0003c1cefb770fd9f757f32f267ae212058e42430c      22563  tests/test_wheel_build.py
-8d61e61f14a7970edc75af64500b291222a2f4eb987d93619b8b930284c89a60       7053  tests/test_wheel_provenance.py
+d0a61dee8d6c454e8736220b7641a6ab5b77cdb03234f0392526410dd9d9f810      87236  tests/test_verification_round1.py
+a017aba32210996a3db794d5ea290a9a1cf9f888ee2445b20b246eb09a75ea72      22804  tests/test_wheel_build.py
+12b836f555138ef0ff548607f03103f33d43858514e69328d72f5a242ed0b030       7053  tests/test_wheel_provenance.py
 b10299a5e2988733e7640562f57779a6370549634f54fb46c675c2efb8e38559      13824  tests/test_zstd_frames.py
 f4b4a2c7e313ab74232967c5ebdd746a9bd942ac676ed61062db7ffd0dd4250e      16145  tooling/wheelbuild.py

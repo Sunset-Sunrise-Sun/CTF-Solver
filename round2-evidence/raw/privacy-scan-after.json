@@ -1,6 +1,11 @@
 {
   "scope": "all tracked and untracked non-binary text files",
-  "files_with_personal_home": 0,
-  "occurrences": 0,
-  "files": []
+  "files_with_personal_home": 1,
+  "occurrences": 2,
+  "files": [
+    {
+      "file": "docs/V0.1.1_INSTALLATION_HARDENING_REPORT.md",
+      "occurrences": 2
+    }
+  ]
 }

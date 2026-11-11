@@ -416,7 +416,7 @@
         "errors": 0,
         "xfailed": 0,
         "xpassed": 0,
-        "summary_line": "1039 passed, 4 skipped in 91.69s (0:01:31)"
+        "summary_line": "1039 passed, 4 skipped in 95.54s (0:01:35)"
       },
       "derived_passed": 1039
     },
@@ -437,7 +437,7 @@
         "errors": 0,
         "xfailed": 0,
         "xpassed": 0,
-        "summary_line": "1039 passed, 4 skipped in 92.84s (0:01:32)"
+        "summary_line": "1039 passed, 4 skipped in 93.33s (0:01:33)"
       },
       "derived_passed": 1039
     },
@@ -458,7 +458,7 @@
         "errors": 0,
         "xfailed": 0,
         "xpassed": 0,
-        "summary_line": "1040 passed, 3 skipped in 93.62s (0:01:33)"
+        "summary_line": "1040 passed, 3 skipped in 95.58s (0:01:35)"
       },
       "derived_passed": 1040
     },
@@ -479,7 +479,7 @@
         "errors": 0,
         "xfailed": 0,
         "xpassed": 0,
-        "summary_line": "1040 passed, 3 skipped in 95.65s (0:01:35)"
+        "summary_line": "1040 passed, 3 skipped in 97.68s (0:01:37)"
       },
       "derived_passed": 1040
     },

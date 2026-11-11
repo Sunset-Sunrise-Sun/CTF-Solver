@@ -1,0 +1,18 @@
+﻿# Project-scoped MCP servers for this workspace, loaded by @momojie-s/dsh-workspace-mcp.
+# Only sessions whose cwd is this workspace see these servers/tools.
+# Tested with CTF-Solver v0.1.1 + Lead-session evidence round; see docs/LEAD_SESSION_EVIDENCE.md.
+servers:
+  ctf-solver:
+    transport: stdio
+    command: "C:/Users/28746/AppData/Local/CTF-Solver/venv/Scripts/python.exe"
+    args:
+      - "-m"
+      - "ctf_solver"
+      - "manager"
+      - "serve"
+      - "--root"
+      - "D:/CTF-SOLVER"
+      - "--lead-sessions-root"
+      - "C:/Users/28746/.dsh/sessions"
+      - "--capture-mode"
+      - "desktop"

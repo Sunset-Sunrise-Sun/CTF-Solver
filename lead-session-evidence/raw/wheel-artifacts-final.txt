@@ -1,0 +1,5 @@
+sources: wheel-build-v3 (in raw), wheel install log (in raw)
+wheel_path: D:\CTF-SOLVER\scratch\lead-round1-plan\wheel-v3\ctf_solver-0.1.1-py3-none-any.whl
+wheel_sha256: 41E9139BF22EA2D90DAF5D59249082845FFD7B3A531C4BED54C1CB85024A315E
+wheel_bytes: 234337
+final_mcp_config_sha256: E3038979C3100EC002A4F9373D57A66763B1D740920E49E3A1989BA3F74816C2

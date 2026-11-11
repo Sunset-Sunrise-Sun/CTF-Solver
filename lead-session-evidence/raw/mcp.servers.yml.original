@@ -1,0 +1,15 @@
+﻿# Project-scoped MCP servers for this workspace, loaded by @momojie-s/dsh-workspace-mcp.
+# Only sessions whose cwd is this workspace see these servers/tools.
+servers:
+  ctf-solver:
+    transport: stdio
+    command: "C:/Users/28746/AppData/Local/CTF-Solver/venv/Scripts/python.exe"
+    args:
+      - "-m"
+      - "ctf_solver"
+      - "manager"
+      - "serve"
+      - "--root"
+      - "D:/CTF-SOLVER"
+      - "--capture-mode"
+      - "desktop"

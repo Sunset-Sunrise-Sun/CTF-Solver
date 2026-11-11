@@ -38,6 +38,7 @@ LOG_MAP = {
     "round2-evidence/raw/junit-v011-with-real-acp.xml": "round2-evidence/raw/v011-full-with-real-acp.txt",
     "round2-evidence/raw/junit-v011-venv-default.xml": "round2-evidence/raw/v011-venv-default.txt",
     "round2-evidence/raw/junit-v011-venv-with-real-acp.xml": "round2-evidence/raw/v011-venv-with-real-acp.txt",
+    "round2-evidence/raw/v011-final-clean-clone-junit.xml": "round2-evidence/raw/v011-final-clean-clone-tests.txt",
     "round2-evidence/raw/final-clean-clone-junit.xml": "round2-evidence/raw/final-clean-clone-tests.txt",
     "round2-evidence/raw/hardening-followup2-clean-clone-junit.xml": "round2-evidence/raw/hardening-followup2-clean-clone-tests.txt",
     "round2-evidence/raw/hardening-final-clone-junit.xml": "round2-evidence/raw/hardening-final-clone-tests.txt",

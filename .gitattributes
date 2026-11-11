@@ -1,0 +1,23 @@
+# Normalize repository line endings across platforms.
+# The project requires LF source/text files (Skills are parsed by Harness with
+# exact frontmatter delimiters; CRLF checkout breaks test_skills.py).
+* text=auto eol=lf
+
+# Windows-only executable/script artifacts that genuinely need CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary evidence/artifacts — never transform.
+*.png binary
+*.zip binary
+*.bundle binary
+*.whl binary
+*.zst binary
+*.zstd binary
+*.sqlite binary
+*.db binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.pptx binary

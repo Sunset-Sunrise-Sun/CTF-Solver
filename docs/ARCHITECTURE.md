@@ -94,7 +94,7 @@ Use it where it materially improves scheduling, authorization, or evidence hooks
 
 ## 9. Evidence data flow
 
-Harness session JSONL.zstd and live events → parser/normalizer → callId and seq correlation → SQLite event/state index with hash chain + CAS raw bytes → Markdown Writeup and evidence ZIP.
+Harness session JSONL.zstd and live events → parser/normalizer → callId and seq correlation → SQLite authoritative event/state index with hash chain + CAS raw bytes → deterministic events.jsonl export → Markdown Writeup and evidence ZIP. SQLite is the single source of truth; JSONL is derived from committed SQLite records, not independently dual-written.
 
 The audit verified tool/call, tool/result, job/registered, job/settled, approval and command events; tool calls/results correlate by callId and seq is monotonic.
 
@@ -104,7 +104,7 @@ Harness logs have no hash chain or signature. Manager must preserve raw source b
 
 ## 10. Evidence record contract
 
-Each normalized record includes schema version, event/source IDs, Task/Worker/conversation/ACP session/Step IDs, sequence/timestamp, event type, tool/version/argv/cwd, input/output refs and hashes, exit code, stdout/stderr refs, job/approval/network-grant refs, screenshot refs, previous/current chain hash, provenance, and parser version.
+Each normalized record includes schema version, event/source IDs, Task/Worker/conversation/ACP session/Step IDs, sequence/timestamp, event type, tool/version/argv/cwd, input/output refs and hashes, exit code, stdout/stderr refs, job/approval/network-grant refs, screenshot refs, previous/current chain hash, provenance, and parser version. Commit the normalized record and chain head atomically in SQLite; generate JSONL as a reproducible export so there is no SQLite/JSONL dual-write race.
 
 Ingestion must be idempotent, detect sequence gaps, retain unmatched calls/results as explicit gaps, and preserve raw event data in CAS.
 

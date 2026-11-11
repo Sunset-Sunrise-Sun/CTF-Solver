@@ -1,0 +1,151 @@
+{
+  "providerSource": "<USER_HOME>/.dsh/profiles/node_modules/@deepseek-ai/dsh-skill-filesystem/lib/index.js",
+  "providerPackage": "0.2.0-rc.2",
+  "config": {
+    "providerName": "filesystem",
+    "includeDefaultRoots": true,
+    "dshHome": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-probe-dsh-home",
+    "agentsHome": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-probe-dsh-home\\_agents",
+    "customSkillDirs": [],
+    "watch": false
+  },
+  "results": [
+    {
+      "label": "v011 skills project (six copied Skills, no .git)",
+      "cwd": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-project",
+      "projectDshRoot": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-project\\.dsh\\skills",
+      "projectRoot": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-project",
+      "roots": [
+        {
+          "source": "project-dsh",
+          "rank": 100,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-project\\.dsh\\skills"
+        },
+        {
+          "source": "project-agents",
+          "rank": 200,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-project\\.agents\\skills"
+        },
+        {
+          "source": "user-dsh",
+          "rank": 400,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-probe-dsh-home\\skills"
+        },
+        {
+          "source": "user-agents",
+          "rank": 500,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-probe-dsh-home\\_agents\\skills"
+        }
+      ],
+      "discoveryComplete": true,
+      "skillCount": 6,
+      "skills": [
+        {
+          "name": "ctf-crypto",
+          "source": "project-dsh",
+          "rank": 100,
+          "provider": "filesystem",
+          "modelInvocable": true
+        },
+        {
+          "name": "ctf-misc",
+          "source": "project-dsh",
+          "rank": 100,
+          "provider": "filesystem",
+          "modelInvocable": true
+        },
+        {
+          "name": "ctf-pwn",
+          "source": "project-dsh",
+          "rank": 100,
+          "provider": "filesystem",
+          "modelInvocable": true
+        },
+        {
+          "name": "ctf-reverse",
+          "source": "project-dsh",
+          "rank": 100,
+          "provider": "filesystem",
+          "modelInvocable": true
+        },
+        {
+          "name": "ctf-solver",
+          "source": "project-dsh",
+          "rank": 100,
+          "provider": "filesystem",
+          "modelInvocable": true
+        },
+        {
+          "name": "ctf-web",
+          "source": "project-dsh",
+          "rank": 100,
+          "provider": "filesystem",
+          "modelInvocable": true
+        }
+      ]
+    },
+    {
+      "label": "empty control A (no Skills)",
+      "cwd": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-empty-a",
+      "projectDshRoot": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-empty-a\\.dsh\\skills",
+      "projectRoot": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-empty-a",
+      "roots": [
+        {
+          "source": "project-dsh",
+          "rank": 100,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-empty-a\\.dsh\\skills"
+        },
+        {
+          "source": "project-agents",
+          "rank": 200,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-empty-a\\.agents\\skills"
+        },
+        {
+          "source": "user-dsh",
+          "rank": 400,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-probe-dsh-home\\skills"
+        },
+        {
+          "source": "user-agents",
+          "rank": 500,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-probe-dsh-home\\_agents\\skills"
+        }
+      ],
+      "discoveryComplete": true,
+      "skillCount": 0,
+      "skills": []
+    },
+    {
+      "label": "empty control B (no Skills)",
+      "cwd": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-empty-b",
+      "projectDshRoot": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-empty-b\\.dsh\\skills",
+      "projectRoot": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-empty-b",
+      "roots": [
+        {
+          "source": "project-dsh",
+          "rank": 100,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-empty-b\\.dsh\\skills"
+        },
+        {
+          "source": "project-agents",
+          "rank": 200,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-empty-b\\.agents\\skills"
+        },
+        {
+          "source": "user-dsh",
+          "rank": 400,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-probe-dsh-home\\skills"
+        },
+        {
+          "source": "user-agents",
+          "rank": 500,
+          "path": "D:\\CTF-SOLVER-review\\v011-install-test\\skills-probe-dsh-home\\_agents\\skills"
+        }
+      ],
+      "discoveryComplete": true,
+      "skillCount": 0,
+      "skills": []
+    }
+  ],
+  "warnings": []
+}

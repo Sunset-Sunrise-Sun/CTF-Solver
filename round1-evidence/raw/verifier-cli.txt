@@ -1,0 +1,80 @@
+﻿=== python -m ctf_solver version ===
+ctf-solver 0.1.0
+EXIT=0
+=== python -m ctf_solver skills --root . ===
+{
+  "root": ".dsh\\skills",
+  "found": {
+    "ctf-crypto": {
+      "path": ".dsh\\skills\\ctf-crypto\\SKILL.md",
+      "size": 2853,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-crypto",
+      "description": true
+    },
+    "ctf-misc": {
+      "path": ".dsh\\skills\\ctf-misc\\SKILL.md",
+      "size": 2644,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-misc",
+      "description": true
+    },
+    "ctf-pwn": {
+      "path": ".dsh\\skills\\ctf-pwn\\SKILL.md",
+      "size": 2813,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-pwn",
+      "description": true
+    },
+    "ctf-reverse": {
+      "path": ".dsh\\skills\\ctf-reverse\\SKILL.md",
+      "size": 3077,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-reverse",
+      "description": true
+    },
+    "ctf-solver": {
+      "path": ".dsh\\skills\\ctf-solver\\SKILL.md",
+      "size": 6636,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-solver",
+      "description": true
+    },
+    "ctf-web": {
+      "path": ".dsh\\skills\\ctf-web\\SKILL.md",
+      "size": 2755,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-web",
+      "description": true
+    }
+  },
+  "missing": [],
+  "problems": [],
+  "ok": true
+}
+EXIT=0
+=== python -m ctf_solver preflight --quiet ===
+EXIT=0
+=== python -m ctf_solver evidence --help ===
+usage: ctf-solver evidence [-h] [--root ROOT] {decode,verify-chain} [path]
+
+positional arguments:
+  {decode,verify-chain}
+  path
+
+options:
+  -h, --help            show this help message and exit
+  --root ROOT
+EXIT=0

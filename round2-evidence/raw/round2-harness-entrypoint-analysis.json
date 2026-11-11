@@ -1,0 +1,112 @@
+{
+  "skill_discovery": {
+    "session_id": "session-4d788a62-ad4c-4e39-a9d1-41b949a3bc98",
+    "session_log": "<USER_HOME>\\.dsh\\sessions\\--D-CTF-SOLVER--\\session-4d788a62-ad4c-4e39-a9d1-41b949a3bc98\\session.v4.jsonl.zstd",
+    "frames": 2041,
+    "records": 3340,
+    "catalog_records": [
+      {
+        "type": "user/message",
+        "seq": 888,
+        "time": 1794305482378,
+        "ctf_skills_present": [
+          "ctf-solver",
+          "ctf-web",
+          "ctf-misc"
+        ]
+      },
+      {
+        "type": "user/message",
+        "seq": 899,
+        "time": 1794305501427,
+        "ctf_skills_present": [
+          "ctf-solver",
+          "ctf-web",
+          "ctf-misc",
+          "ctf-crypto",
+          "ctf-reverse",
+          "ctf-pwn"
+        ]
+      },
+      {
+        "type": "assistant/message",
+        "seq": 1885,
+        "time": 1794307562438,
+        "ctf_skills_present": [
+          "ctf-solver",
+          "ctf-web",
+          "ctf-misc",
+          "ctf-crypto",
+          "ctf-reverse",
+          "ctf-pwn"
+        ]
+      },
+      {
+        "type": "tool/call",
+        "seq": 1886,
+        "time": 1794307562439,
+        "ctf_skills_present": [
+          "ctf-solver",
+          "ctf-web",
+          "ctf-misc",
+          "ctf-crypto",
+          "ctf-reverse",
+          "ctf-pwn"
+        ]
+      },
+      {
+        "type": "assistant/message",
+        "seq": 3202,
+        "time": 1794311822600,
+        "ctf_skills_present": [
+          "ctf-solver"
+        ]
+      },
+      {
+        "type": "assistant/message",
+        "seq": 3212,
+        "time": 1794311836090,
+        "ctf_skills_present": [
+          "ctf-solver",
+          "ctf-web",
+          "ctf-misc",
+          "ctf-crypto",
+          "ctf-reverse",
+          "ctf-pwn"
+        ]
+      },
+      {
+        "type": "tool/call",
+        "seq": 3213,
+        "time": 1794311836092,
+        "ctf_skills_present": [
+          "ctf-solver",
+          "ctf-web",
+          "ctf-misc",
+          "ctf-crypto",
+          "ctf-reverse",
+          "ctf-pwn"
+        ]
+      }
+    ],
+    "skill_catalog_observed": true,
+    "note": "Records are from the running Harness session's own persisted log; the catalog changed from three to six CTF Skills after the .dsh/skills files were written. This is real Harness project-level Skill discovery evidence (session-log side)."
+  },
+  "source_analysis": {
+    "app_asar": "<USER_HOME>\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\app.asar",
+    "entries": 22102,
+    "relevant_entries": 939,
+    "extracted": [
+      "dsh__node_modules__@deepseek-ai__dsh-mcp-client__lib__index.js",
+      "dsh__node_modules__@deepseek-ai__dsh-skill-filesystem__lib__index.js",
+      "dsh__node_modules__@deepseek-ai__dsh-desktop-host__lib__cli.js"
+    ],
+    "observation_count": 20,
+    "scan_file": "D:\\CTF-SOLVER\\round2-evidence\\raw\\harness-entrypoint-scan.txt"
+  },
+  "verdict": {
+    "project_level_skills": "PASS (session-log evidence)",
+    "project_scoped_mcp_registration": "NOT FOUND in installed source; main-conversation Manager MCP entrypoint remains BLOCKED",
+    "note": "Skill files are discovered by the running Harness (project .dsh/skills). The Manager control MCP server is implemented and verified via stdio MCP tests and a real end-to-end Manager process, but attaching it to the live main conversation requires profile-level configuration (prohibited) or a Host Plugin bundle (owner decision). No project-scoped MCP registration mechanism was found."
+  }
+}

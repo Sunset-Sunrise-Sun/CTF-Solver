@@ -1,0 +1,9 @@
+﻿clean_clone_head=f5e0d2999c46541d0878619abf9b28046c8e6f16
+branch=fix/v0.1.1-installation-hardening
+python=3.14.7
+build_command=python scripts/build_wheel.py
+wheel=ctf_solver-0.1.1-py3-none-any.whl
+size=225008
+sha256=E9EB2D609DB72402EA97CCB3063FE46510226B1B189ECB90C9B89E0C236B8C09
+role=independent rebuild of report commit for v0.1.1 acceptance
+

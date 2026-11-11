@@ -1,0 +1,80 @@
+{
+  "ok": false,
+  "generated_at_utc": "20261110T114549Z",
+  "repo": "D:\\CTF-SOLVER",
+  "branch": "feat/round2-harness-integration",
+  "overlay_working_tree": true,
+  "source_head": "8615af6f552813d50ed2f429b45ef4bdfe65e326",
+  "source_status_sha256": "a6cbaec19a5684d135eedf656c74ea8c753abc7c4012de8601dddee3a9a02f70",
+  "clone_dir": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone",
+  "steps": [
+    {
+      "command": [
+        "git",
+        "clone",
+        "--no-hardlinks",
+        "--branch",
+        "feat/round2-harness-integration",
+        "D:\\CTF-SOLVER",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone"
+      ],
+      "returncode": 0,
+      "seconds": 0.938
+    },
+    {
+      "command": [
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "-m",
+        "pytest",
+        "tests",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "returncode": 1,
+      "seconds": 61.585
+    },
+    {
+      "command": [
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone\\scripts\\build_wheel.py",
+        "--repo",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone",
+        "--out",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-x18skxa2\\clone\\dist",
+        "--evidence-json",
+        "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-wheel-build-20261110T114549Z.json"
+      ],
+      "returncode": 0,
+      "seconds": 2.984
+    }
+  ],
+  "errors": [],
+  "logs": [
+    "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-20261110T114549Z.log"
+  ],
+  "clone_head": "8615af6f552813d50ed2f429b45ef4bdfe65e326",
+  "clone_branch": "feat/round2-harness-integration",
+  "overlay": {
+    "tracked_changed": 24,
+    "tracked_deleted": 0,
+    "untracked_copied": 25,
+    "skipped": [
+      "round2-evidence/lead-subset1.txt",
+      "round2-evidence/lead-subset2.txt",
+      "round2-evidence/raw/"
+    ],
+    "errors": []
+  },
+  "pytest": {
+    "returncode": 1,
+    "seconds": 61.585
+  },
+  "wheel_build": {
+    "returncode": 0,
+    "seconds": 2.984,
+    "evidence_json": "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-wheel-build-20261110T114549Z.json"
+  },
+  "temp_clone_kept": false,
+  "evidence_json": "D:\\CTF-SOLVER\\round2-evidence\\raw\\fresh-clone-20261110T114549Z.json"
+}

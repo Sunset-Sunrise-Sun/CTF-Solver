@@ -1,0 +1,13 @@
+{
+  "note": "Final Manager runtime status observed from the live Harness MCP surface after the fixed wheel was installed and the project-scoped Manager reloaded.",
+  "acp": {"state": "ready", "allow_model_calls": false, "is_alive": true},
+  "db_path": "D:\\CTF-SOLVER\\.ctf-solver-data\\manager.sqlite",
+  "session_log_root": "D:\\CTF-SOLVER\\.ctf-solver-data\\dsh-home\\sessions",
+  "lead_sessions_root": "C:\\Users\\28746\\.dsh\\sessions",
+  "workspace_root": "D:\\CTF-SOLVER",
+  "chain_head": [1097, "93f91ec47542b334ad7f84bc08d1f09d586976d643dec5b47ad31ae3eb3a7ecf"],
+  "round1_limits.main_conversation_entrypoint": "connected via project-scoped workspace MCP (Manager tools available to the Lead conversation)",
+  "round1_limits.model_calls": "blocked (no session/prompt; ADR-020)",
+  "security.lead_session_binding": "explicit Lead session id, Manager-verified header/cwd, one-time binding",
+  "security.session_log_ingest": "manager registry only (no model-supplied file path)"
+}

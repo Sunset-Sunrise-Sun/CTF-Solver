@@ -1,0 +1,128 @@
+{
+  "total": 24,
+  "pass": 24,
+  "fail": 0,
+  "skip": 0,
+  "results": [
+    {
+      "check": "A01 SCHEMA_VERSION is 1.2",
+      "status": "PASS",
+      "detail": "SCHEMA_VERSION=1.2"
+    },
+    {
+      "check": "A02 SolverConfig.lead_sessions_root priority/no-dsh_home",
+      "status": "PASS",
+      "detail": "extra > env > ~/.dsh/sessions; never derived from dsh_home"
+    },
+    {
+      "check": "A03 ensure_runtime_dirs does not create lead_sessions_root",
+      "status": "PASS",
+      "detail": "missing lead root NOT created; managed dirs created"
+    },
+    {
+      "check": "A04 new DB schema 1.2 (contract 3.2)",
+      "status": "PASS",
+      "detail": "schema 1.2, completion_note NOT NULL DEFAULT '', session_bindings PK/UNIQUE/FK + index"
+    },
+    {
+      "check": "A05 schema migration wiring (contract 3.2)",
+      "status": "PASS",
+      "detail": "1.0->1.2 and 1.1->1.2 wired; per-statement execute (no executescript)"
+    },
+    {
+      "check": "A06 TaskRecord.completion_note (contract 3.3)",
+      "status": "PASS",
+      "detail": "completion_note appended last; to_dict includes it; from_row defensive"
+    },
+    {
+      "check": "A07 SessionBinding + store API (contract 3.4)",
+      "status": "PASS",
+      "detail": "SessionBinding frozen + fields + to_dict; store API signatures match"
+    },
+    {
+      "check": "A08 finalize_* completion_note + notes preservation (contract 3.4 + amendment)",
+      "status": "PASS",
+      "detail": "finalize_* write completion_note; set_task_status notes unchanged; post-freeze amendment writes completion_note separately"
+    },
+    {
+      "check": "A08b no product call site writes notes= on lifecycle transitions",
+      "status": "PASS",
+      "detail": "13 set_task_status call sites, none pass notes= (intake notes safe)"
+    },
+    {
+      "check": "A09 resolver API and reason codes (contract 3.5)",
+      "status": "PASS",
+      "detail": "reason codes + source='worker' default + no path/session-id parameters"
+    },
+    {
+      "check": "A10 ManagerService API + status strings (contract 4.1)",
+      "status": "PASS",
+      "detail": "ctor kwargs, create_task lead_session_id, ingest source, status wording"
+    },
+    {
+      "check": "A11 runtime_status surface (contract 4.1)",
+      "status": "PASS",
+      "detail": "runtime_status exposes lead_sessions_root + updated limits/security"
+    },
+    {
+      "check": "A12 MCP 18 tools + schemas (contract 4.2)",
+      "status": "PASS",
+      "detail": "18 tools, same names; lead_session_id(max 128)/source enum; no path/session_id"
+    },
+    {
+      "check": "A13 CLI plumbing (contract 4.3)",
+      "status": "PASS",
+      "detail": "manager serve + task args parse; defaults empty strings"
+    },
+    {
+      "check": "A14 wiring (contract 3.6)",
+      "status": "PASS",
+      "detail": "build_manager_service passes lead_sessions_root and workspace_root"
+    },
+    {
+      "check": "A15 screenshot capture fix (contract 5.1)",
+      "status": "PASS",
+      "detail": "WinForms Add-Type present; 12-line tail; utf-8->gbk->latin-1 decode; no text=True"
+    },
+    {
+      "check": "A16 writeup behaviour hooks (contract 5.2)",
+      "status": "PASS",
+      "detail": "completion-note subsection, turn/step heading, derived screenshot matching, no dup"
+    },
+    {
+      "check": "A17 bundle internal verify + raw layout (contract 5.3)",
+      "status": "PASS",
+      "detail": "internal verify_zip after build + DeliveryError + temp cleanup; raw layout unchanged"
+    },
+    {
+      "check": "A18 skill wording (contract 5.4)",
+      "status": "PASS",
+      "detail": "6 UTF-8/no-BOM skills; 5 category evidence paragraphs <=5 lines; core updated"
+    },
+    {
+      "check": "B01 pyproject has no runtime dependencies",
+      "status": "PASS",
+      "detail": "project.dependencies == [] ; only dev extra pytest>=8"
+    },
+    {
+      "check": "B02 added imports are stdlib/local only",
+      "status": "PASS",
+      "detail": "49 added import statements, all stdlib/local: ['__future__', 'ctf_solver', 'dataclasses', 'hashlib', 'os', 'pathlib', 'pytest', 'sqlite3', 'tempfile', 'tests', 'types']"
+    },
+    {
+      "check": "B03 packaging/lock files unchanged",
+      "status": "PASS",
+      "detail": "pyproject/lock files unchanged in base..HEAD diff (67 changed paths)"
+    },
+    {
+      "check": "A19 frozen tree clean + changed files UTF-8 without BOM",
+      "status": "PASS",
+      "detail": "clean frozen tree; 35 changed source files (tests/skills/docs) are valid UTF-8 without BOM; 32 raw evidence artifacts excluded"
+    },
+    {
+      "check": "A20 library code does not print (contract 0)",
+      "status": "PASS",
+      "detail": "no print() added to library code (cli.py excluded)"
+    }
+  ]
+}

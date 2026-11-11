@@ -1,0 +1,153 @@
+{
+  "total": 29,
+  "pass": 29,
+  "fail": 0,
+  "skip": 0,
+  "results": [
+    {
+      "check": "C01 session-id path injection rejected before binding",
+      "status": "PASS",
+      "detail": "14 path/session injection attempts -> reason_code unknown_session"
+    },
+    {
+      "check": "C02 absent id fails closed with log_missing",
+      "status": "PASS",
+      "detail": "absent id -> log_missing; validation writes nothing"
+    },
+    {
+      "check": "C03 unbound task cannot ingest a lead log",
+      "status": "PASS",
+      "detail": "no binding -> no_binding; unknown source -> ValidationError"
+    },
+    {
+      "check": "C04 valid binding + sha256 of verified raw bytes",
+      "status": "PASS",
+      "detail": "validate returns raw-bytes sha256; one-time binding; only its Task can resolve it"
+    },
+    {
+      "check": "C05 duplicate/foreign binding rejected (store + DB level)",
+      "status": "PASS",
+      "detail": "both uniqueness directions + FK enforced by SQLite; exactly 1 binding row"
+    },
+    {
+      "check": "C06 header id mismatch rejected",
+      "status": "PASS",
+      "detail": "header id != registered id -> header_mismatch"
+    },
+    {
+      "check": "C07 header cwd mismatch rejected",
+      "status": "PASS",
+      "detail": "cwd mismatch -> lead_cwd_mismatch; no workspace_root skips check (test-only)"
+    },
+    {
+      "check": "C08 missing lead sessions root rejected",
+      "status": "PASS",
+      "detail": "None/missing lead root -> lead_sessions_root_missing"
+    },
+    {
+      "check": "C09 ambiguous / missing log rejected",
+      "status": "PASS",
+      "detail": "two on-disk logs -> ambiguous_session_log; none -> log_missing"
+    },
+    {
+      "check": "C10 tampered registry binding rejected at resolution",
+      "status": "PASS",
+      "detail": "tampered binding id -> unknown_session (registry row is not trusted)"
+    },
+    {
+      "check": "C11 worker path unchanged + auto precedence",
+      "status": "PASS",
+      "detail": "worker path unchanged; auto=lead when bound, worker otherwise"
+    },
+    {
+      "check": "C12 auto with explicit worker_id semantics recorded",
+      "status": "PASS",
+      "detail": "auto + explicit worker_id -> worker (explicit selection wins)"
+    },
+    {
+      "check": "C13 binding reverse-map + one-time invariant",
+      "status": "PASS",
+      "detail": "one-time binding verified through both reverse-map directions"
+    },
+    {
+      "check": "C14 link/junction escape rejected",
+      "status": "PASS",
+      "detail": "junction component -> symlink_rejected"
+    },
+    {
+      "check": "D01 create_task binds verified Lead session",
+      "status": "PASS",
+      "detail": "binding + task_created(lead_session_id, notes) + lead_session_bound after it"
+    },
+    {
+      "check": "D02 invalid lead_session_id fails closed before persistence",
+      "status": "PASS",
+      "detail": "invalid candidates rejected before persistence (1 tasks unchanged)"
+    },
+    {
+      "check": "D03 duplicate Lead session rejected at create",
+      "status": "PASS",
+      "detail": "duplicate session on a second Task -> StateError, no Task persisted"
+    },
+    {
+      "check": "D04 create_task rejects cwd mismatch",
+      "status": "PASS",
+      "detail": "header cwd mismatch -> lead_cwd_mismatch, no Task persisted"
+    },
+    {
+      "check": "D05 ingest source=lead works and redacts path",
+      "status": "PASS",
+      "detail": "source=lead, path redacted, appended=19"
+    },
+    {
+      "check": "D06 ingest idempotency at evidence-chain level",
+      "status": "PASS",
+      "detail": "re-ingest appended=0, skipped_duplicates>0, no duplicated evidence records, chain ok"
+    },
+    {
+      "check": "D07 ingest source selection auto/worker/lead",
+      "status": "PASS",
+      "detail": "auto -> lead when bound; worker -> worker; bogus -> ValidationError"
+    },
+    {
+      "check": "D08 worker-only behaviour unchanged",
+      "status": "PASS",
+      "detail": "worker-only Task: no binding, auto resolves worker, task_created lead_session_id=None"
+    },
+    {
+      "check": "D09 completion_note persisted; no double ingest",
+      "status": "PASS",
+      "detail": "completion persisted completion_note, no double-ingest, idempotent re-complete"
+    },
+    {
+      "check": "D10 completion auto-ingests bound Lead log exactly once",
+      "status": "PASS",
+      "detail": "no double-ingest when already ingested; exactly one auto-ingest for a never-ingested bound Lead session"
+    },
+    {
+      "check": "D11 screenshot default step_id derivation",
+      "status": "PASS",
+      "detail": "default step_id=turn5-step3 from newest tool_call; explicit kept; bare -> None"
+    },
+    {
+      "check": "D12 worker-only completion path unchanged",
+      "status": "PASS",
+      "detail": "worker-only completion unchanged; completion_note written, intake notes preserved"
+    },
+    {
+      "check": "D13 intake notes preserved by completion (live defect regression)",
+      "status": "PASS",
+      "detail": "completion keeps tasks.notes byte-identical; completion_note holds the outcome; COMPLETION_PENDING transition writes completion_note only"
+    },
+    {
+      "check": "D14 pause/cancel do not mutate intake notes",
+      "status": "PASS",
+      "detail": "pause writes completion_note='pause: human asked'; cancel -> cancelled; intake notes byte-identical"
+    },
+    {
+      "check": "E01 worker-path reason codes identical to base",
+      "status": "PASS",
+      "detail": "reason codes identical: ['header_mismatch', 'log_missing', 'no_worker', 'sessions_root_missing', 'unknown_task']"
+    }
+  ]
+}

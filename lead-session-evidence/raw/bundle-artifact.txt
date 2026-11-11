@@ -1,0 +1,5 @@
+bundle_path: D:\CTF-SOLVER\dist\CTF-Solver-Lead-Session-Evidence.bundle
+bundle_sha256: DD7A3EF3C8B0D9A73234C290352319644E2F29E3B6EDB896A65D0F2B61A642B0
+bundle_bytes: 1313085
+bundle_verify: okay; complete history; ref refs/heads/feat/lead-session-evidence -> 726e741a0d858273c00d4e3d7317f3ad237cb8bf
+bundle_clone_head: 726e741a0d858273c00d4e3d7317f3ad237cb8bf (clean; focused 98 passed, 1 skipped)

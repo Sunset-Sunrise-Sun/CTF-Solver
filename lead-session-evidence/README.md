@@ -22,15 +22,18 @@ this directory only contains the verification/acceptance trail.
 | Process screenshot | PASS (live; desktop capture fixed root cause, 2560x1600 PNG in CAS, sha256 recorded) | `ctf_solver/delivery/screenshot.py` |
 | Evidence ZIP | PASS (live; 5 members incl. raw Lead log + events + writeup + screenshot + verifying manifest; two builds byte-identical) | `ctf_solver/delivery/bundle.py` |
 | Runs in the existing DeepSeek Harness environment | PASS (installed wheel + project-scoped Workspace MCP Bridge + hot reload; live MCP tool calls) | see report section 6 |
-| All necessary tests | 1114 passed, 5 skipped, 1 pre-existing environment-drift failure (reproduced on base commit) | `raw/tests-final.txt`, `raw/junit-final.xml` |
+| All necessary tests | 1114 passed, 5 skipped, 1 pre-existing environment-drift failure (reproduced on base commit) | `raw/tests-final.txt`, `raw/verifier/FINAL_full_pytest.txt` |
 | Draft PR | Branch + bundle prepared; **push is BLOCKED (no network access to GitHub in this environment)** | `DRAFT_PR.md` |
 
 ## Raw evidence (curated, text only; runtime imagery stays out of Git)
 
 | File | Content |
 |---|---|
-| `raw/tests-base-commit-baseline.txt`, `raw/tests-final.txt` | full suite on base `21908de` and final tree |
-| `raw/junit-base-commit-baseline.xml`, `raw/junit-final.xml` | machine-readable results |
+| `raw/tests-base-commit-baseline.txt`, `raw/tests-final.txt` | full suite on base `21908de` and final tree (JUnit XML deliberately stays out of Git: the repo's committed-JUnit gate requires privacy-redacted, failure-free XML, while the honest run contains the documented pre-existing baseline-drift failure) |
+| `raw/verifier/FINAL_*.txt`, `raw/verifier/phase2_*` | independent verifier suite runs and raw matrices |
+| `raw/VERIFIER_REPORT.md` | independent verification report and verdict |
+| `raw/bundle-clone*.txt`, `raw/bundle-artifact.txt` | Draft-PR bundle verify/clone/focused-test evidence |
+| `raw/live-runtime-status.json` | final live Manager status observed through the MCP surface |
 | `raw/live-run-1-verification.txt` | run 1 artifact verification (writeup/zip/manifest/CAS/chain/screenshot) |
 | `raw/live-run-1-binding-events.txt` | run 1 binding + task_created/lead_session_bound events |
 | `raw/live-run-1-notes-defect-evidence.txt` | run 1 P1-1 defect evidence (`notes == completion_note`) |
@@ -40,7 +43,7 @@ this directory only contains the verification/acceptance trail.
 | `raw/wheel-build-v*.txt`, `raw/wheel-install-v*.txt`, `raw/wheel-verify-v1.txt` | wheel builds (stdlib backend), installs, RECORD/import verification |
 | `raw/installed-wheel-final.txt`, `raw/installed-package-manifest-final.txt` | final installed package identity/hashes |
 | `raw/mcp.servers.yml.original`, `raw/mcp.servers.yml.final` | project MCP config before/after (Lead sessions root added) |
-| `raw/verifier-*` | independent verifier matrices/raw outputs |
+| `raw/verifier/*` | independent verifier matrices/raw outputs (see `raw/VERIFIER_REPORT.md`) |
 
 Large runtime artifacts (`evidence.zip`, `writeup.md`, `screenshot.png`, session log,
 Manager DB) intentionally stay outside Git under

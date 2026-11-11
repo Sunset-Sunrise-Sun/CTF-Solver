@@ -215,6 +215,15 @@ screenshots/CAS under `D:\CTF-SOLVER\.ctf-solver-data\cas\sha256\`.
     untouched base commit `21908de` in a separate worktree, so it is not a regression
     from this round. Baseline evidence: `raw/tests-base-commit-baseline.txt`.
   - 5 skips are the documented Windows symlink/real-ACP opt-in conditions.
+- **Evidence-packaging gate (found by the independent verifier on the first evidence
+  commit, fixed):** the repository already gates every committed `*junit*.xml` file
+  (well-formed, privacy-redacted, zero failures). The recorded raw JUnit XML necessarily
+  contains the Windows home path and the documented one baseline-drift failure, so the
+  JUnit XML is **kept out of Git** (it remains in the scratch plan directory); the
+  committed evidence uses the text suite logs instead, and the gate re-run passes
+  (2 passed). Full suite after this evidence-only fix: **1114 passed, 5 skipped,
+  1 pre-existing environment-drift failure** (also confirmed independently by the
+  verifier on a renamed scratch copy).
 - **Focused:** Lead binding/resolver, service flow, delivery/screenshot, skills, MCP
   server, migration, security-integration sets — all green (see verifier matrices).
 - **Independent verifier (separate read-only worktree + dedicated base-checkout):**
@@ -223,7 +232,11 @@ screenshots/CAS under `D:\CTF-SOLVER\.ctf-solver-data\cas\sha256\`.
   commit); migration/determinism matrix 12/12 PASS (genuine 1.1→1.2 migration from a
   read-only snapshot of the real pre-round DB, rows preserved, chain recomputed,
   source untouched; writeup and ZIP two-build byte equality; forced manifest failure
-  raises). See `raw/VERIFIER_REPORT.md` and `raw/verifier-*`.
+  raises). See `raw/VERIFIER_REPORT.md` and `raw/verifier/*`.
+- **Bundle / clone check:** `git bundle verify` exit 0 (complete history, ref
+  `feat/lead-session-evidence`); a clone from the bundle checks out the same tree cleanly
+  and passes the focused Lead/delivery/skills set (98 passed, 1 skipped). See
+  `raw/bundle-artifact.txt`, `raw/bundle-clone*.txt`.
 
 ---
 
@@ -254,7 +267,8 @@ This was verified live, not just by unit tests:
 - Branch: `feat/lead-session-evidence` (commit `340d6b5` product/tests/docs; later
   commits only add this evidence trail).
 - Git bundle: `D:\CTF-SOLVER\dist\CTF-Solver-Lead-Session-Evidence.bundle`
-  (`git bundle verify` checked; hash recorded in the final delivery message).
+  (`git bundle verify` exit 0, complete history; clone/focused-test checked; hash
+  recorded in the final delivery message and in `raw/bundle-artifact.txt`).
 - PR description: `DRAFT_PR.md`.
 - **BLOCKED:** creating/pushing the Draft PR requires network access to GitHub. In this
   environment `github.com:443` is unreachable (`git ls-remote` fails; `gh` is not

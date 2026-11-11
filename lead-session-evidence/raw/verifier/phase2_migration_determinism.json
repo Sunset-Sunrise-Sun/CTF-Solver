@@ -1,0 +1,68 @@
+{
+  "total": 12,
+  "pass": 12,
+  "fail": 0,
+  "skip": 0,
+  "results": [
+    {
+      "check": "F01 read-only snapshot of the real 1.1 database",
+      "status": "PASS",
+      "detail": "genuine 1.1 snapshot: 12 tables, 2 tasks, 18 events"
+    },
+    {
+      "check": "F02 migration 1.1 -> 1.2 is additive (rows preserved)",
+      "status": "PASS",
+      "detail": "1.1 -> 1.2 additive: version=1.2, completion_note + session_bindings added, 12 tables' row counts unchanged"
+    },
+    {
+      "check": "F03 all migrated row values preserved; completion_note default",
+      "status": "PASS",
+      "detail": "22 rows in tasks/workers/approvals/network_grants/events byte-identical; completion_note defaults to ''"
+    },
+    {
+      "check": "F04 evidence hash chain verifies after migration",
+      "status": "PASS",
+      "detail": "chain recomputes independently and chain_status ok over 18 events"
+    },
+    {
+      "check": "F05 real 1.1 source DB untouched",
+      "status": "PASS",
+      "detail": "pre-Round-1 1.1 backup byte-identical; still schema 1.1"
+    },
+    {
+      "check": "F06 live DB post-migration state verifies",
+      "status": "PASS",
+      "detail": "live DB already 1.2: chain ok over 1097 events, 4 tasks, 2 binding(s)"
+    },
+    {
+      "check": "G01 writeup determinism",
+      "status": "PASS",
+      "detail": "two builds byte-identical (sha256 5f698547d58905aa…, 4564 bytes)"
+    },
+    {
+      "check": "G02 writeup notes/completion-note rendering",
+      "status": "PASS",
+      "detail": "notes exactly once (section 1); completion note once (2.1); no duplication"
+    },
+    {
+      "check": "G03 writeup turn/step heading + derived screenshot binding",
+      "status": "PASS",
+      "detail": "tool_call heading `### Step 2 — Lead initiated `bash` (turn 2, step 3) at 2023-11-14T22:13:20.020Z`; derived-step screenshot attached (listed 2x because both event families share step turn2-step3)"
+    },
+    {
+      "check": "G04 ZIP determinism + internal verify + raw log inclusion",
+      "status": "PASS",
+      "detail": "ZIP determinism sha256 82bb2a6d1bd8be8d…; internal verify ok; writeup+events+screenshot+raw session log included"
+    },
+    {
+      "check": "G05 bundle fails closed when internal verify fails",
+      "status": "PASS",
+      "detail": "forced manifest failure raises DeliveryError (fail closed)"
+    },
+    {
+      "check": "G06 final ZIP manifest verifies",
+      "status": "PASS",
+      "detail": "final ZIP still verifies (6 members)"
+    }
+  ]
+}

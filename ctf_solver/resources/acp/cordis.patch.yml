@@ -1,0 +1,24 @@
+# Project-scoped sample: disable Harness session-log external delivery
+#
+# The full Harness integration audit (2026-11-10) found `dsh-session-log-deepseek`
+# enabled by default: it uploads incremental normalized session data as the
+# `dsh_session_log` field of official API requests (delivery-accepted observed).
+# CTF content is sensitive, so this must be disabled/excluded before real
+# challenge data is processed.
+#
+# IMPORTANT (authorization boundary):
+# * This file is a *project-owned sample*. It must NOT be copied into or applied
+#   to the live global Harness profile in this development cycle.
+# * Round 1 verifies only that an isolated temporary DSH_HOME profile composed
+#   with this patch reports the plugin disabled (`dsh --dump-config`; zero model
+#   calls). The negative outbound-delivery canary test requires a model request
+#   and is therefore BLOCKED in Round 1 (see docs/ROUND_1_ARCHITECTURE_NOTES.md).
+#
+# Usage with an isolated temporary DSH_HOME (never the real ~/.dsh):
+#   $env:DSH_HOME = "<temp-dir>"
+#   dsh --profile acp --patch config/acp/cordis.patch.yml --dump-config
+#
+- id: session-log-deepseek
+  name: "@deepseek-ai/dsh-session-log-deepseek"
+  config:
+    enabled: false

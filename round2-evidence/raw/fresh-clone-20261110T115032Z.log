@@ -1,0 +1,244 @@
+===== git clone =====
+git clone --no-hardlinks --branch feat/round2-harness-integration D:\CTF-SOLVER <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-5vpivx87\clone
+Cloning into '<USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-5vpivx87\clone'...
+done.
+
+===== working-tree overlay =====
+{
+  "tracked_changed": 25,
+  "tracked_deleted": 0,
+  "untracked_copied": 26,
+  "skipped": [
+    "round2-evidence/full-suite-interim.txt",
+    "round2-evidence/full-suite-interim2.txt",
+    "round2-evidence/lead-integration2.txt",
+    "round2-evidence/lead-round2-tests1.txt",
+    "round2-evidence/lead-subset1.txt",
+    "round2-evidence/lead-subset2.txt",
+    "round2-evidence/lead-subset3.txt",
+    "round2-evidence/lead-verifier2.txt",
+    "round2-evidence/raw/"
+  ],
+  "errors": []
+}
+===== clone pytest =====
+<USER_HOME>\AppData\Local\Programs\Python\Python314\python.exe -m pytest tests -q -p no:cacheprovider (cwd=<USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-5vpivx87\clone)
+exit=1
+........................................................................ [  7%]
+........................................................................ [ 15%]
+........................................................................ [ 23%]
+........................................................................ [ 30%]
+........................................................................ [ 38%]
+........................................................................ [ 46%]
+........................s..s............................................ [ 54%]
+........................................................................ [ 61%]
+.............................s.......................................... [ 69%]
+........................................................................ [ 77%]
+........................................................................ [ 84%]
+....................s...FFFFF........................................... [ 92%]
+.....................................................................    [100%]
+================================== FAILURES ===================================
+_________ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-web] _________
+
+name = 'ctf-web'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000001B0DD900560>('---\n')
+E        +    where <built-in method startswith of str object at 0x000001B0DD900560> = '---\r\nname: ctf-web\r\ndescription: Web challenge reasoning for CTF-Solver; source/configuration and protocol analys...he recorded\r\n  request/response evidence.\r\n- A candidate Flag is recorded as `candidate`; the user submits it.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+________ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-misc] _________
+
+name = 'ctf-misc'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000001B0DD8795C0>('---\n')
+E        +    where <built-in method startswith of str object at 0x000001B0DD8795C0> = '---\r\nname: ctf-misc\r\ndescription: Misc challenge reasoning for CTF-Solver; file/archive metadata and format inspe...).\r\n- Do not fabricate an extracted flag; candidate Flag state is `candidate` and only the\r\n  user submits it.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+_______ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-crypto] ________
+
+name = 'ctf-crypto'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000001B0DDAB5C10>('---\n')
+E        +    where <built-in method startswith of str object at 0x000001B0DDAB5C10> = '---\r\nname: ctf-crypto\r\ndescription: Crypto challenge reasoning for CTF-Solver; prefer mathematical structure and ...es or tools; if a required library is missing, report the\r\n  exact missing dependency as a blocked step instead.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+_______ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-reverse] _______
+
+name = 'ctf-reverse'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000001B0DD80A770>('---\n')
+E        +    where <built-in method startswith of str object at 0x000001B0DD80A770> = '---\r\nname: ctf-reverse\r\ndescription: Reverse-engineering challenge reasoning for CTF-Solver; static analysis firs...bypass the execution boundary by using shell one-liners, installers or host\r\n  PowerShell to run challenge code.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+_________ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-pwn] _________
+
+name = 'ctf-pwn'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000001B0DDEF9640>('---\n')
+E        +    where <built-in method startswith of str object at 0x000001B0DDEF9640> = '---\r\nname: ctf-pwn\r\ndescription: Pwn challenge reasoning for CTF-Solver; local static analysis and safe reasoning... recorded as `candidate`; the user confirms and submits.\r\n- Do not fabricate a shell, a leak, a crash or a Flag.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_intake.py:85: cannot create file symlink on this Windows host without elevation
+SKIPPED [1] tests\test_intake.py:85: cannot create destination symlink on this Windows host without elevation
+SKIPPED [1] tests\test_real_acp_smoke.py:24: real ACP smoke test is opt-in (CTF_SOLVER_ENABLE_REAL_ACP=1); Round 1 default is fake-only
+SKIPPED [1] tests\test_session_log_resolver.py:552: Windows symlink/junction creation unavailable in this environment (not elevated and/or Developer Mode off); link-escape case not exercised
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-web]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-misc]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-crypto]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-reverse]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-pwn]
+5 failed, 924 passed, 4 skipped in 61.78s (0:01:01)
+
+===== clone wheel build =====
+<USER_HOME>\AppData\Local\Programs\Python\Python314\python.exe <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-5vpivx87\clone\scripts\build_wheel.py --repo <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-5vpivx87\clone --out <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-5vpivx87\clone\dist --evidence-json D:\CTF-SOLVER\round2-evidence\raw\fresh-clone-wheel-build-20261110T115032Z.json (cwd=<USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-5vpivx87\clone)
+exit=0
+{
+  "ok": true,
+  "generated_at_utc": "2026-11-10T11:51:38Z",
+  "repo_root": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone",
+  "branch": "feat/round2-harness-integration",
+  "head": "8615af6f552813d50ed2f429b45ef4bdfe65e326",
+  "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "python_executable": "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+  "pip_version": "pip 26.2.1 from <USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\pip (python 3.14)",
+  "out_dir": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone\\dist",
+  "commands": [
+    {
+      "command": [
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "-m",
+        "pip",
+        "wheel",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone",
+        "--no-deps",
+        "--no-build-isolation",
+        "--disable-pip-version-check",
+        "--no-input",
+        "--no-cache-dir",
+        "-w",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone\\dist"
+      ],
+      "returncode": 0,
+      "seconds": 1.562,
+      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.0-py3-none-any.whl size=204796 sha256=a8fc0bea6ccb8fc90865d0e42cdc6b491e2d31ebbd2203ff20a8488d53940c20\n  Stored in directory: <USER_HOME>\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-cs857noz\\wheels\\6e\\c6\\1a\\37f3f749f167c46eb887c3dcbc3fc1d58c05565c22584d2fcb\nSuccessfully built ctf-solver\n",
+      "stderr_tail": "",
+      "builder": "pip",
+      "produced_wheel": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone\\dist\\ctf_solver-0.1.0-py3-none-any.whl"
+    }
+  ],
+  "errors": [],
+  "builder": "pip",
+  "wheel": {
+    "filename": "ctf_solver-0.1.0-py3-none-any.whl",
+    "path": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-5vpivx87\\clone\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
+    "size": 204796,
+    "sha256": "a8fc0bea6ccb8fc90865d0e42cdc6b491e2d31ebbd2203ff20a8488d53940c20"
+  },
+  "verification": {
+    "structure": {
+      "ok": true,
+      "wheel_filename": "ctf_solver-0.1.0-py3-none-any.whl",
+      "dist_info": "ctf_solver-0.1.0.dist-info",
+      "members": 63,
+      "packages": [
+        "ctf_solver",
+        "ctf_solver.acp",
+        "ctf_solver.core",
+        "ctf_solver.delivery",
+        "ctf_solver.evidence",
+        "ctf_solver.manager",
+        "ctf_solver.mcp",
+        "ctf_solver.policy",
+        "ctf_solver.preflight",
+        "ctf_solver.runtime",
+        "ctf_solver.security",
+        "ctf_solver.storage"
+      ],
+      "record_entries": 63,
+      "record_ok": true,
+      "metadata": {
+        "name": "ctf-solver",
+        "version": "0.1.0",
+        "requires_python": ">=3.11"
+      }
+    },
+    "imports": {
+      "ok": true,
+      "import_command": {
+        "command": [
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-c",
+          "import ctf_solver.evidence.store, ctf_solver.manager.service, ctf_solver.intake; from ctf_solver import __version__; print(__version__)"
+        ],
+        "returncode": 0,
+        "seconds": 0.43,
+        "stdout_tail": "0.1.0\n",
+        "stderr_tail": ""
+      },
+      "version_command": {
+        "command": [
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-m",
+          "ctf_solver",
+          "version"
+        ],
+        "returncode": 0,
+        "seconds": 0.164,
+        "stdout_tail": "ctf-solver 0.1.0\n",
+        "stderr_tail": ""
+      },
+      "imported_version": "0.1.0",
+      "required_imports": [
+        "ctf_solver.evidence.store",
+        "ctf_solver.manager.service",
+        "ctf_solver.intake"
+      ]
+    },
+    "ok": true
+  },
+  "duration_s": 2.896
+}
+
+EVIDENCE_JSON=D:\CTF-SOLVER\round2-evidence\raw\fresh-clone-wheel-build-20261110T115032Z.json
+

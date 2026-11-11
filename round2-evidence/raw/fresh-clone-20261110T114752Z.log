@@ -1,0 +1,389 @@
+===== git clone =====
+git clone --no-hardlinks --branch feat/round2-harness-integration D:\CTF-SOLVER <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-bvgmets5\clone
+Cloning into '<USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-bvgmets5\clone'...
+done.
+
+===== working-tree overlay =====
+{
+  "tracked_changed": 24,
+  "tracked_deleted": 0,
+  "untracked_copied": 25,
+  "skipped": [
+    "round2-evidence/full-suite-interim.txt",
+    "round2-evidence/lead-integration2.txt",
+    "round2-evidence/lead-subset1.txt",
+    "round2-evidence/lead-subset2.txt",
+    "round2-evidence/lead-subset3.txt",
+    "round2-evidence/lead-verifier2.txt",
+    "round2-evidence/raw/"
+  ],
+  "errors": []
+}
+===== clone pytest =====
+<USER_HOME>\AppData\Local\Programs\Python\Python314\python.exe -m pytest tests -q -p no:cacheprovider (cwd=<USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-bvgmets5\clone)
+exit=1
+........................................................................ [  7%]
+........................................................................ [ 15%]
+........................................................................ [ 23%]
+........................................................................ [ 31%]
+........................................................................ [ 39%]
+........................................................................ [ 46%]
+........................s..s....................................FF...... [ 54%]
+........................................................................ [ 62%]
+.............................s.......................................... [ 70%]
+........................................................................ [ 78%]
+........................................................................ [ 86%]
+.......s...FFFFF........................................................ [ 93%]
+........................................................                 [100%]
+================================== FAILURES ===================================
+___________ test_exec_server_identity_comes_from_env_not_arguments ____________
+
+fake_ipc = <tests.test_mcp_exec_server.FakeManagerIpc object at 0x000002C0E77EA9E0>
+
+    def test_exec_server_identity_comes_from_env_not_arguments(fake_ipc: FakeManagerIpc) -> None:
+        client = _exec_client(fake_ipc.url)
+        client.start()
+        try:
+            client.initialize()
+>           is_error, payload = client.call_tool(
+                "ctf_exec",
+                {
+                    "task_id": "t-test",
+                    "worker_id": "w-test",
+                    "step_id": "s",
+                    "tool_name": "internal.file_hash",
+                    "argv": ["x"],
+                    "cwd": "D:/synthetic/tasks/t-test/work",
+                    "worker_token": "attacker-supplied-token",
+                },
+            )
+
+tests\test_mcp_exec_server.py:212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+ctf_solver\mcp\client.py:287: in call_tool
+    result = self.request("tools/call", {"name": name, "arguments": arguments or {}})
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <ctf_solver.mcp.client.McpStdioClient object at 0x000002C0E787CD10>
+method = 'tools/call'
+params = {'name': 'ctf_exec', 'arguments': {'task_id': 't-test', 'worker_id': 'w-test', 'step_id': 's', 'tool_name': 'internal.file_hash', ...}}
+timeout = None
+
+    def request(self, method: str, params: dict[str, Any] | None = None, *, timeout: float | None = None) -> Any:
+        if self._proc is None:
+            self.start()
+        with self._pending_lock:
+            rpc_id = self._next_id
+            self._next_id += 1
+            pending = _Pending()
+            self._pending[rpc_id] = pending
+        message: dict[str, Any] = {"jsonrpc": "2.0", "id": rpc_id, "method": method}
+        if params is not None:
+            message["params"] = params
+        self._send(message)
+        deadline = time.monotonic() + (timeout if timeout is not None else self.request_timeout)
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                with self._pending_lock:
+                    self._pending.pop(rpc_id, None)
+                raise McpClientTimeout(f"no response to {method!r} within timeout")
+            if pending.event.wait(min(remaining, 0.2)):
+                break
+            if self._proc.poll() is not None and not pending.event.is_set():
+                # Give the reader thread a final chance to flush the response.
+                if pending.event.wait(0.1):
+                    break
+                with self._pending_lock:
+                    self._pending.pop(rpc_id, None)
+                raise McpProcessExited(
+                    f"MCP server exited (code {self._proc.returncode}) while waiting for {method!r}"
+                )
+        if pending.error is not None:
+>           raise McpRemoteError(
+                str(pending.error.get("message", "remote error")),
+                code=pending.error.get("code"),
+                data=pending.error.get("data"),
+            )
+E           ctf_solver.mcp.client.McpRemoteError: arguments do not match the schema for tool ctf_exec
+
+ctf_solver\mcp\client.py:252: McpRemoteError
+___________________ test_exec_server_rejects_non_array_argv ___________________
+
+fake_ipc = <tests.test_mcp_exec_server.FakeManagerIpc object at 0x000002C0E77E9220>
+
+    def test_exec_server_rejects_non_array_argv(fake_ipc: FakeManagerIpc) -> None:
+        client = _exec_client(fake_ipc.url)
+        client.start()
+        try:
+            client.initialize()
+>           is_error, payload = client.call_tool(
+                "ctf_exec",
+                {
+                    "task_id": "t-test",
+                    "worker_id": "w-test",
+                    "step_id": "s",
+                    "tool_name": "internal.file_hash",
+                    "argv": "echo hello; rm -rf /",
+                    "cwd": "D:/synthetic/tasks/t-test/work",
+                },
+            )
+
+tests\test_mcp_exec_server.py:237: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+ctf_solver\mcp\client.py:287: in call_tool
+    result = self.request("tools/call", {"name": name, "arguments": arguments or {}})
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <ctf_solver.mcp.client.McpStdioClient object at 0x000002C0E787E140>
+method = 'tools/call'
+params = {'name': 'ctf_exec', 'arguments': {'task_id': 't-test', 'worker_id': 'w-test', 'step_id': 's', 'tool_name': 'internal.file_hash', ...}}
+timeout = None
+
+    def request(self, method: str, params: dict[str, Any] | None = None, *, timeout: float | None = None) -> Any:
+        if self._proc is None:
+            self.start()
+        with self._pending_lock:
+            rpc_id = self._next_id
+            self._next_id += 1
+            pending = _Pending()
+            self._pending[rpc_id] = pending
+        message: dict[str, Any] = {"jsonrpc": "2.0", "id": rpc_id, "method": method}
+        if params is not None:
+            message["params"] = params
+        self._send(message)
+        deadline = time.monotonic() + (timeout if timeout is not None else self.request_timeout)
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                with self._pending_lock:
+                    self._pending.pop(rpc_id, None)
+                raise McpClientTimeout(f"no response to {method!r} within timeout")
+            if pending.event.wait(min(remaining, 0.2)):
+                break
+            if self._proc.poll() is not None and not pending.event.is_set():
+                # Give the reader thread a final chance to flush the response.
+                if pending.event.wait(0.1):
+                    break
+                with self._pending_lock:
+                    self._pending.pop(rpc_id, None)
+                raise McpProcessExited(
+                    f"MCP server exited (code {self._proc.returncode}) while waiting for {method!r}"
+                )
+        if pending.error is not None:
+>           raise McpRemoteError(
+                str(pending.error.get("message", "remote error")),
+                code=pending.error.get("code"),
+                data=pending.error.get("data"),
+            )
+E           ctf_solver.mcp.client.McpRemoteError: arguments do not match the schema for tool ctf_exec
+
+ctf_solver\mcp\client.py:252: McpRemoteError
+_________ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-web] _________
+
+name = 'ctf-web'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000002C0E63A2AE0>('---\n')
+E        +    where <built-in method startswith of str object at 0x000002C0E63A2AE0> = '---\r\nname: ctf-web\r\ndescription: Web challenge reasoning for CTF-Solver; source/configuration and protocol analys...he recorded\r\n  request/response evidence.\r\n- A candidate Flag is recorded as `candidate`; the user submits it.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+________ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-misc] _________
+
+name = 'ctf-misc'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000002C0E2D27AC0>('---\n')
+E        +    where <built-in method startswith of str object at 0x000002C0E2D27AC0> = '---\r\nname: ctf-misc\r\ndescription: Misc challenge reasoning for CTF-Solver; file/archive metadata and format inspe...).\r\n- Do not fabricate an extracted flag; candidate Flag state is `candidate` and only the\r\n  user submits it.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+_______ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-crypto] ________
+
+name = 'ctf-crypto'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000002C0E1F2AA30>('---\n')
+E        +    where <built-in method startswith of str object at 0x000002C0E1F2AA30> = '---\r\nname: ctf-crypto\r\ndescription: Crypto challenge reasoning for CTF-Solver; prefer mathematical structure and ...es or tools; if a required library is missing, report the\r\n  exact missing dependency as a blocked step instead.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+_______ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-reverse] _______
+
+name = 'ctf-reverse'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000002C0E6002DC0>('---\n')
+E        +    where <built-in method startswith of str object at 0x000002C0E6002DC0> = '---\r\nname: ctf-reverse\r\ndescription: Reverse-engineering challenge reasoning for CTF-Solver; static analysis firs...bypass the execution boundary by using shell one-liners, installers or host\r\n  PowerShell to run challenge code.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+_________ test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-pwn] _________
+
+name = 'ctf-pwn'
+
+    @pytest.mark.parametrize("name", EXPECTED)
+    def test_skill_is_utf8_without_bom_and_has_frontmatter(name: str) -> None:
+        path = SKILLS_ROOT / name / "SKILL.md"
+        raw = path.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"{name} must be UTF-8 without BOM"
+        text = raw.decode("utf-8")
+>       assert text.startswith("---\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000002C0E1832830>('---\n')
+E        +    where <built-in method startswith of str object at 0x000002C0E1832830> = '---\r\nname: ctf-pwn\r\ndescription: Pwn challenge reasoning for CTF-Solver; local static analysis and safe reasoning... recorded as `candidate`; the user confirms and submits.\r\n- Do not fabricate a shell, a leak, a crash or a Flag.\r\n'.startswith
+
+tests\test_skills.py:32: AssertionError
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_intake.py:85: cannot create file symlink on this Windows host without elevation
+SKIPPED [1] tests\test_intake.py:85: cannot create destination symlink on this Windows host without elevation
+SKIPPED [1] tests\test_real_acp_smoke.py:24: real ACP smoke test is opt-in (CTF_SOLVER_ENABLE_REAL_ACP=1); Round 1 default is fake-only
+SKIPPED [1] tests\test_session_log_resolver.py:552: Windows symlink/junction creation unavailable in this environment (not elevated and/or Developer Mode off); link-escape case not exercised
+FAILED tests/test_mcp_exec_server.py::test_exec_server_identity_comes_from_env_not_arguments
+FAILED tests/test_mcp_exec_server.py::test_exec_server_rejects_non_array_argv
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-web]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-misc]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-crypto]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-reverse]
+FAILED tests/test_skills.py::test_skill_is_utf8_without_bom_and_has_frontmatter[ctf-pwn]
+7 failed, 909 passed, 4 skipped in 65.11s (0:01:05)
+
+===== clone wheel build =====
+<USER_HOME>\AppData\Local\Programs\Python\Python314\python.exe <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-bvgmets5\clone\scripts\build_wheel.py --repo <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-bvgmets5\clone --out <USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-bvgmets5\clone\dist --evidence-json D:\CTF-SOLVER\round2-evidence\raw\fresh-clone-wheel-build-20261110T114752Z.json (cwd=<USER_HOME>\AppData\Local\Temp\ctf-solver-fresh-clone-bvgmets5\clone)
+exit=0
+{
+  "ok": true,
+  "generated_at_utc": "2026-11-10T11:49:00Z",
+  "repo_root": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-bvgmets5\\clone",
+  "branch": "feat/round2-harness-integration",
+  "head": "8615af6f552813d50ed2f429b45ef4bdfe65e326",
+  "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "python_executable": "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+  "pip_version": "pip 26.2.1 from <USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\pip (python 3.14)",
+  "out_dir": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-bvgmets5\\clone\\dist",
+  "commands": [
+    {
+      "command": [
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "-m",
+        "pip",
+        "wheel",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-bvgmets5\\clone",
+        "--no-deps",
+        "--no-build-isolation",
+        "--disable-pip-version-check",
+        "--no-input",
+        "--no-cache-dir",
+        "-w",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-bvgmets5\\clone\\dist"
+      ],
+      "returncode": 0,
+      "seconds": 1.522,
+      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.0-py3-none-any.whl size=204827 sha256=e05b119cb6962190fb327a051eefd75abce35f9423636bd4b44ac463d0dbb904\n  Stored in directory: <USER_HOME>\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-hmvc7r5l\\wheels\\75\\97\\e7\\14a9064ef020db47c928840ad637bf5955ac58b3bfe55c81e7\nSuccessfully built ctf-solver\n",
+      "stderr_tail": "",
+      "builder": "pip",
+      "produced_wheel": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-bvgmets5\\clone\\dist\\ctf_solver-0.1.0-py3-none-any.whl"
+    }
+  ],
+  "errors": [],
+  "builder": "pip",
+  "wheel": {
+    "filename": "ctf_solver-0.1.0-py3-none-any.whl",
+    "path": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-fresh-clone-bvgmets5\\clone\\dist\\ctf_solver-0.1.0-py3-none-any.whl",
+    "size": 204827,
+    "sha256": "e05b119cb6962190fb327a051eefd75abce35f9423636bd4b44ac463d0dbb904"
+  },
+  "verification": {
+    "structure": {
+      "ok": true,
+      "wheel_filename": "ctf_solver-0.1.0-py3-none-any.whl",
+      "dist_info": "ctf_solver-0.1.0.dist-info",
+      "members": 63,
+      "packages": [
+        "ctf_solver",
+        "ctf_solver.acp",
+        "ctf_solver.core",
+        "ctf_solver.delivery",
+        "ctf_solver.evidence",
+        "ctf_solver.manager",
+        "ctf_solver.mcp",
+        "ctf_solver.policy",
+        "ctf_solver.preflight",
+        "ctf_solver.runtime",
+        "ctf_solver.security",
+        "ctf_solver.storage"
+      ],
+      "record_entries": 63,
+      "record_ok": true,
+      "metadata": {
+        "name": "ctf-solver",
+        "version": "0.1.0",
+        "requires_python": ">=3.11"
+      }
+    },
+    "imports": {
+      "ok": true,
+      "import_command": {
+        "command": [
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-c",
+          "import ctf_solver.evidence.store, ctf_solver.manager.service, ctf_solver.intake; from ctf_solver import __version__; print(__version__)"
+        ],
+        "returncode": 0,
+        "seconds": 0.432,
+        "stdout_tail": "0.1.0\n",
+        "stderr_tail": ""
+      },
+      "version_command": {
+        "command": [
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-m",
+          "ctf_solver",
+          "version"
+        ],
+        "returncode": 0,
+        "seconds": 0.171,
+        "stdout_tail": "ctf-solver 0.1.0\n",
+        "stderr_tail": ""
+      },
+      "imported_version": "0.1.0",
+      "required_imports": [
+        "ctf_solver.evidence.store",
+        "ctf_solver.manager.service",
+        "ctf_solver.intake"
+      ]
+    },
+    "ok": true
+  },
+  "duration_s": 2.904
+}
+
+EVIDENCE_JSON=D:\CTF-SOLVER\round2-evidence\raw\fresh-clone-wheel-build-20261110T114752Z.json
+

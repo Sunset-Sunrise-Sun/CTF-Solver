@@ -1,0 +1,5 @@
+﻿dsh_home=<USER_HOME>\AppData\Local\Temp\dsh-privacy-gate-a54077e06c3740228b750a5bc408ea55
+<DSH_HOME>\profiles\acp\cordis.patch.yml
+<DSH_HOME>\profiles\acp\cordis.yml
+<DSH_HOME>\profiles\acp\package.json
+<DSH_HOME>\profiles\acp\pnpm-workspace.yaml

@@ -1,0 +1,106 @@
+{
+  "ok": true,
+  "generated_at_utc": "2026-11-11T07:41:43Z",
+  "repo_root": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-v011-release-cd79f3d2ba244309b17865d901e93b70",
+  "branch": "fix/v0.1.1-installation-hardening",
+  "head": "ddbd49180f9a9f0afe77ed1890fa004565cc0846",
+  "python": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "python_executable": "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+  "pip_version": "pip 26.2.1 from <USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\pip (python 3.14)",
+  "out_dir": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-v011-release-cd79f3d2ba244309b17865d901e93b70\\dist",
+  "commands": [
+    {
+      "command": [
+        "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+        "-m",
+        "pip",
+        "wheel",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-v011-release-cd79f3d2ba244309b17865d901e93b70",
+        "--no-deps",
+        "--no-build-isolation",
+        "--disable-pip-version-check",
+        "--no-input",
+        "--no-cache-dir",
+        "-w",
+        "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-v011-release-cd79f3d2ba244309b17865d901e93b70\\dist"
+      ],
+      "returncode": 0,
+      "seconds": 2.331,
+      "stdout_tail": "Processing .\\.\n  Preparing metadata (pyproject.toml): started\n  Preparing metadata (pyproject.toml): finished with status 'done'\nBuilding wheels for collected packages: ctf-solver\n  Building wheel for ctf-solver (pyproject.toml): started\n  Building wheel for ctf-solver (pyproject.toml): finished with status 'done'\n  Created wheel for ctf-solver: filename=ctf_solver-0.1.1-py3-none-any.whl size=225206 sha256=675d088ff8c22461090dd41c1b6ce9c36b042009bdbad3d110d017a1feda3c0d\n  Stored in directory: <USER_HOME>\\AppData\\Local\\Temp\\pip-ephem-wheel-cache-ntgflddd\\wheels\\d3\\64\\7d\\b58df5002ee15a46dab4e02a84b3f4e985c700db9f0ef70a17\nSuccessfully built ctf-solver\n",
+      "stderr_tail": "",
+      "builder": "pip",
+      "produced_wheel": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-v011-release-cd79f3d2ba244309b17865d901e93b70\\dist\\ctf_solver-0.1.1-py3-none-any.whl"
+    }
+  ],
+  "errors": [],
+  "builder": "pip",
+  "wheel": {
+    "filename": "ctf_solver-0.1.1-py3-none-any.whl",
+    "path": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-v011-release-cd79f3d2ba244309b17865d901e93b70\\dist\\ctf_solver-0.1.1-py3-none-any.whl",
+    "size": 225206,
+    "sha256": "675d088ff8c22461090dd41c1b6ce9c36b042009bdbad3d110d017a1feda3c0d"
+  },
+  "verification": {
+    "structure": {
+      "ok": true,
+      "wheel_filename": "ctf_solver-0.1.1-py3-none-any.whl",
+      "dist_info": "ctf_solver-0.1.1.dist-info",
+      "members": 65,
+      "packages": [
+        "ctf_solver",
+        "ctf_solver.acp",
+        "ctf_solver.core",
+        "ctf_solver.delivery",
+        "ctf_solver.evidence",
+        "ctf_solver.manager",
+        "ctf_solver.mcp",
+        "ctf_solver.policy",
+        "ctf_solver.preflight",
+        "ctf_solver.runtime",
+        "ctf_solver.security",
+        "ctf_solver.storage"
+      ],
+      "record_entries": 65,
+      "record_ok": true,
+      "metadata": {
+        "name": "ctf-solver",
+        "version": "0.1.1",
+        "requires_python": ">=3.11"
+      }
+    },
+    "imports": {
+      "ok": true,
+      "import_command": {
+        "command": [
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-c",
+          "import ctf_solver.evidence.store, ctf_solver.manager.service, ctf_solver.intake; from ctf_solver import __version__; print(__version__)"
+        ],
+        "returncode": 0,
+        "seconds": 0.647,
+        "stdout_tail": "0.1.1\n",
+        "stderr_tail": ""
+      },
+      "version_command": {
+        "command": [
+          "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+          "-m",
+          "ctf_solver",
+          "version"
+        ],
+        "returncode": 0,
+        "seconds": 0.264,
+        "stdout_tail": "ctf-solver 0.1.1\n",
+        "stderr_tail": ""
+      },
+      "imported_version": "0.1.1",
+      "required_imports": [
+        "ctf_solver.evidence.store",
+        "ctf_solver.manager.service",
+        "ctf_solver.intake"
+      ]
+    },
+    "ok": true
+  },
+  "duration_s": 4.335
+}

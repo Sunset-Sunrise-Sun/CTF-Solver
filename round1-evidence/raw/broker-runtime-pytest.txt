@@ -1,0 +1,16 @@
+# CTF-Solver Round 1 - broker/runtime raw pytest log
+# environment: Windows PowerShell 5.1; Python: Python 3.14.7; pytest 9.1.1
+# requested command: python -m pytest tests/test_broker_*.py tests/test_runtime_*.py -q
+# note: PowerShell does not expand globs for native commands, so the wildcard patterns were expanded to:
+System.Object[]
+#
+# raw pytest output:
+
+........................................................................ [ 24%]
+........................................................................ [ 48%]
+........................................................................ [ 72%]
+........................................................................ [ 97%]
+........                                                                 [100%]
+296 passed in 4.32s
+
+# exit_code=0

@@ -1,0 +1,16 @@
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 32%]
+........................................................................ [ 43%]
+........................................................................ [ 54%]
+........................................................................ [ 65%]
+........................................................................ [ 76%]
+........................................................................ [ 87%]
+....................................................XXX................. [ 98%]
+..........                                                               [100%]
+=================================== XPASSES ===================================
+=========================== short test summary info ===========================
+XPASS tests/test_verification_round1.py::test_defect_execution_rows_lose_request_and_denied_result_json - DEFECT: ctf_solver/manager/store.py:556-557 reads row['request']/row['result'], but ctf_solver/runtime/pipeline.py:578-579 supplies 'request_json'/'result_json'; executions.request_json is always '{}' and a denied call's result_json is '{}' (the durable execution row loses the request document).
+XPASS tests/test_verification_round1.py::test_defect_task_evidence_head_is_never_persisted - DEFECT: PRODUCT_SPEC ¡ì4 requires the Task minimum fields to include the evidence-chain head, but no Manager code updates tasks.evidence_head (ManagerStore.update_task_fields supports it and ctf_solver/manager/service.py never calls it), so the Writeup renders 'Evidence chain head: `unknown`'.
+XPASS tests/test_verification_round1.py::test_defect_privacy_gate_evidence_files_are_not_empty - EVIDENCE DEFECT: docs claim round1-evidence/raw/privacy-gate-exit.txt and privacy-gate-home-path.txt are raw evidence for the privacy gate, but both files are empty (0 bytes); only privacy-gate-result.txt carries exit_code=0.
+655 passed, 3 xpassed in 38.46s

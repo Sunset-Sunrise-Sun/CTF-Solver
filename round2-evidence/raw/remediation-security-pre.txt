@@ -1,0 +1,683 @@
+............F.F..F....FFFFFFFF.F.......F...F.                            [100%]
+================================== FAILURES ===================================
+_____________ test_malformed_digest_and_empty_summary_fail_closed _____________
+
+    def test_malformed_digest_and_empty_summary_fail_closed() -> None:
+        channel = scripted_channel(FixedClock(), [f"CONFIRM {PREFIX}"])
+        with pytest.raises(ConfirmationError):
+            channel.confirm(approval_digest="", summary=SUMMARY)
+        with pytest.raises(ConfirmationError):
+            channel.confirm(approval_digest="not-a-digest", summary=SUMMARY)
+        with pytest.raises(ConfirmationError):
+>           channel.confirm(approval_digest=DIGEST, summary="")
+
+tests\test_security_confirmation.py:221: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+ctf_solver\security\confirmation.py:147: in confirm
+    return self._interact(approval_digest=approval_digest, summary=summary, approve=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ctf_solver\security\confirmation.py:204: in _interact
+    summary_text = self._require_summary(summary)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ctf_solver\security\confirmation.py:174: in _require_summary
+    return require_displayable(summary, field="confirmation summary")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = '', field = 'confirmation summary', max_length = 1200
+
+    def require_displayable(text: Any, *, field: str = "summary", max_length: int = MAX_SUMMARY_CHARS) -> str:
+        """Validate a complete multi-field summary for human display.
+    
+        Unlike :func:`normalize_field` this preserves internal spaces (the summary
+        joins fields), but still rejects every control/format character, CR/LF and
+        over-long content. It never strips or rewrites characters: what is
+        displayed must be exactly what the caller hashed.
+        """
+    
+        if not isinstance(text, str):
+            raise UnsafeTextError(f"{field} must be a string")
+        if not text.strip():
+>           raise UnsafeTextError(f"{field} must not be empty")
+E           ctf_solver.security.textsafe.UnsafeTextError: confirmation summary must not be empty
+
+ctf_solver\security\textsafe.py:121: UnsafeTextError
+_____________ test_request_approval_is_pending_and_never_decided ______________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_request_approval_is_pendi0')
+
+    def test_request_approval_is_pending_and_never_decided(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        try:
+            approval = request_remote_approval(env)
+            assert approval.status is ApprovalStatus.PENDING
+            assert approval.approver is None
+            assert approval.decided_at is None
+            assert approval.consumed_at is None
+            assert approval.confirmation_channel is None
+            assert approval.confirmation_id is None
+            assert approval.confirmation_os_user is None
+>           assert set(approval.payload) == {"target", "profile"}
+E           AssertionError: assert {'grant_ttl_s...t', 'task_id'} == {'profile', 'target'}
+E             
+E             Extra items in the left set:
+E             'task_id'
+E             'max_calls'
+E             'grant_ttl_s'
+E             Use -v to get more diff
+
+tests\test_security_approval_grant.py:99: AssertionError
+___________ test_confirm_rejection_is_recorded_and_cannot_authorize ___________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_confirm_rejection_is_reco0')
+
+    def test_confirm_rejection_is_recorded_and_cannot_authorize(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        try:
+            approval = request_remote_approval(env)
+            decided = env.service.confirm_approval(
+                approval.approval_id,
+                channel=rejecting_channel(env.clock),
+                reject=True,
+            )
+            assert decided.status is ApprovalStatus.REJECTED
+            assert decided.approver == "human-owner"
+            assert decided.confirmation_note == "explicit human rejection"
+            assert env.evidence.of_type("approval_decided")[0]["payload"]["approved"] is False
+            with pytest.raises(StateError):
+                env.service.create_grant_from_approval(
+>                   approval.approval_id, **_grant_args(decided)
+                                            ^^^^^^^^^^^^^^^^^^^^
+                )
+
+tests\test_security_approval_grant.py:226: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+approval = ApprovalRecord(approval_id='apr-c15d786f07d844b5965022a1d7705643', task_id='t-security01', action_kind='remote_target'...38e24e2-6b5d-49c7-bdbe-3980e4aa6ee5', confirmation_os_user='human-owner', confirmation_note='explicit human rejection')
+
+    def _grant_args(approval) -> dict:
+        target = approval.payload["target"]
+        return {
+            "competition_profile": approval.payload["profile"],
+            "host": target["host"],
+            "port": target["port"],
+            "protocol": target["protocol"],
+            "method": target["method"],
+>           "path_prefix": target["path"],
+                           ^^^^^^^^^^^^^^
+        }
+E       KeyError: 'path'
+
+tests\test_security_approval_grant.py:63: KeyError
+_______________ test_grant_requires_a_human_confirmed_approval ________________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_grant_requires_a_human_co0')
+
+    def test_grant_requires_a_human_confirmed_approval(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        try:
+            pending = request_remote_approval(env)
+            with pytest.raises(StateError):
+                env.service.create_grant_from_approval(
+>                   pending.approval_id, **_grant_args(pending)
+                                           ^^^^^^^^^^^^^^^^^^^^
+                )
+
+tests\test_security_approval_grant.py:315: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+approval = ApprovalRecord(approval_id='apr-38db863391c14507ba2ad6539d5de6ae', task_id='t-security01', action_kind='remote_target'..., consumed_at=None, confirmation_channel=None, confirmation_id=None, confirmation_os_user=None, confirmation_note=None)
+
+    def _grant_args(approval) -> dict:
+        target = approval.payload["target"]
+        return {
+            "competition_profile": approval.payload["profile"],
+            "host": target["host"],
+            "port": target["port"],
+            "protocol": target["protocol"],
+            "method": target["method"],
+>           "path_prefix": target["path"],
+                           ^^^^^^^^^^^^^^
+        }
+E       KeyError: 'path'
+
+tests\test_security_approval_grant.py:63: KeyError
+_______ test_grant_creation_binds_task_target_profile_and_confirmation ________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_grant_creation_binds_task0')
+
+    def test_grant_creation_binds_task_target_profile_and_confirmation(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        try:
+            approval = request_remote_approval(env)
+            decided = _approve(env, approval.approval_id)
+            grant = env.service.create_grant_from_approval(
+>               approval.approval_id, **_grant_args(decided), ttl_s=900, max_calls=4
+                                        ^^^^^^^^^^^^^^^^^^^^
+            )
+
+tests\test_security_approval_grant.py:358: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+approval = ApprovalRecord(approval_id='apr-a9124787bbfc4890a1697e4e0b88af0d', task_id='t-security01', action_kind='remote_target'...ole', confirmation_id='7d1c1d32-052f-4ec3-9d6a-568fd3065498', confirmation_os_user='human-owner', confirmation_note='')
+
+    def _grant_args(approval) -> dict:
+        target = approval.payload["target"]
+        return {
+            "competition_profile": approval.payload["profile"],
+            "host": target["host"],
+            "port": target["port"],
+            "protocol": target["protocol"],
+            "method": target["method"],
+>           "path_prefix": target["path"],
+                           ^^^^^^^^^^^^^^
+        }
+E       KeyError: 'path'
+
+tests\test_security_approval_grant.py:63: KeyError
+________________ test_grant_consumes_the_approval_exactly_once ________________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_grant_consumes_the_approv0')
+
+    def test_grant_consumes_the_approval_exactly_once(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        try:
+            approval = request_remote_approval(env)
+            decided = _approve(env, approval.approval_id)
+>           args = _grant_args(decided)
+                   ^^^^^^^^^^^^^^^^^^^^
+
+tests\test_security_approval_grant.py:407: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+approval = ApprovalRecord(approval_id='apr-f10d363ef2f54633ba9f2686df345b70', task_id='t-security01', action_kind='remote_target'...ole', confirmation_id='9e84f094-562a-46b4-a2c1-f9f58ed2f198', confirmation_os_user='human-owner', confirmation_note='')
+
+    def _grant_args(approval) -> dict:
+        target = approval.payload["target"]
+        return {
+            "competition_profile": approval.payload["profile"],
+            "host": target["host"],
+            "port": target["port"],
+            "protocol": target["protocol"],
+            "method": target["method"],
+>           "path_prefix": target["path"],
+                           ^^^^^^^^^^^^^^
+        }
+E       KeyError: 'path'
+
+tests\test_security_approval_grant.py:63: KeyError
+_______ test_grant_target_or_profile_mismatch_fails_before_consumption ________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_grant_target_or_profile_m0')
+
+    def test_grant_target_or_profile_mismatch_fails_before_consumption(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        try:
+            approval = request_remote_approval(env)
+            decided = _approve(env, approval.approval_id)
+>           base = _grant_args(decided)
+                   ^^^^^^^^^^^^^^^^^^^^
+
+tests\test_security_approval_grant.py:423: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+approval = ApprovalRecord(approval_id='apr-f0f92a6393b749228c71236c10c045ee', task_id='t-security01', action_kind='remote_target'...ole', confirmation_id='6eaa909e-dc2f-4067-bad9-3b632e9c56de', confirmation_os_user='human-owner', confirmation_note='')
+
+    def _grant_args(approval) -> dict:
+        target = approval.payload["target"]
+        return {
+            "competition_profile": approval.payload["profile"],
+            "host": target["host"],
+            "port": target["port"],
+            "protocol": target["protocol"],
+            "method": target["method"],
+>           "path_prefix": target["path"],
+                           ^^^^^^^^^^^^^^
+        }
+E       KeyError: 'path'
+
+tests\test_security_approval_grant.py:63: KeyError
+____________ test_tampered_approval_payload_or_digest_fails_closed ____________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_tampered_approval_payload0')
+
+    def test_tampered_approval_payload_or_digest_fails_closed(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        try:
+            approval = request_remote_approval(env)
+            decided = _approve(env, approval.approval_id)
+>           args = _grant_args(decided)
+                   ^^^^^^^^^^^^^^^^^^^^
+
+tests\test_security_approval_grant.py:458: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+approval = ApprovalRecord(approval_id='apr-685982819016465fb10394b39c03c795', task_id='t-security01', action_kind='remote_target'...ole', confirmation_id='787ac996-081a-4438-b0d1-96aa4d4273f6', confirmation_os_user='human-owner', confirmation_note='')
+
+    def _grant_args(approval) -> dict:
+        target = approval.payload["target"]
+        return {
+            "competition_profile": approval.payload["profile"],
+            "host": target["host"],
+            "port": target["port"],
+            "protocol": target["protocol"],
+            "method": target["method"],
+>           "path_prefix": target["path"],
+                           ^^^^^^^^^^^^^^
+        }
+E       KeyError: 'path'
+
+tests\test_security_approval_grant.py:63: KeyError
+__________ test_cross_task_approval_cannot_mint_another_tasks_grant ___________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_cross_task_approval_canno0')
+
+    def test_cross_task_approval_cannot_mint_another_tasks_grant(tmp_path) -> None:
+        env = build_environment(tmp_path, extra_task_ids=("t-security02",))
+        other_task = env.extra_tasks["t-security02"]
+        try:
+            other_approval = request_remote_approval(env, task_id=other_task.task_id)
+            decided = _approve(env, other_approval.approval_id)
+            target = decided.payload["target"]
+            now = env.clock.now_ms()
+            wrong_task_grant = GrantRecord(
+                grant_id="grant-wrongtask01",
+                task_id=env.task.task_id,  # not the approval's Task
+                competition_profile=decided.payload["profile"],
+                host=target["host"],
+                port=target["port"],
+                protocol=target["protocol"],
+                method=target["method"],
+>               path_prefix=target["path"],
+                            ^^^^^^^^^^^^^^
+                expires_at=now + 60_000,
+                max_calls=1,
+                approver=decided.confirmation_os_user,
+                created_at=now,
+                approval_id=decided.approval_id,
+                confirmation_id=decided.confirmation_id,
+                confirmation_os_user=decided.confirmation_os_user,
+            )
+E           KeyError: 'path'
+
+tests\test_security_approval_grant.py:500: KeyError
+_________________ test_revoke_grant_is_durable_and_idempotent _________________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_revoke_grant_is_durable_a0')
+
+    def test_revoke_grant_is_durable_and_idempotent(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        try:
+            approval = request_remote_approval(env)
+            decided = _approve(env, approval.approval_id)
+            grant = env.service.create_grant_from_approval(
+>               approval.approval_id, **_grant_args(decided)
+                                        ^^^^^^^^^^^^^^^^^^^^
+            )
+
+tests\test_security_approval_grant.py:539: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+approval = ApprovalRecord(approval_id='apr-923b248a01704f89bb3f4898eaa7f944', task_id='t-security01', action_kind='remote_target'...ole', confirmation_id='f1ffb79f-8db0-4e4f-bdb2-abd712f7531d', confirmation_os_user='human-owner', confirmation_note='')
+
+    def _grant_args(approval) -> dict:
+        target = approval.payload["target"]
+        return {
+            "competition_profile": approval.payload["profile"],
+            "host": target["host"],
+            "port": target["port"],
+            "protocol": target["protocol"],
+            "method": target["method"],
+>           "path_prefix": target["path"],
+                           ^^^^^^^^^^^^^^
+        }
+E       KeyError: 'path'
+
+tests\test_security_approval_grant.py:63: KeyError
+_______________ test_list_approvals_and_grants_are_task_scoped ________________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_list_approvals_and_grants0')
+
+    def test_list_approvals_and_grants_are_task_scoped(tmp_path) -> None:
+        env = build_environment(tmp_path, extra_task_ids=("t-security02",))
+        other = env.extra_tasks["t-security02"]
+        try:
+            first = request_remote_approval(env)
+            second = request_remote_approval(env, task_id=other.task_id, port=9443)
+            assert [item.approval_id for item in env.service.list_approvals(task_id=env.task.task_id)] == [
+                first.approval_id
+            ]
+            assert [item.approval_id for item in env.service.list_approvals(task_id=other.task_id)] == [
+                second.approval_id
+            ]
+            decided = _approve(env, first.approval_id)
+>           env.service.create_grant_from_approval(first.approval_id, **_grant_args(decided))
+                                                                        ^^^^^^^^^^^^^^^^^^^^
+
+tests\test_security_approval_grant.py:564: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+approval = ApprovalRecord(approval_id='apr-2db9523f539748c89ad899200aff30e3', task_id='t-security01', action_kind='remote_target'...ole', confirmation_id='3ba7e804-dfe3-4917-b7f5-2fe19b08121d', confirmation_os_user='human-owner', confirmation_note='')
+
+    def _grant_args(approval) -> dict:
+        target = approval.payload["target"]
+        return {
+            "competition_profile": approval.payload["profile"],
+            "host": target["host"],
+            "port": target["port"],
+            "protocol": target["protocol"],
+            "method": target["method"],
+>           "path_prefix": target["path"],
+                           ^^^^^^^^^^^^^^
+        }
+E       KeyError: 'path'
+
+tests\test_security_approval_grant.py:63: KeyError
+________ test_remote_target_details_are_canonicalized_before_digesting ________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_remote_target_details_are0')
+
+    def test_remote_target_details_are_canonicalized_before_digesting(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        try:
+            details = {
+                "target": {
+                    "host": "CTF-Target.Example.",
+                    "port": "8443",
+                    "protocol": "HTTPS",
+                    "method": "post",
+                    "path": "api/challenge",
+                },
+                "profile": SYNTHETIC_PROFILE,
+            }
+>           canonical = canonical_approval_details("remote_target", details)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_security_approval_grant.py:626: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+action_kind = 'remote_target'
+details = {'target': {'host': 'CTF-Target.Example.', 'port': '8443', 'protocol': 'HTTPS', 'method': 'post', ...}, 'profile': 'synthetic-local'}
+task_id = None
+
+    def canonical_approval_details(
+        action_kind: str,
+        details: Mapping[str, Any],
+        *,
+        task_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Canonicalize caller-supplied approval details for the given action kind.
+    
+        ``remote_target`` has a frozen machine-checkable shape and always includes
+        the owning Task and the network grant TTL/call budget. Other action kinds
+        keep the caller's mapping verbatim (the Broker recomputes its own digest
+        from the typed execution request).
+        """
+    
+        if not isinstance(details, Mapping):
+            raise ValidationError("approval details must be a JSON object")
+        if action_kind != _REMOTE_TARGET:
+            return {str(key): value for key, value in details.items()}
+    
+        target = details.get("target")
+        profile = details.get("profile")
+        if not isinstance(target, Mapping):
+            raise ValidationError(
+                "a remote_target approval requires details={'target': {...}, 'profile': ..., "
+                "'grant_ttl_s': int, 'max_calls': int}"
+            )
+        if profile is None or not str(profile).strip():
+            raise ValidationError(
+                "a remote_target approval requires a non-empty competition profile"
+            )
+        payload_task_id = details.get("task_id")
+        if payload_task_id is not None and task_id is not None:
+            if str(payload_task_id) != str(task_id):
+                raise ValidationError(
+                    "remote_target approval details task_id does not match the owning Task"
+                )
+        effective_task_id = task_id if task_id is not None else payload_task_id
+        if effective_task_id is None:
+>           raise ValidationError("a remote_target approval requires the owning Task ID")
+E           ctf_solver.core.errors.ValidationError: a remote_target approval requires the owning Task ID
+
+ctf_solver\manager\approval_grant_service.py:313: ValidationError
+________ test_atomic_grant_creation_across_connections_only_one_winner ________
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_atomic_grant_creation_acr0')
+
+    def test_atomic_grant_creation_across_connections_only_one_winner(tmp_path) -> None:
+        env = build_environment(tmp_path)
+        second_store = ManagerStore(str(env.config.paths.db_path), clock=env.clock)
+        try:
+            decided = _approved_remote(env)
+>           grant_one = _grant_record(env, decided, grant_id="grant-race01")
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_security_store.py:236: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+env = SecurityEnvironment(tmp_path=WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_atomic_gr...1700000000000, updated_at=1700000000000, started_at=None, ended_at=None, evidence_head=None, notes=''), extra_tasks={})
+decided = ApprovalRecord(approval_id='apr-1c6ea87c45da42e1a9d7d73ca8dd6b51', task_id='t-security01', action_kind='remote_target'...ole', confirmation_id='25cfb79c-c783-4ef9-9e65-25934033eb4d', confirmation_os_user='human-owner', confirmation_note='')
+grant_id = 'grant-race01', task_id = None
+
+    def _grant_record(env, decided, *, grant_id: str, task_id: str | None = None) -> GrantRecord:
+        target = decided.payload["target"]
+        now = env.clock.now_ms()
+        return GrantRecord(
+            grant_id=grant_id,
+            task_id=task_id or decided.task_id,
+            competition_profile=decided.payload["profile"],
+            host=target["host"],
+            port=target["port"],
+            protocol=target["protocol"],
+            method=target["method"],
+>           path_prefix=target["path"],
+                        ^^^^^^^^^^^^^^
+            expires_at=now + 60_000,
+            max_calls=2,
+            approver=decided.confirmation_os_user,
+            created_at=now,
+            approval_id=decided.approval_id,
+            confirmation_id=decided.confirmation_id,
+            confirmation_os_user=decided.confirmation_os_user,
+        )
+E       KeyError: 'path'
+
+tests\test_security_store.py:53: KeyError
+__________ test_service_emits_frozen_events_into_real_evidence_store __________
+
+action_kind = 'remote_target'
+details = {'target': {'host': 'ctf-target.example', 'port': 8443, 'protocol': 'https', 'method': 'POST', ...}, 'profile': 'synthetic-local'}
+task_id = 't-security01'
+
+    def canonical_approval_details(
+        action_kind: str,
+        details: Mapping[str, Any],
+        *,
+        task_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Canonicalize caller-supplied approval details for the given action kind.
+    
+        ``remote_target`` has a frozen machine-checkable shape and always includes
+        the owning Task and the network grant TTL/call budget. Other action kinds
+        keep the caller's mapping verbatim (the Broker recomputes its own digest
+        from the typed execution request).
+        """
+    
+        if not isinstance(details, Mapping):
+            raise ValidationError("approval details must be a JSON object")
+        if action_kind != _REMOTE_TARGET:
+            return {str(key): value for key, value in details.items()}
+    
+        target = details.get("target")
+        profile = details.get("profile")
+        if not isinstance(target, Mapping):
+            raise ValidationError(
+                "a remote_target approval requires details={'target': {...}, 'profile': ..., "
+                "'grant_ttl_s': int, 'max_calls': int}"
+            )
+        if profile is None or not str(profile).strip():
+            raise ValidationError(
+                "a remote_target approval requires a non-empty competition profile"
+            )
+        payload_task_id = details.get("task_id")
+        if payload_task_id is not None and task_id is not None:
+            if str(payload_task_id) != str(task_id):
+                raise ValidationError(
+                    "remote_target approval details task_id does not match the owning Task"
+                )
+        effective_task_id = task_id if task_id is not None else payload_task_id
+        if effective_task_id is None:
+            raise ValidationError("a remote_target approval requires the owning Task ID")
+        try:
+>           return canonical_remote_target_details(
+                task_id=str(effective_task_id),
+                host=target.get("host"),  # type: ignore[arg-type]
+                port=target.get("port"),  # type: ignore[arg-type]
+                protocol=target.get("protocol", "tcp"),
+                method=target.get("method", "GET"),
+                path_prefix=target.get("path_prefix", target.get("path", "/")),  # type: ignore[arg-type]
+                competition_profile=str(profile),
+                grant_ttl_s=details.get("grant_ttl_s"),  # type: ignore[arg-type]
+                max_calls=details.get("max_calls"),  # type: ignore[arg-type]
+            )
+
+ctf_solver\manager\approval_grant_service.py:315: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+ctf_solver\manager\approval_grant_service.py:201: in canonical_remote_target_details
+    ttl = _require_positive_int(grant_ttl_s, "grant_ttl_s", maximum=MAX_GRANT_TTL_S)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = None, field = 'grant_ttl_s', maximum = 604800
+
+    def _require_positive_int(value: Any, field: str, *, maximum: int) -> int:
+        """Strictly require a plain Python ``int`` in ``1..maximum``.
+    
+        ``bool`` is a subclass of ``int`` in Python but must never be accepted as a
+        TTL/call count; floats, numeric strings and other coercible values are also
+        rejected instead of being silently converted.
+        """
+    
+        if isinstance(value, bool) or not isinstance(value, int):
+>           raise ValueError(f"{field} must be an integer")
+E           ValueError: grant_ttl_s must be an integer
+
+ctf_solver\manager\approval_grant_service.py:88: ValueError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = WindowsPath('<USER_HOME>/AppData/Local/Temp/pytest-of-<USER_ID>/pytest-1809/test_service_emits_frozen_even0')
+
+    def test_service_emits_frozen_events_into_real_evidence_store(tmp_path) -> None:
+        """The real SQLite evidence chain accepts the approval/grant event payloads."""
+    
+        from ctf_solver.evidence.store import EvidenceStore
+        from ctf_solver.manager.approval_grant_service import ApprovalGrantService
+    
+        env = build_environment(tmp_path)
+        evidence = EvidenceStore(
+            str(env.config.paths.db_path), str(env.config.paths.cas_dir), clock=env.clock
+        )
+        service = ApprovalGrantService(env.store, evidence, env.clock, env.config)
+        try:
+>           approval = service.request_approval(
+                env.task.task_id,
+                action_kind="remote_target",
+                details={
+                    "target": {
+                        "host": HOST,
+                        "port": PORT,
+                        "protocol": "https",
+                        "method": "POST",
+                        "path": PATH,
+                    },
+                    "profile": SYNTHETIC_PROFILE,
+                },
+                ttl_s=600,
+            )
+
+tests\test_security_store.py:384: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+ctf_solver\manager\approval_grant_service.py:393: in request_approval
+    canonical = canonical_approval_details(kind.value, details, task_id=task.task_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+action_kind = 'remote_target'
+details = {'target': {'host': 'ctf-target.example', 'port': 8443, 'protocol': 'https', 'method': 'POST', ...}, 'profile': 'synthetic-local'}
+task_id = 't-security01'
+
+    def canonical_approval_details(
+        action_kind: str,
+        details: Mapping[str, Any],
+        *,
+        task_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Canonicalize caller-supplied approval details for the given action kind.
+    
+        ``remote_target`` has a frozen machine-checkable shape and always includes
+        the owning Task and the network grant TTL/call budget. Other action kinds
+        keep the caller's mapping verbatim (the Broker recomputes its own digest
+        from the typed execution request).
+        """
+    
+        if not isinstance(details, Mapping):
+            raise ValidationError("approval details must be a JSON object")
+        if action_kind != _REMOTE_TARGET:
+            return {str(key): value for key, value in details.items()}
+    
+        target = details.get("target")
+        profile = details.get("profile")
+        if not isinstance(target, Mapping):
+            raise ValidationError(
+                "a remote_target approval requires details={'target': {...}, 'profile': ..., "
+                "'grant_ttl_s': int, 'max_calls': int}"
+            )
+        if profile is None or not str(profile).strip():
+            raise ValidationError(
+                "a remote_target approval requires a non-empty competition profile"
+            )
+        payload_task_id = details.get("task_id")
+        if payload_task_id is not None and task_id is not None:
+            if str(payload_task_id) != str(task_id):
+                raise ValidationError(
+                    "remote_target approval details task_id does not match the owning Task"
+                )
+        effective_task_id = task_id if task_id is not None else payload_task_id
+        if effective_task_id is None:
+            raise ValidationError("a remote_target approval requires the owning Task ID")
+        try:
+            return canonical_remote_target_details(
+                task_id=str(effective_task_id),
+                host=target.get("host"),  # type: ignore[arg-type]
+                port=target.get("port"),  # type: ignore[arg-type]
+                protocol=target.get("protocol", "tcp"),
+                method=target.get("method", "GET"),
+                path_prefix=target.get("path_prefix", target.get("path", "/")),  # type: ignore[arg-type]
+                competition_profile=str(profile),
+                grant_ttl_s=details.get("grant_ttl_s"),  # type: ignore[arg-type]
+                max_calls=details.get("max_calls"),  # type: ignore[arg-type]
+            )
+        except (TypeError, ValueError) as exc:
+>           raise ValidationError(f"invalid remote_target approval details: {exc}") from exc
+E           ctf_solver.core.errors.ValidationError: invalid remote_target approval details: grant_ttl_s must be an integer
+
+ctf_solver\manager\approval_grant_service.py:327: ValidationError
+=========================== short test summary info ===========================
+FAILED tests/test_security_confirmation.py::test_malformed_digest_and_empty_summary_fail_closed
+FAILED tests/test_security_approval_grant.py::test_request_approval_is_pending_and_never_decided
+FAILED tests/test_security_approval_grant.py::test_confirm_rejection_is_recorded_and_cannot_authorize
+FAILED tests/test_security_approval_grant.py::test_grant_requires_a_human_confirmed_approval
+FAILED tests/test_security_approval_grant.py::test_grant_creation_binds_task_target_profile_and_confirmation
+FAILED tests/test_security_approval_grant.py::test_grant_consumes_the_approval_exactly_once
+FAILED tests/test_security_approval_grant.py::test_grant_target_or_profile_mismatch_fails_before_consumption
+FAILED tests/test_security_approval_grant.py::test_tampered_approval_payload_or_digest_fails_closed
+FAILED tests/test_security_approval_grant.py::test_cross_task_approval_cannot_mint_another_tasks_grant
+FAILED tests/test_security_approval_grant.py::test_revoke_grant_is_durable_and_idempotent
+FAILED tests/test_security_approval_grant.py::test_list_approvals_and_grants_are_task_scoped
+FAILED tests/test_security_approval_grant.py::test_remote_target_details_are_canonicalized_before_digesting
+FAILED tests/test_security_store.py::test_atomic_grant_creation_across_connections_only_one_winner
+FAILED tests/test_security_store.py::test_service_emits_frozen_events_into_real_evidence_store
+14 failed, 31 passed in 3.45s

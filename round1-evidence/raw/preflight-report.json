@@ -1,0 +1,321 @@
+{
+  "schema_version": "1.0",
+  "generated_at_ms": 1794307675625,
+  "root": "D:\\CTF-SOLVER",
+  "read_only": true,
+  "mutations": [],
+  "environment": {
+    "os": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "python_version": "3.14.7",
+    "python_executable": "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+    "python_implementation": "CPython",
+    "platform_dir": "win-amd64",
+    "cwd": "D:\\CTF-SOLVER",
+    "node_version": {
+      "status": "available",
+      "version": "v24.19.0"
+    }
+  },
+  "python_modules": {
+    "sqlite3": {
+      "available": true,
+      "version": null
+    },
+    "zlib": {
+      "available": true,
+      "version": "1.0"
+    },
+    "tkinter": {
+      "available": true,
+      "version": null
+    },
+    "compression.zstd": {
+      "available": true,
+      "version": null
+    },
+    "zstandard": {
+      "available": true,
+      "version": "0.25.0"
+    },
+    "PIL": {
+      "available": true,
+      "version": "12.3.0"
+    },
+    "pwn": {
+      "available": false,
+      "version": null
+    },
+    "z3": {
+      "available": false,
+      "version": null
+    },
+    "Crypto": {
+      "available": false,
+      "version": null
+    },
+    "capstone": {
+      "available": false,
+      "version": null
+    },
+    "unicorn": {
+      "available": false,
+      "version": null
+    },
+    "angr": {
+      "available": false,
+      "version": null
+    },
+    "elftools": {
+      "available": false,
+      "version": null
+    },
+    "scapy": {
+      "available": false,
+      "version": null
+    }
+  },
+  "toolchain": {
+    "git": {
+      "status": "available",
+      "path": "C:\\Program Files\\Git\\cmd\\git.EXE",
+      "version": "git version 2.55.0.windows.3"
+    },
+    "python": {
+      "status": "available",
+      "path": "<USER_HOME>\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+      "version": "Python 3.14.7"
+    },
+    "node": {
+      "status": "available",
+      "path": "C:\\Program Files\\nodejs\\node.EXE",
+      "version": "v24.19.0"
+    },
+    "java": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "javac": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "ghidra": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "gdb": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "java_jdk": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "wireshark": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "tshark": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "radare2": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "rizin": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "7z": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "nmap": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "sqlmap": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "hashcat": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "john": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "binwalk": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    },
+    "sage": {
+      "status": "missing",
+      "path": null,
+      "version": null
+    }
+  },
+  "acp": {
+    "launcher": [
+      "<USER_HOME>\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd"
+    ],
+    "found": true,
+    "version": "not_verified (preflight does not execute the launcher)",
+    "mode": "dsh --profile acp (ACP Server over stdio ND-JSON/JSON-RPC 2.0)",
+    "manager_role": "Manager implements the ACP Client; no model call is made in Round 1"
+  },
+  "isolation": {
+    "tier2_os_isolation": "NOT AVAILABLE / NOT VERIFIED in this run (no install, no WSL/Docker start)",
+    "docker_cli_present": false,
+    "docker_daemon_state": "not_verified (preflight does not start or connect to Docker)",
+    "wsl_cli_present": true,
+    "wsl_distribution_state": "not_verified (preflight does not start WSL)",
+    "untrusted_challenge_code_execution": "BLOCKED until a Tier 2 isolation environment is installed and accepted",
+    "gvisor_present": false
+  },
+  "skills": {
+    "root": "D:\\CTF-SOLVER\\.dsh\\skills",
+    "found": {
+      "ctf-crypto": {
+        "path": "D:\\CTF-SOLVER\\.dsh\\skills\\ctf-crypto\\SKILL.md",
+        "size": 2853,
+        "utf8": true,
+        "bom": false,
+        "frontmatter": true,
+        "name": "ctf-crypto",
+        "description": true
+      },
+      "ctf-misc": {
+        "path": "D:\\CTF-SOLVER\\.dsh\\skills\\ctf-misc\\SKILL.md",
+        "size": 2644,
+        "utf8": true,
+        "bom": false,
+        "frontmatter": true,
+        "name": "ctf-misc",
+        "description": true
+      },
+      "ctf-pwn": {
+        "path": "D:\\CTF-SOLVER\\.dsh\\skills\\ctf-pwn\\SKILL.md",
+        "size": 2813,
+        "utf8": true,
+        "bom": false,
+        "frontmatter": true,
+        "name": "ctf-pwn",
+        "description": true
+      },
+      "ctf-reverse": {
+        "path": "D:\\CTF-SOLVER\\.dsh\\skills\\ctf-reverse\\SKILL.md",
+        "size": 3077,
+        "utf8": true,
+        "bom": false,
+        "frontmatter": true,
+        "name": "ctf-reverse",
+        "description": true
+      },
+      "ctf-solver": {
+        "path": "D:\\CTF-SOLVER\\.dsh\\skills\\ctf-solver\\SKILL.md",
+        "size": 6636,
+        "utf8": true,
+        "bom": false,
+        "frontmatter": true,
+        "name": "ctf-solver",
+        "description": true
+      },
+      "ctf-web": {
+        "path": "D:\\CTF-SOLVER\\.dsh\\skills\\ctf-web\\SKILL.md",
+        "size": 2755,
+        "utf8": true,
+        "bom": false,
+        "frontmatter": true,
+        "name": "ctf-web",
+        "description": true
+      }
+    },
+    "missing": [],
+    "problems": [],
+    "ok": true
+  },
+  "privacy_gate": {
+    "mechanism": "disable the session-log-deepseek plugin in a dedicated profile via cordis.patch.yml",
+    "project_patch_file": "D:\\CTF-SOLVER\\config\\acp\\cordis.patch.yml",
+    "project_patch_present": true,
+    "project_patch_disables_delivery": true,
+    "isolated_temp_home_verification": "not run by preflight; see docs/ROUND_1_ARCHITECTURE_NOTES.md",
+    "global_harness_state": "not inspected (no global configuration is read or modified by preflight)",
+    "negative_outbound_delivery_test": "NOT VERIFIED (requires a model request; blocked in Round 1)",
+    "status": "MECHANISM_CONFIGURED_DELIVERY_UNVERIFIED"
+  },
+  "storage": {
+    "db_path": "D:\\CTF-SOLVER\\.ctf-solver-data\\manager.sqlite",
+    "db_present": false,
+    "db_schema_version": null,
+    "cas_root": "D:\\CTF-SOLVER\\.ctf-solver-data\\cas\\sha256",
+    "cas_present": false,
+    "tasks_dir_present": false
+  },
+  "summary": {
+    "tools_available": [
+      "git",
+      "node",
+      "python"
+    ],
+    "tools_missing": [
+      "7z",
+      "binwalk",
+      "gdb",
+      "ghidra",
+      "hashcat",
+      "java",
+      "java_jdk",
+      "javac",
+      "john",
+      "nmap",
+      "radare2",
+      "rizin",
+      "sage",
+      "sqlmap",
+      "tshark",
+      "wireshark"
+    ],
+    "python_modules_available": [
+      "PIL",
+      "compression.zstd",
+      "sqlite3",
+      "tkinter",
+      "zlib",
+      "zstandard"
+    ],
+    "python_modules_missing": [
+      "Crypto",
+      "angr",
+      "capstone",
+      "elftools",
+      "pwn",
+      "scapy",
+      "unicorn",
+      "z3"
+    ],
+    "skills_ok": true,
+    "acp_launcher_found": true,
+    "session_log_privacy_gate": "MECHANISM_CONFIGURED_DELIVERY_UNVERIFIED",
+    "tier2_isolation": "NOT AVAILABLE / NOT VERIFIED in this run (no install, no WSL/Docker start)",
+    "no_environment_mutation": true
+  }
+}

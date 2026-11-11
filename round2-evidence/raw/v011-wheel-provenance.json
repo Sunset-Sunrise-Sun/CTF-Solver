@@ -1,43 +1,43 @@
-{
-  "wheel": {
-    "filename": "ctf_solver-0.1.1-py3-none-any.whl",
-    "path": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-v011-wheel-75c21ba18cbe4cb9827bb519f5da5be0\\dist\\ctf_solver-0.1.1-py3-none-any.whl",
-    "size": 225008,
-    "sha256": "e9eb2d609db72402ea97ccb3063fe46510226b1b189ecb90c9b89e0c236b8c09"
-  },
-  "build": {
-    "repo": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-v011-wheel-75c21ba18cbe4cb9827bb519f5da5be0",
-    "head": "c0ca9471f0f114599cdbcb065391736dee01d5bc",
-    "expected_commit": "c0ca9471f0f114599cdbcb065391736dee01d5bc",
-    "branch": "fix/v0.1.1-installation-hardening",
-    "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
-    "build_command": "python scripts/build_wheel.py",
-    "clean_checkout": true
-  },
-  "source": {
-    "tracked_python_sources": 60,
-    "wheel_python_sources": 60,
-    "sources_byte_identical": true
-  },
-  "security": {
-    "privacy_patch_resource": "ctf_solver/resources/acp/cordis.patch.yml",
-    "present": true,
-    "byte_identical": true,
-    "size": 1209,
-    "sha256": "bad6fa99dc60cac4ba8e76ebd1c70b1d2051250613febc953f342a8887a7e71f"
-  },
-  "record": {
-    "ok": true,
-    "members_checked": 64
-  },
-  "imports": {
-    "ok": true
-  },
-  "version": {
-    "ok": true,
-    "stdout": "ctf-solver 0.1.1"
-  },
-  "commit_reachable_from_final_bundle": null,
-  "problems": [],
-  "ok": true
-}
+{
+  "wheel": {
+    "filename": "ctf_solver-0.1.1-py3-none-any.whl",
+    "path": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-v011-release-cd79f3d2ba244309b17865d901e93b70\\dist\\ctf_solver-0.1.1-py3-none-any.whl",
+    "size": 225206,
+    "sha256": "675d088ff8c22461090dd41c1b6ce9c36b042009bdbad3d110d017a1feda3c0d"
+  },
+  "build": {
+    "repo": "<USER_HOME>\\AppData\\Local\\Temp\\ctf-solver-v011-release-cd79f3d2ba244309b17865d901e93b70",
+    "head": "ddbd49180f9a9f0afe77ed1890fa004565cc0846",
+    "expected_commit": "ddbd49180f9a9f0afe77ed1890fa004565cc0846",
+    "branch": "fix/v0.1.1-installation-hardening",
+    "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+    "build_command": "python scripts/build_wheel.py",
+    "clean_checkout": true
+  },
+  "source": {
+    "tracked_python_sources": 60,
+    "wheel_python_sources": 60,
+    "sources_byte_identical": true
+  },
+  "security": {
+    "privacy_patch_resource": "ctf_solver/resources/acp/cordis.patch.yml",
+    "present": true,
+    "byte_identical": true,
+    "size": 1209,
+    "sha256": "bad6fa99dc60cac4ba8e76ebd1c70b1d2051250613febc953f342a8887a7e71f"
+  },
+  "record": {
+    "ok": true,
+    "members_checked": 64
+  },
+  "imports": {
+    "ok": true
+  },
+  "version": {
+    "ok": true,
+    "stdout": "ctf-solver 0.1.1"
+  },
+  "commit_reachable_from_final_bundle": null,
+  "problems": [],
+  "ok": true
+}

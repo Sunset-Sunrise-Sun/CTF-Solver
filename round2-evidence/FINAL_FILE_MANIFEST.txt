@@ -241,7 +241,7 @@ f6d94009d8d3c1ce2b2c67f05e9eecf1023c22834e431e36272fa4c4626a2e56     123878  rou
 ca36977e7932ef7268be301a605a43c6b129d14a735e12d8310111509f01c4b5     124360  round2-evidence/raw/junit-v011-venv-default.xml
 3db0507b1cba90ab4da28ffd48b1d91baad355e99b9252881ecee8b73cc9c2a3     124075  round2-evidence/raw/junit-v011-venv-with-real-acp.xml
 3063e0ea02da2b83e6e0bf3ab23379cce3abd89feed7d7e1ff4f778fc5bde00f     126846  round2-evidence/raw/junit-v011-with-real-acp.xml
-b9a669967ba0c65d272370807053bf553dbc1bb8911c4c0b335d1edfdc8a5eb7      13732  round2-evidence/raw/junit-xml-verification.json
+2fdf88c069c89a071c280f8eff07af556c8585214e643d7bcc47d5bb0247ca61      14335  round2-evidence/raw/junit-xml-verification.json
 7e0ed193e89699728a5c0ca4cdd84e977c3e142c34f347e27c5037fa02cdc38c       8152  round2-evidence/raw/packaging-build-wheel-probe.txt
 1de2419750c0ee9d69eb8cb17c375d76df7a69f3908e7a57930ca800ee77f1c2       8174  round2-evidence/raw/packaging-build-wheel.txt
 aae9300bdecdad237bcfc01b983abc81f722930c94cdf74424eddc7f52f5127a      21100  round2-evidence/raw/packaging-fresh-clone-strict.txt
@@ -297,7 +297,7 @@ a7f09b03e6adc3c09f9b3fce7cf594c948751d4f98a4d07d25cbf147eb2c4bcd        577  rou
 f88353be15967020d0fc1a4158dff8349fa3c7f97ba51b7dcc18942b77f8adca       7664  round2-evidence/raw/v011-integration-systempy.txt
 7093e6bbf5caea86e3a6f28e4edb82c47044cba46db682ef403837b7678645c4       7665  round2-evidence/raw/v011-integration-venv.txt
 26e53d1648fc5dfa46973d04a0de529efa163363b5c1a0c391fde9aeaa72469f       7590  round2-evidence/raw/v011-integration.log
-ca7bff7c62b27e3a35c77fddb41e8b272b9eba127a8fd85cf8e1d1c62e1daeba       3829  round2-evidence/raw/v011-junit-verify.txt
+b9b65be49c532344feaa41c1e6cd7e5ab6057a100c19a54a56c545c6c91dd111       3998  round2-evidence/raw/v011-junit-verify.txt
 6183828bef9d909b0008468160e2802fcb1207be37b244626840b598489fdfa2       1863  round2-evidence/raw/v011-venv-default.txt
 84e2753a48485d08e2d18912c4036539a9cfbde8c9307ac81514a803bba2d419         98  round2-evidence/raw/v011-venv-pid-test.txt
 f347ed2b0044c93c650889b99388c543ac8191108afadfe1e0aaff9fa01cb1e6       1727  round2-evidence/raw/v011-venv-with-real-acp.txt

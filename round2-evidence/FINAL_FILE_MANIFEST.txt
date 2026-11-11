@@ -1,9 +1,9 @@
-# CTF-Solver v0.1.1 installation hardening Git-blob manifest
+# CTF-Solver v0.1.1-final Git-blob manifest
 # sha256/size are canonical Git blob bytes (LF checkout), not working-tree CRLF bytes.
 # This manifest is explicitly excluded from its own entries.
-# It cites only the v0.1.1 implementation commit; it never cites the commit containing this file.
+# It cites the v0.1.1 implementation commit; it never cites the commit containing this file.
 implementation_commit=c0ca9471f0f114599cdbcb065391736dee01d5bc
-entry_count=374
+entry_count=376
 
 0a6ccdf71a7e78c64f9e38f316f7d852abae69cc97ce9c2d15595587b91da554       2853  .dsh/skills/ctf-crypto/SKILL.md
 e5d18dffc1a07b4287ea68ec090242621ce8616da998411cce1f72eba08c741c       2644  .dsh/skills/ctf-misc/SKILL.md
@@ -13,9 +13,9 @@ b6a7a849331e979f48cd0cec9c488e4cd8f7b25b9af5e406064888c8da8e95b2       3077  .ds
 654002e63e9424a5d25f0c3c0075623a8eb9cc058555a7d24dfadc06279a9066       2755  .dsh/skills/ctf-web/SKILL.md
 5c42c306acfde9c142cb81599406f18c9fab6275f13b04da01900abecc5045a9        567  .gitattributes
 7b1c0f3311e2ae6f32e31f154734b24246a8f1b0b607e2492702a58506e41cae       1229  .gitignore
-97d4fc8fa584eba01974df011787e70818aaa18f6d33cb1b384ad22e3b4fe35f       9367  INSTALLATION_GUIDE.md
-cb9cc8ca392e0689febd588469718af04a7db83f731256d559ff79755193779b      11480  README.md
-14394894a3fb938318455353799d4805b546c4b1d52f82df229ff242142359ba        126  ctf_solver/__init__.py
+0a20f0bf577e34764dd363fdcd97c3da214523266ef33635be32cc7684af1e0b      13275  INSTALLATION_GUIDE.md
+b9187aa191724ff52e64bc397d129a419576bfbb164ec243d58853491d5a69bd      11898  README.md
+43f79360417238254cb7aac9e3a17f27b0d72126edbc26f3039e1627cfeabac1        155  ctf_solver/__init__.py
 0c43eb45b78bfbcfb3da44e3b913d2f67bf525dd352e789bcc9145edbfed8f01        164  ctf_solver/__main__.py
 77bfbf3a4d200ecc8ec1c77ac5b74cf0f431178cf6d8731f9c48fa961cc4f58f       1004  ctf_solver/acp/__init__.py
 0133d75f5f1a4ca7c6f1cca11d5b7f9088b74374a66f9fad2786153dabe08648      19607  ctf_solver/acp/client.py
@@ -23,7 +23,7 @@ b33dc7c11514753ca4e4aa7e6542659d9574abd79bb2a5a7cfbe5c1f7c335c5d      40070  ctf
 952e4ed7722aaf4ae4db2df6068f9a5cb9fe5124ff5efe68f237cef693134b2c       5940  ctf_solver/acp/launch.py
 f698fc51301a14fd1e47709be3f6e714a63e992f5484f37d92f14203066e8736      11555  ctf_solver/acp/models.py
 f7421ec1d4b7e526ca03450daef79ed8513e129287403fe761d8ccfe1d5fea44      24579  ctf_solver/acp/transport.py
-b85bb2c80856bdbfb908c0598b16520a1340127a6b3556bb5c956d75d1434ecb      14925  ctf_solver/cli.py
+81622738f1a3cb78f36546812eeb222046a33821d28c0d8a592dad416bc1aaaf      15087  ctf_solver/cli.py
 e40252463ccdb993902808c691abb792d4c9f22de93c67fae746c7f52f4eae02         63  ctf_solver/core/__init__.py
 70b177fad5f929753d2ee2c024214142fb042718b474840d8f5c817da86fa8b4       2320  ctf_solver/core/canonical.py
 b3f9ac245c0d22e205acb8189aa626b8fcde52a81cd94659558d8023b90edd3e       8700  ctf_solver/core/config.py
@@ -102,8 +102,8 @@ bf888d5931bb53151b7ddca8409eba4a07854845eacd96ff66013ecad96ce310      18459  doc
 a66bc88b08f8283962c9845056bc66feb6cb8236de440ddc7a2765db54f4753a      15512  docs/ROUND_2_SECURITY_CHANGES.md
 bacf33d2472fcd43a3c3124f8f84fab0aa0c6d746a3ac4f50de8d75ae909b0a8       7718  docs/SECURITY.md
 f810e20a674033d957c7db7ef8a7320ebfa83dacceab6291cd7b9db2f3877d95       8642  docs/TWO_ROUND_EXECUTION_PLAN.md
-0255e08a982778e219835c11d9eb45b20f82ea3082eb50be17465e2de8ea9efb      13956  docs/V0.1.1_INSTALLATION_HARDENING_REPORT.md
-84be4e75149fb37d941d2f446afc7a3ee60f30640b59b8e5031b5468341b6785       1762  pyproject.toml
+9c4cbfe5504c1fdc6611c52662785c257cc8418756ac7890f04a20b3534e698e      14844  docs/V0.1.1_INSTALLATION_HARDENING_REPORT.md
+7ed297ecbd6a57a634c2a560fbe2eb16e152a72e24b9aee6d9ee5c316050fd00       1751  pyproject.toml
 6431a61c527317dda5b54fb1ede63ba75c8bc20a06d6950bbad4f7e709e11fa6      15322  round1-evidence/FILE_MANIFEST.txt
 e1529474277688e6968bc29bace10d895411f6852dd06a03bbed8a140a68b130       1045  round1-evidence/environment-snapshot.txt
 f8401236556495a73577c0bd76d206758146040ab22dbabdd7f95f19df54983a       2358  round1-evidence/privacy-gate.md
@@ -237,11 +237,11 @@ f6d94009d8d3c1ce2b2c67f05e9eecf1023c22834e431e36272fa4c4626a2e56     123878  rou
 2cbb3cd3a99f68c038240fc3ede74db6e456e5e9ab33ab06205082cdcffd562b     118740  round2-evidence/raw/junit-remediation-with-real-acp.xml
 9a111ed870eb4b7c3579279ecc3edc4552e1111d0dcd623c77f386ad734ab014     109741  round2-evidence/raw/junit-round2-default.xml
 40830d078546bd8e30bec2b053834ed4b1984a9bc6cee28909337d7f79fc50cf     109456  round2-evidence/raw/junit-round2-with-real-acp.xml
-024845f26488c74904f22b9b6c34effeee77f0ce2ea99c4b386752d6ad97c6a3     127131  round2-evidence/raw/junit-v011-default.xml
-ca36977e7932ef7268be301a605a43c6b129d14a735e12d8310111509f01c4b5     124360  round2-evidence/raw/junit-v011-venv-default.xml
-3db0507b1cba90ab4da28ffd48b1d91baad355e99b9252881ecee8b73cc9c2a3     124075  round2-evidence/raw/junit-v011-venv-with-real-acp.xml
-3063e0ea02da2b83e6e0bf3ab23379cce3abd89feed7d7e1ff4f778fc5bde00f     126846  round2-evidence/raw/junit-v011-with-real-acp.xml
-2fdf88c069c89a071c280f8eff07af556c8585214e643d7bcc47d5bb0247ca61      14335  round2-evidence/raw/junit-xml-verification.json
+31f936540875c68afeae1598cb613d1793798fbac8f2026558f463ed9f18e64d     127131  round2-evidence/raw/junit-v011-default.xml
+67a07d72baf97c3e3d9053fb7bdb52d708660bfcb2a18cf92a0897df7fab1898     124360  round2-evidence/raw/junit-v011-venv-default.xml
+c68b608b79dc4cb4b0f9d6446a55824560cd36d7135b8f86177e773f6b29a1f8     124075  round2-evidence/raw/junit-v011-venv-with-real-acp.xml
+0da539a328a15fae9313b863e52ff1651a2ce751b5431ab98552a0bc7e4ba023     126846  round2-evidence/raw/junit-v011-with-real-acp.xml
+d88667ec2e30cf1800117e2ec2f3a1fa9fd670e5af1a9df4d40846cdbb025673      14335  round2-evidence/raw/junit-xml-verification.json
 7e0ed193e89699728a5c0ca4cdd84e977c3e142c34f347e27c5037fa02cdc38c       8152  round2-evidence/raw/packaging-build-wheel-probe.txt
 1de2419750c0ee9d69eb8cb17c375d76df7a69f3908e7a57930ca800ee77f1c2       8174  round2-evidence/raw/packaging-build-wheel.txt
 aae9300bdecdad237bcfc01b983abc81f722930c94cdf74424eddc7f52f5127a      21100  round2-evidence/raw/packaging-fresh-clone-strict.txt
@@ -284,8 +284,8 @@ b9c8c0c79af5cebdcd8ee4d6f668181f1550569c890ef9cf00f0f9ea19da86ac     127443  rou
 c30fa6a16d8af9da61f6c5da083244862f07a8512df675db1106681993c6b70f       1863  round2-evidence/raw/v011-final-clean-clone-tests.txt
 33462c6a99625eab08d240eed432f85986ed1507d87af35594507f3fddb900d3        349  round2-evidence/raw/v011-final-clean-clone-wheel.txt
 1fe588c46bd94bd394ade4af733e6b736cdf6127adcfc019520d49f1dc2387f6        181  round2-evidence/raw/v011-focused1.txt
-3fa55b901ab482286cb8afc48b334b02e3fdd90781495bec44614b8c26f16fa9       1863  round2-evidence/raw/v011-full-default.txt
-54f4a49136ecf7eb00b4c4a85e6eda6dd6866bd1f776b46d3aa3068ff9a32a4c       1727  round2-evidence/raw/v011-full-with-real-acp.txt
+5fb0c9a025dc1a8a6f3319e5df03710e3c28b5180ee447526032f5333d31a601       1863  round2-evidence/raw/v011-full-default.txt
+d4ff97b11be3393d1b0036ceb1309fa7b26f388699fd19aaeda813b729c3e984       1727  round2-evidence/raw/v011-full-with-real-acp.txt
 95ffbb94ec0205fcd0cddd0a2d39454ba2f605e5b97500fd574cd2f6d8ce21fd        129  round2-evidence/raw/v011-installed-acp-failure.txt
 7d728c49465156864a3f8a46dd8f8e92f2eae5607a1c95aed562e7f2b2f06b9f       5227  round2-evidence/raw/v011-installed-manager-mcp.txt
 1c8bf0d99a0fd7cbe937f989c4cb3d64e71ac67ecf9a14962fae20a768c37bbb       1156  round2-evidence/raw/v011-installed-manager-smoke.txt
@@ -293,14 +293,16 @@ f28678d70253e0a58ee43b79c035b88d7341682fc9910437263a9ab4735ebc34        744  rou
 22e6e62811851adf3219d7b9ce5290831ee465ecdbd4d49a6b1ede48284f8db8      12442  round2-evidence/raw/v011-installed-privacy-dump-config.txt
 a7f09b03e6adc3c09f9b3fce7cf594c948751d4f98a4d07d25cbf147eb2c4bcd        577  round2-evidence/raw/v011-installed-restart.txt
 576b5082261be8a1547ee52ce76d46e1944c1be817aa36fbb462f57712297bcb       1687  round2-evidence/raw/v011-installed-worker-mcp.txt
-44c6992a4c885857627d1231f039ac831b9ec1c2d6ca00d6ecc5f6a419ac717c       9945  round2-evidence/raw/v011-integration-summary.json
-f88353be15967020d0fc1a4158dff8349fa3c7f97ba51b7dcc18942b77f8adca       7664  round2-evidence/raw/v011-integration-systempy.txt
+a9c15df0aa205ea8a5ed100a0c3dc8ad8ad34ee549f7c54bfa550fd0a22942b5      10434  round2-evidence/raw/v011-integration-summary.json
+a1a20ee679e36cdae0b76dfb410e09fc578e429342d88b05c380f21abd5b328e       7892  round2-evidence/raw/v011-integration-systempy.txt
 7093e6bbf5caea86e3a6f28e4edb82c47044cba46db682ef403837b7678645c4       7665  round2-evidence/raw/v011-integration-venv.txt
-26e53d1648fc5dfa46973d04a0de529efa163363b5c1a0c391fde9aeaa72469f       7590  round2-evidence/raw/v011-integration.log
+ecb85c55915fd23c6469eea3db4ee0cbb441673bf6270518b638d5ca25fdb514       7696  round2-evidence/raw/v011-integration.log
 b9b65be49c532344feaa41c1e6cd7e5ab6057a100c19a54a56c545c6c91dd111       3998  round2-evidence/raw/v011-junit-verify.txt
-6183828bef9d909b0008468160e2802fcb1207be37b244626840b598489fdfa2       1863  round2-evidence/raw/v011-venv-default.txt
+bb013f2e4ec65ef67fbba95c724da186d49cd32b50dfbf11fbed50471aac1027       5209  round2-evidence/raw/v011-skill-discovery.json
+fa7a86b3adef36e7a17556eb1395d7030e4a995fbfc59f1e4452926000057f12       1924  round2-evidence/raw/v011-skills-cli-check.txt
+9217e02e7e73d19dfc3565daf4d50dac368bae328b36fd9eb741336bc046cbcf       1863  round2-evidence/raw/v011-venv-default.txt
 84e2753a48485d08e2d18912c4036539a9cfbde8c9307ac81514a803bba2d419         98  round2-evidence/raw/v011-venv-pid-test.txt
-f347ed2b0044c93c650889b99388c543ac8191108afadfe1e0aaff9fa01cb1e6       1727  round2-evidence/raw/v011-venv-with-real-acp.txt
+4e8e59de70ffd4ba2c77acecf09830492379bbd29439d2f356cf66ff13a285bd       1727  round2-evidence/raw/v011-venv-with-real-acp.txt
 038ef9f6476a2140fa9259614ac568aa5629daf68df62d8faaa364ce15eeefb9       4323  round2-evidence/raw/v011-wheel-build.json
 6c3af49c9ac680efbc3c5d0314d01e74fa426bf2182d99a690714d079d7558e5       1412  round2-evidence/raw/v011-wheel-provenance.json
 ce1805dc58cb0e4b8badbb240526bab055f2f1a5da173a5c170c991814c7636a         99  round2-evidence/raw/verifier-afterfix.txt

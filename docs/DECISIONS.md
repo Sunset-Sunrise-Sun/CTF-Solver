@@ -135,3 +135,24 @@ The two-round development approval does not itself authorize ACP `session/prompt
 **Status:** Accepted
 
 CTF-Solver is a fully independent implementation. Do not reuse or import code, database schemas/migrations, APIs, UI, services, or runtime components from the old CTF Workbench, `D:\CTF`, or `D:\CTFworker`. External GitHub repositories may be used as technical/design references; source-code copying requires a separate license/provenance review and explicit owner approval.
+
+### ADR-022 — Lead-native execution with Manager-verified Lead-session evidence
+**Status:** Accepted by project owner (Lead-session evidence Round 1)
+
+The main-conversation Lead executes challenge work with the native DeepSeek Harness
+tools; the CTF-Solver Manager is the control and evidence plane. A Task created with
+`lead_session_id` (the Lead's `$env:DSH_SESSION_ID`) gets a one-time binding after the
+Manager verifies: the id is a safe path component, exactly one log exists under the
+explicitly configured live `lead_sessions_root`, the log header id matches, and the
+header cwd realpath-equals the Manager root. Evidence ingestion reuses the unchanged
+multi-frame zstd decoder, normalization, CAS and hash-chain pipeline and reads only
+the Manager-registered Lead log; callers never supply a path or session id at ingest
+time. Completion auto-ingests the bound Lead log when it has not been ingested and
+fails closed otherwise. `source=auto` prefers the Lead binding; `source=worker` keeps
+the pre-existing Worker path. The Worker / typed `ctf-exec` path remains for legacy
+compatibility and is not the primary executor (this complements ADR-011: its Worker
+restrictions still apply to that legacy path). Intake `notes` and outcome
+`completion_note` are separate Task fields so completion never overwrites the
+challenge description (schema 1.2 additive migration). One Lead session binds to at
+most one Task in this round; per-Task evidence-window filtering and multi-Task
+binding are deferred to a later round.

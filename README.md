@@ -25,7 +25,7 @@ CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skil
 
 | Item | Status |
 |---|---|
-| Main-conversation `/ctf-solver` → Manager tools | BLOCKED — no supported project-level MCP registration |
+| Main-conversation `/ctf-solver` → Manager tools | **CONNECTED** in the tested environment via the project-scoped workspace MCP bridge; the Lead conversation is bound to the Task and its session log is ingested as evidence (see `docs/LEAD_SESSION_EVIDENCE.md`) |
 | Session-log negative delivery canary | BLOCKED — requires a model request |
 | Model-mediated Worker / `session/prompt` | BLOCKED — ADR-020 zero-model-call gate |
 | Tier 2 OS isolation / real targets / challenge execution | BLOCKED / NOT VERIFIED |
@@ -34,14 +34,19 @@ CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skil
 
 ## Product contract
 
-- Target entry (NOT IMPLEMENTED in this release): `/ctf-solver` would enter CTF mode for the
-  current conversation. The main-conversation `/ctf-solver` → Manager MCP project-level
-  registration is currently unavailable; do not treat this as a usable entrypoint.
-- Current usable surfaces: the six project Skill files (when placed under
-  `<workspace>/.dsh/skills/`) plus the CLI/MCP servers described in the Installation Guide.
+- Target entry (implemented in the tested environment): the Core Skill enters CTF mode for the
+  current conversation; the Manager MCP tools are registered project-scoped for the workspace
+  through the Workspace MCP Bridge (see Installation Guide section 6.5 and
+  `docs/LEAD_SESSION_EVIDENCE.md`). Do not fake a registration on another machine: if the
+  bridge/config is absent, report it BLOCKED instead.
+- Evidence source for the Lead path: the Harness session log of the bound Lead conversation,
+  ingested by the Manager (multi-frame zstd, CAS, hash chain). The Lead executes with the
+  native Harness tools; Worker / typed `ctf-exec` remains a legacy path.
 - Persistent mode: subsequent messages, attachments, and “continue” requests remain in CTF mode. Do not require the command again for each challenge.
 - Semi-autonomous: the Agent analyzes, plans, writes helper scripts, and runs permitted routine tools; sensitive actions require human approval.
-- Independent challenge Workers: each challenge receives its own Task, workspace, and Harness ACP session.
+- Challenge isolation: each challenge receives its own Task and workspace. A Worker ACP session
+  is still attached for legacy `ctf-exec` compatibility, but the primary executor is the Lead
+  conversation using native Harness tools.
 - Bounded concurrency: at most **2 active Workers**; additional Tasks wait FIFO.
 - Five categories only: Web, Misc, Crypto, Reverse, and Pwn. First Blood scanning is a separate future project and excluded from this MVP.
 - CLI/headless first; GUI is auxiliary and used primarily for required program-running screenshots.
@@ -99,7 +104,7 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 - docs/HARNESS_INTEGRATION_AUDIT_SUMMARY.md — summary of the latest local capability audit.
 - docs/ACCEPTANCE.md — objective implementation/release gates.
 
-## Current implementation status (Round 2 acceptance remediation)
+## Current implementation status (v0.1.1 + Lead-session evidence Round 1)
 
 | Area | Status |
 |---|---|
@@ -117,7 +122,10 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 | Wheel build (stdlib PEP 517 backend, no installs) + fresh-clone check | Implemented; final wheel/fresh-clone evidence in remediation report |
 | Real Harness integration (2 Workers + FIFO, per-session Worker MCP mount, completion, restart recovery) | 43/43 checks PASS (zero model calls) |
 | Real project-owned window screenshot, Writeup, evidence ZIP | PASS (synthetic end-to-end run committed under `round2-evidence/end-to-end/`) |
-| Main-conversation `/ctf-solver` → Manager tools | **BLOCKED** (no supported project-scoped MCP registration; owner decision needed) |
+| Lead session identity + evidence ingestion (schema 1.2) | **PASS** — one-time Manager-verified binding (`session_bindings`), resolver Lead branch, `source=auto|worker|lead`, completion auto-ingest; live Lead-session E2E run under `lead-session-evidence/` |
+| Lead-native process screenshot + Writeup + evidence ZIP | **PASS** on a live Lead session: desktop screenshot fixed and captured (2560x1600, CAS sha), Writeup renders `tool_call`/`tool_result` steps, ZIP includes the raw Lead log + events + screenshot + writeup with a verifying manifest |
+| Intake `notes` vs completion note (P1-1) | **Fixed** — separate `completion_note` column; a completion-pending overwrite defect was found by the live run and covered by regression tests |
+| Main-conversation `/ctf-solver` → Manager tools | **CONNECTED** via project-scoped Workspace MCP Bridge (`.dsh/mcp.servers.yml`) + `--lead-sessions-root`; 18 Manager tools registered and called from a live Harness conversation |
 | Session-log negative delivery canary | **BLOCKED** (requires a model request; mechanism verified in isolated profile only) |
 | Model-mediated Worker / `session/prompt` | **BLOCKED by design** (ADR-020) |
 | OS-isolated execution tier | Not available; separate future environment track |

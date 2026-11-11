@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import tempfile
 import zipfile
 from pathlib import Path
 from typing import Any, Iterable
@@ -252,6 +253,17 @@ class EvidenceBundleBuilder:
                 data = (staging / relpath).read_bytes()
                 archive.writestr(info, data)
         zip_sha = file_sha256(zip_path)
+        verify_dir = Path(tempfile.mkdtemp(prefix="ctf-solver-bundle-verify-"))
+        try:
+            report = self.verify_zip(zip_path, verify_dir / "extract")
+            if not report.get("ok"):
+                problems = "; ".join(report.get("problems", [])[:5])
+                raise DeliveryError(
+                    "evidence ZIP failed internal verification: "
+                    + (problems or "manifest does not verify")
+                )
+        finally:
+            shutil.rmtree(verify_dir, ignore_errors=True)
         info = ExportInfo(
             kind="evidence_zip",
             path=str(zip_path),

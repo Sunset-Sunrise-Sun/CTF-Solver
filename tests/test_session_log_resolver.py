@@ -212,11 +212,13 @@ def test_valid_resolution_returns_registered_log(sandbox) -> None:
     assert resolved.session_id == SESSION_A
     assert resolved.path == path
     assert resolved.path.is_file()
+    assert resolved.source == "worker"
     assert resolved.to_dict() == {
         "task_id": "task-a",
         "worker_id": "w-a",
         "session_id": SESSION_A,
         "path": str(path),
+        "source": "worker",
     }
 
 
@@ -299,7 +301,7 @@ def test_another_tasks_worker_cannot_read_this_log(sandbox) -> None:
 def test_resolver_api_has_no_path_parameter(sandbox) -> None:
     parameters = inspect.signature(SessionLogResolver.resolve).parameters
     assert "path" not in parameters
-    assert list(parameters) == ["self", "task_id", "worker_id"]
+    assert list(parameters) == ["self", "task_id", "worker_id", "source"]
 
     _seed(sandbox["store"], "task-a", worker_id="w-a", session_id=SESSION_A)
     _write_log(sandbox["root"], SLUG_A, SESSION_A)
@@ -568,3 +570,30 @@ def test_two_tasks_with_logs_resolve_independently(sandbox) -> None:
     # A resolved log never leaks records from the other Task's session.
     text = resolved_a.path.read_bytes()
     assert text != resolved_b.path.read_bytes()
+
+
+# ---------------------------------------------------------------------------
+# Round 1 source selector (worker path unchanged; Lead codes exported)
+# ---------------------------------------------------------------------------
+
+
+def test_unknown_source_rejected(sandbox) -> None:
+    from ctf_solver.core.errors import ValidationError
+
+    with pytest.raises(ValidationError):
+        sandbox["resolver"].resolve("task-a", source="bogus")
+
+
+def test_reason_codes_expose_lead_binding_codes() -> None:
+    from ctf_solver.manager import session_logs
+
+    assert session_logs.REASON_NO_BINDING == "no_binding"
+    assert session_logs.REASON_LEAD_CWD_MISMATCH == "lead_cwd_mismatch"
+    assert session_logs.REASON_LEAD_ROOT_MISSING == "lead_sessions_root_missing"
+    assert {
+        "no_binding",
+        "lead_cwd_mismatch",
+        "lead_sessions_root_missing",
+    } <= session_logs.REASON_CODES
+    assert session_logs.RESOLVE_SOURCES == frozenset({"auto", "worker", "lead"})
+

@@ -8,6 +8,7 @@ and delegates evidence/delivery to the evidence store and deliverables.
 
 from __future__ import annotations
 
+import os
 import sys
 import threading
 import uuid
@@ -27,7 +28,7 @@ from ..core.errors import (
     StorageError,
     ValidationError,
 )
-from ..core.ids import new_id, new_worker_token, validate_step_id
+from ..core.ids import is_valid_step_id, new_id, new_worker_token, validate_step_id
 from ..core.paths import is_within
 from ..core.protocols import (
     AcpClientFactory,
@@ -67,7 +68,9 @@ ROUND1_LIMITS = {
     "model_calls": "blocked (no session/prompt; ADR-020)",
     "untrusted_challenge_code": "blocked (Tier 2 OS isolation unavailable)",
     "real_ctf_targets": "blocked (synthetic data only in this round)",
-    "main_conversation_entrypoint": "BLOCKED pending a supported project-scoped Manager tool path (Round 2)",
+    "main_conversation_entrypoint": (
+        "connected via project-scoped workspace MCP (Manager tools available to the Lead conversation)"
+    ),
     "session_log_negative_delivery_test": "BLOCKED (requires a model request)",
 }
 
@@ -76,7 +79,24 @@ ROUND2_SECURITY = {
     "grant_create_via_mcp": "removed (requires a human-confirmed approval via local console)",
     "human_confirmation_channel": "local interactive console only (TTY required; non-TTY fails closed)",
     "session_log_ingest": "manager registry only (no model-supplied file path)",
+    "lead_session_binding": (
+        "explicit Lead session id, Manager-verified header/cwd, one-time binding"
+    ),
 }
+
+
+def _config_lead_sessions_root(config: Any) -> Path:
+    """The live DSH sessions root configured for Lead-session evidence.
+
+    ``SolverConfig.lead_sessions_root`` is the production source. A defensive
+    fallback (same priority tail: ``~/.dsh/sessions``) keeps non-production
+    config doubles that predate the property usable.
+    """
+
+    value = getattr(config, "lead_sessions_root", None)
+    if value is not None:
+        return Path(os.fspath(value))
+    return Path.home() / ".dsh" / "sessions"
 
 
 class ManagerService(ManagerControl):
@@ -90,6 +110,9 @@ class ManagerService(ManagerControl):
         deliverables: DeliverablesProtocol,
         capturer: ScreenCapturer,
         clock: Clock | None = None,
+        *,
+        lead_sessions_root: str | os.PathLike[str] | None = None,
+        workspace_root: str | os.PathLike[str] | None = None,
     ) -> None:
         self.config = config
         self.store = store
@@ -99,6 +122,19 @@ class ManagerService(ManagerControl):
         self.deliverables = deliverables
         self.capturer = capturer
         self.clock = clock or SystemClock()
+        # The live DSH sessions root is a *separate* explicit configuration: it
+        # is never derived from the managed Worker ``dsh_home`` and is never
+        # created by the Manager (a missing root must surface as a resolver
+        # error). ``workspace_root`` is the Manager root the Lead session header
+        # ``cwd`` must match.
+        self.lead_sessions_root = self._absolute_path(
+            lead_sessions_root
+            if lead_sessions_root is not None
+            else _config_lead_sessions_root(config)
+        )
+        self.workspace_root = self._absolute_path(
+            workspace_root if workspace_root is not None else config.root
+        )
         self.scheduler = Scheduler(config.max_active_workers)
         self._lock = threading.RLock()
         self._acp: AcpSessionClient | None = None
@@ -115,6 +151,10 @@ class ManagerService(ManagerControl):
         #: Tasks currently in the completion pipeline: no new execution/flag is
         #: accepted while the ACP session is being closed.
         self._completing: set[str] = set()
+
+    @staticmethod
+    def _absolute_path(value: str | os.PathLike[str]) -> Path:
+        return Path(os.path.abspath(os.fspath(value)))
 
     # ------------------------------------------------------------------
     # Lazy Round 2 collaborators
@@ -146,7 +186,11 @@ class ManagerService(ManagerControl):
             from .session_logs import SessionLogResolver
 
             self._session_resolver = SessionLogResolver(
-                self.config.session_log_root, self.store, clock=self.clock
+                self.config.session_log_root,
+                self.store,
+                lead_sessions_root=self.lead_sessions_root,
+                workspace_root=self.workspace_root,
+                clock=self.clock,
             )
         return self._session_resolver
 
@@ -434,7 +478,7 @@ class ManagerService(ManagerControl):
                     TaskStatus.FAILED,
                     result_state="start_failed",
                     ended_at=self.clock.now_ms(),
-                    notes=reason[:2000],
+                    completion_note=reason[:2000],
                 )
                 self._emit(task_id, "task_failed", {"reason": reason, "phase": "start"})
         except Exception:  # noqa: BLE001
@@ -455,7 +499,7 @@ class ManagerService(ManagerControl):
                         TaskStatus.INTERRUPTED,
                         result_state="acp_failure",
                         ended_at=self.clock.now_ms(),
-                        notes=reason[:2000],
+                        completion_note=reason[:2000],
                     )
                     self._emit(
                         task.task_id,
@@ -700,6 +744,7 @@ class ManagerService(ManagerControl):
         scope_profile: str = "",
         notes: str = "",
         supplied_files: list[str] | None = None,
+        lead_session_id: str | None = None,
     ) -> TaskRecord:
         # A Task is only useful if a Worker can actually start. Previously a
         # failed ACP startup still allowed creation and the Task sat queued
@@ -734,6 +779,29 @@ class ManagerService(ManagerControl):
         if not str(conversation_id).strip():
             raise ValidationError("Task conversation_id must not be empty")
         parsed_category = Category.parse(category)
+        # A Lead-supplied session id is validated BEFORE anything is persisted:
+        # the resolver proves the id is a safe component, the log exists exactly
+        # once under the explicitly configured Lead sessions root, its header id
+        # matches and its header cwd realpath-equals the Manager root. A failed
+        # candidate leaves no Task behind.
+        lead_candidate: tuple[str, str | None] | None = None
+        if lead_session_id is not None:
+            if not isinstance(lead_session_id, str):
+                raise ValidationError("lead_session_id must be a string")
+            if not lead_session_id.strip():
+                raise ValidationError("lead_session_id must not be empty")
+            candidate_session_id, _candidate_path, log_sha256 = (
+                self.session_resolver.validate_lead_candidate(lead_session_id)
+            )
+            lookup_binding = getattr(self.store, "get_task_for_lead_session", None)
+            if callable(lookup_binding):
+                other_task_id = lookup_binding(candidate_session_id)
+                if other_task_id is not None:
+                    raise StateError(
+                        f"Lead session {candidate_session_id!r} is already bound to "
+                        f"Task {other_task_id}; a Lead session can only be bound once"
+                    )
+            lead_candidate = (candidate_session_id, log_sha256)
         task_id = new_id("t")
         workspace = self.config.paths.task_workspace(task_id)
         workspace.mkdir(parents=True, exist_ok=True)
@@ -752,6 +820,17 @@ class ManagerService(ManagerControl):
             notes=str(notes),
         )
         self.store.create_task(record)
+        if lead_candidate is not None:
+            bound_session_id, bound_log_sha256 = lead_candidate
+            # One-time binding, created only after the validated Task row exists.
+            # A conflict here (unexpected) fails the creation closed: the store
+            # raises instead of silently replacing an existing binding.
+            self.store.bind_lead_session(
+                task_id=task_id,
+                session_id=bound_session_id,
+                bound_by="lead",
+                log_sha256=bound_log_sha256,
+            )
         imported: list[dict[str, Any]] = []
         if supplied_files:
             try:
@@ -766,7 +845,7 @@ class ManagerService(ManagerControl):
                     TaskStatus.FAILED,
                     result_state="intake_failed",
                     ended_at=self.clock.now_ms(),
-                    notes=f"challenge input import failed: {type(exc).__name__}: {exc}"[:2000],
+                    completion_note=f"challenge input import failed: {type(exc).__name__}: {exc}"[:2000],
                 )
                 self._emit(
                     task_id,
@@ -792,10 +871,22 @@ class ManagerService(ManagerControl):
                 "conversation_id": record.conversation_id,
                 "source": record.source,
                 "scope_profile": record.scope_profile,
+                "notes": record.notes,
+                "lead_session_id": lead_candidate[0] if lead_candidate is not None else None,
                 "supplied_files": [item["rel_path"] for item in imported],
                 "supplied_inputs": imported,
             },
         )
+        if lead_candidate is not None:
+            self._emit(
+                task_id,
+                "lead_session_bound",
+                {
+                    "session_id": lead_candidate[0],
+                    "log_sha256": lead_candidate[1],
+                },
+                session_id=lead_candidate[0],
+            )
         self.store.set_task_status(task_id, TaskStatus.QUEUED)
         self.pump()
         return self.store.require_task(task_id)
@@ -896,7 +987,7 @@ class ManagerService(ManagerControl):
                 raise AcpError("ACP client is not available; cannot request pause")
             self._acp.cancel_session(worker.acp_session_id)
             self.store.set_worker_status(worker.worker_id, WorkerStatus.READY)
-            self.store.set_task_status(task_id, TaskStatus.PAUSED, notes=f"pause: {reason}"[:2000])
+            self.store.set_task_status(task_id, TaskStatus.PAUSED, completion_note=f"pause: {reason}"[:2000])
             self._emit(
                 task_id,
                 "task_paused",
@@ -938,7 +1029,7 @@ class ManagerService(ManagerControl):
                 return {"task_id": task_id, "status": TaskStatus.CANCELLED.value, "quiescent": True}
             if task.status is TaskStatus.STARTING:
                 self.store.set_task_status(
-                    task_id, TaskStatus.CANCELLED, ended_at=self.clock.now_ms(), notes=reason[:2000]
+                    task_id, TaskStatus.CANCELLED, ended_at=self.clock.now_ms(), completion_note=reason[:2000]
                 )
                 self._emit(task_id, "task_cancelled", {"reason": reason, "quiescent": True})
                 self.pump()
@@ -946,7 +1037,7 @@ class ManagerService(ManagerControl):
 
             if task.status is not TaskStatus.CANCEL_REQUESTED:
                 self.store.set_task_status(
-                    task_id, TaskStatus.CANCEL_REQUESTED, notes=f"cancel: {reason}"[:2000]
+                    task_id, TaskStatus.CANCEL_REQUESTED, completion_note=f"cancel: {reason}"[:2000]
                 )
                 self._emit(task_id, "task_cancel_requested", {"reason": reason})
             worker = self.store.get_worker_for_task(task_id)
@@ -1440,6 +1531,12 @@ class ManagerService(ManagerControl):
                 raise StateError(
                     f"Task {task_id} has no Worker/session mapping; refusing to complete"
                 )
+            # Lead-bound Tasks ingest their bound Lead session automatically
+            # before the preconditions run, so the "session-log evidence
+            # ingested" requirement is satisfied without a second user call.
+            # Worker-only Tasks are untouched. Failures fail closed.
+            if not allow_missing_session_log:
+                self._ingest_bound_lead_session(task_id)
             self._completion_preconditions(
                 task, worker, allow_missing_session_log=allow_missing_session_log
             )
@@ -1458,7 +1555,7 @@ class ManagerService(ManagerControl):
                     task_id,
                     TaskStatus.COMPLETION_PENDING,
                     result_state=normalized_result,
-                    notes=(safe_note or "completion started")[:2000],
+                    completion_note=(safe_note or "completion started")[:2000],
                 )
                 try:
                     self._acp.close_session(worker.acp_session_id)
@@ -1467,7 +1564,7 @@ class ManagerService(ManagerControl):
                         self.store.set_task_status(
                             task_id,
                             previous_status,
-                            notes=f"completion aborted (session close failed): {exc}"[:2000],
+                            completion_note=f"completion aborted (session close failed): {exc}"[:2000],
                         )
                     except Exception as rollback_exc:  # noqa: BLE001
                         self._diagnostic(
@@ -1512,6 +1609,75 @@ class ManagerService(ManagerControl):
         except Exception:  # noqa: BLE001 - absence must fail closed
             return False
         return bool(events)
+
+    def _has_ingested_lead_session(self, task_id: str, session_id: str) -> bool:
+        """True only when THIS Lead session has already produced evidence.
+
+        The generic :meth:`_has_ingested_session_log` gate deliberately accepts
+        any ``evidence_ingested`` event; the automatic Lead ingestion before
+        completion must be session-specific, because a caller may legitimately
+        have ingested the shell Worker's log first (``source="worker"``) and that
+        must not suppress the bound Lead session's ingestion.
+        """
+
+        lister = getattr(self.evidence, "list_events", None)
+        if not callable(lister):
+            return False
+        try:
+            events = lister(task_id=task_id, event_type="evidence_ingested")
+        except Exception:  # noqa: BLE001 - absence must fail closed
+            return False
+        wanted = str(session_id)
+        for event in events or []:
+            if not isinstance(event, Mapping):
+                continue
+            payload = event.get("payload")
+            if not isinstance(payload, Mapping):
+                continue
+            if str(payload.get("session_id") or "") != wanted:
+                continue
+            recorded_source = payload.get("source")
+            if recorded_source is not None and str(recorded_source) != "lead":
+                continue
+            return True
+        return False
+
+    def _ingest_bound_lead_session(self, task_id: str) -> None:
+        """Ingest the Task's bound Lead session exactly once before completion.
+
+        Only Tasks with a one-time Lead binding are affected; Worker-only Tasks
+        keep the previous behaviour. Any ingestion failure is wrapped in
+        ``StateError`` so completion fails closed (the Task stays active and
+        retryable) instead of being reported without session evidence.
+        """
+
+        get_binding = getattr(self.store, "get_lead_binding", None)
+        if not callable(get_binding):
+            return
+        try:
+            binding = get_binding(task_id)
+        except Exception as exc:  # noqa: BLE001 - a broken binding must fail closed
+            raise StateError(
+                f"Task {task_id} Lead-session binding could not be read; refusing to "
+                f"complete: {type(exc).__name__}: {exc}"
+            ) from exc
+        if binding is None:
+            return
+        # Session-specific check: a prior Worker-log ingestion does not count.
+        if self._has_ingested_lead_session(task_id, binding.session_id):
+            return
+        try:
+            self.ingest_session_log(task_id, source="lead")
+        except Exception as exc:  # noqa: BLE001 - completion must not proceed
+            raise StateError(
+                f"Task {task_id} has a bound Lead session log that could not be "
+                f"ingested; refusing to complete: {type(exc).__name__}: {exc}"
+            ) from exc
+        if not self._has_ingested_lead_session(task_id, binding.session_id):
+            raise StateError(
+                f"Task {task_id} Lead session ingestion produced no evidence_ingested "
+                "event for the bound session; refusing to complete"
+            )
 
     # ------------------------------------------------------------------
     # Control API: approvals / grants / flag
@@ -1628,12 +1794,56 @@ class ManagerService(ManagerControl):
     # Control API: screenshots / evidence / delivery
     # ------------------------------------------------------------------
 
+    def _latest_tool_step_id(self, task_id: str) -> str | None:
+        """Derive ``turn{T}-step{S}`` from the newest recorded ``tool_call`` event.
+
+        Screenshots captured without an explicit step are bound to the latest
+        step the Lead actually executed (ingested from the session log), so the
+        Writeup can attach them by derived step id. ``None`` when no tool call
+        has been recorded yet: the screenshot is then honestly unbound.
+        """
+
+        lister = getattr(self.evidence, "list_events", None)
+        if not callable(lister):
+            return None
+        try:
+            events = lister(task_id=task_id, event_type="tool_call")
+        except Exception:  # noqa: BLE001 - derivation must never break capture
+            return None
+        if not events:
+            return None
+        try:
+            newest = max(
+                (event for event in events if isinstance(event, Mapping)),
+                key=lambda event: int(event.get("seq") or 0),
+            )
+        except (TypeError, ValueError):
+            return None
+        payload = newest.get("payload")
+        if not isinstance(payload, Mapping):
+            return None
+        turn = payload.get("turn")
+        step = payload.get("step")
+        if isinstance(turn, bool) or isinstance(step, bool):
+            return None
+        if not isinstance(turn, int) or not isinstance(step, int):
+            return None
+        if turn < 1 or step < 1:
+            return None
+        derived = f"turn{turn}-step{step}"
+        return derived if is_valid_step_id(derived) else None
+
     def take_screenshot(
         self, task_id: str, *, step_id: str | None = None, scope: str = "desktop"
     ) -> ScreenshotRecord:
         task = self.store.require_task(task_id)
         if step_id is not None:
             validate_step_id(step_id)
+        else:
+            # Derive the latest recorded (turn, step) from ingested tool_call
+            # evidence so a default screenshot lands under its real step; when no
+            # tool call has been recorded yet the screenshot stays unbound.
+            step_id = self._latest_tool_step_id(task_id)
         worker = self.store.get_worker_for_task(task_id)
         result = self.capturer.capture(scope=scope, workdir=task.workspace_path)
         now = self.clock.now_ms()
@@ -1690,18 +1900,24 @@ class ManagerService(ManagerControl):
         return record
 
     def ingest_session_log(
-        self, task_id: str, *, worker_id: str | None = None
+        self, task_id: str, *, worker_id: str | None = None, source: str = "auto"
     ) -> dict[str, Any]:
         """Ingest the Task's real Harness session log.
 
         The log path is **never** supplied by the caller. It is resolved only
         from the Manager's own Task/Worker/session registry under the managed
-        Harness ``sessions`` root; unknown/ambiguous/symlinked/out-of-root logs
-        fail closed.
+        Harness ``sessions`` root, or — for a Task with a verified one-time Lead
+        binding — under the explicitly configured live Lead sessions root.
+        ``source`` selects the registry: ``auto`` (the Task's verified one-time
+        Lead binding when present, else the registered Worker log), ``worker`` or
+        ``lead``. Unknown sources fail closed with a validation error.
         """
 
         self.store.require_task(task_id)
-        resolved = self.session_resolver.resolve(task_id, worker_id=worker_id)
+        resolved = self.session_resolver.resolve(
+            task_id, worker_id=worker_id, source=source
+        )
+        resolved_source = str(getattr(resolved, "source", source))
         ingest = getattr(self.evidence, "ingest_session_log_file", None)
         if not callable(ingest):
             raise StorageError("evidence store does not support session-log ingestion")
@@ -1717,6 +1933,7 @@ class ManagerService(ManagerControl):
             "evidence_ingested",
             {
                 "session_id": resolved.session_id,
+                "source": resolved_source,
                 "frames": payload.get("frames"),
                 "records": payload.get("appended", payload.get("decoded_records")),
                 "gaps": len(payload.get("gaps", []) or []),
@@ -1833,6 +2050,8 @@ class ManagerService(ManagerControl):
             "db_path": str(self.config.paths.db_path),
             "cas_dir": str(self.config.paths.cas_dir),
             "session_log_root": str(self.config.session_log_root),
+            "lead_sessions_root": str(self.lead_sessions_root),
+            "workspace_root": str(self.workspace_root),
             "intake_root": str(self.config.intake_root),
             "diagnostics": list(self._diagnostics[-20:]),
             "security": dict(ROUND2_SECURITY),

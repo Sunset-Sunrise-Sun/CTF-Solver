@@ -146,6 +146,25 @@ class SolverConfig:
         return self.dsh_home / "sessions"
 
     @property
+    def lead_sessions_root(self) -> Path:
+        """Live DSH sessions root used only for Lead-session evidence.
+
+        Priority: ``extra["lead_sessions_root"]`` -> environment variable
+        ``CTF_SOLVER_LEAD_SESSIONS_ROOT`` -> ``~/.dsh/sessions``. It is never
+        derived from :attr:`dsh_home`: that managed home only ever contains
+        Worker sessions. The live directory must already exist, so
+        :meth:`ensure_runtime_dirs` deliberately does not create it.
+        """
+
+        configured = (self.extra.get("lead_sessions_root") or "").strip()
+        if configured:
+            return Path(os.path.abspath(os.path.expanduser(configured)))
+        from_env = (os.environ.get("CTF_SOLVER_LEAD_SESSIONS_ROOT") or "").strip()
+        if from_env:
+            return Path(os.path.abspath(os.path.expanduser(from_env)))
+        return Path.home() / ".dsh" / "sessions"
+
+    @property
     def intake_root(self) -> Path:
         """Project-scoped challenge-file intake area (never arbitrary host paths)."""
 
@@ -172,7 +191,12 @@ class SolverConfig:
         return Path(__file__).resolve().parents[1] / "resources" / "acp" / "cordis.patch.yml"
 
     def ensure_runtime_dirs(self) -> None:
-        """Create runtime directories needed by the Manager (all git-ignored)."""
+        """Create runtime directories needed by the Manager (all git-ignored).
+
+        ``lead_sessions_root`` is intentionally absent: it is an existing live
+        Harness directory, and a missing one must surface as a resolver error
+        rather than being silently created.
+        """
 
         self.ensure_layout()
         self.intake_root.mkdir(parents=True, exist_ok=True)

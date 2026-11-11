@@ -46,3 +46,9 @@ description: Misc challenge reasoning for CTF-Solver; file/archive metadata and 
 - No network target access unless a Task-scoped grant exists (rare for misc challenges).
 - Do not fabricate an extracted flag; candidate Flag state is `candidate` and only the
   user submits it.
+
+## Evidence recording (native tools)
+
+- Native Lead tool calls are recorded automatically from the Lead session log; never hand-write or copy evidence.
+- Capture screenshots only at real checkpoints, with `step_id` = `turn{N}-step{S}`.
+- Distinguish 未执行 / 执行失败 / 未记录 honestly; never state an unrecorded step as a fact.

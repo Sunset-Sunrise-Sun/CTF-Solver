@@ -61,7 +61,7 @@ def test_schema_has_required_tables_and_meta(tmp_path) -> None:
             "ingestion_sources",
             "exports",
         } <= names
-        assert get_meta(conn, "schema_version") == "1.1"
+        assert get_meta(conn, "schema_version") == "1.2"
         assert get_meta(conn, "events_chain_head") == canonical.GENESIS_HASH
         assert get_meta(conn, "events_chain_head_seq") == "0"
         # Idempotent initialization.

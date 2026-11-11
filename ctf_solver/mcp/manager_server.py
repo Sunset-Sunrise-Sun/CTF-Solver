@@ -95,6 +95,19 @@ def build_manager_tools(manager: ManagerControl) -> list[McpTool]:
                         "description": "Competition/scope profile name, e.g. synthetic-local.",
                     },
                     "notes": {"type": "string"},
+                    "lead_session_id": {
+                        "type": "string",
+                        "maxLength": 128,
+                        "description": (
+                            "Optional Lead Harness session id (the Lead reads it from "
+                            "$env:DSH_SESSION_ID and passes it explicitly). The Manager "
+                            "verifies it: safe single path component, exactly one log under "
+                            "its configured Lead sessions root, header id match, header cwd "
+                            "equal to the Manager root, not bound to another Task. It is "
+                            "bound to this Task once; evidence is then ingested from that "
+                            "Lead session log."
+                        ),
+                    },
                     "supplied_files": {
                         "type": "array",
                         "items": {"type": "string"},
@@ -309,13 +322,24 @@ def build_manager_tools(manager: ManagerControl) -> list[McpTool]:
                         "type": "string",
                         "description": "Optional expected Worker id; must match the Task's Worker.",
                     },
+                    "source": {
+                        "type": "string",
+                        "enum": ["auto", "worker", "lead"],
+                        "default": "auto",
+                        "description": (
+                            "Log registry to ingest: auto = the Task's bound Lead session "
+                            "when present, else the registered Worker log; worker = the "
+                            "registered Worker log only; lead = the Task's bound Lead "
+                            "session only."
+                        ),
+                    },
                 },
                 ["task_id"],
                 "Ingest the Task's registered session log.",
             ),
             handler=_wrap(
-                lambda task_id, worker_id=None: manager.ingest_session_log(
-                    task_id, worker_id=worker_id
+                lambda task_id, worker_id=None, source="auto": manager.ingest_session_log(
+                    task_id, worker_id=worker_id, source=source
                 )
             ),
         ),
@@ -409,6 +433,15 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--lead-sessions-root",
+        default="",
+        help=(
+            "Live DSH sessions root used ONLY for one-time Lead-session evidence "
+            "(the Lead's real ~/.dsh/sessions when explicitly configured). Never derived "
+            "from --dsh-home and never created by the Manager."
+        ),
+    )
+    parser.add_argument(
         "--intake-dir",
         default="",
         help=(
@@ -424,6 +457,8 @@ def main(argv: list[str] | None = None) -> int:
     extra: dict[str, str] = {"dsh_home": str(dsh_home)}
     if args.session_log_root:
         extra["session_log_root"] = str(args.session_log_root)
+    if args.lead_sessions_root:
+        extra["lead_sessions_root"] = str(args.lead_sessions_root)
     if args.intake_dir:
         extra["intake_dir"] = str(args.intake_dir)
     test_launcher = _test_launcher_from_env()

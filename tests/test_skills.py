@@ -88,3 +88,73 @@ def test_specialist_skills_cover_category_specific_rules() -> None:
         text = _skill_text(name).lower()
         assert "candidate" in text
         assert "submit" in text
+
+
+MANAGER_TOOLS = (
+    "ctf_task_create",
+    "ctf_task_list",
+    "ctf_task_status",
+    "ctf_task_continue",
+    "ctf_task_pause",
+    "ctf_task_cancel",
+    "ctf_task_complete",
+    "ctf_approval_request",
+    "ctf_approval_list",
+    "ctf_grant_list",
+    "ctf_grant_revoke",
+    "ctf_flag_candidate",
+    "ctf_screenshot_capture",
+    "ctf_session_ingest",
+    "ctf_events_export",
+    "ctf_writeup_build",
+    "ctf_evidence_zip",
+    "ctf_runtime_status",
+)
+
+EVIDENCE_HEADING = "## Evidence recording (native tools)"
+
+
+def test_core_skill_lists_all_eighteen_manager_tools() -> None:
+    text = _skill_text("ctf-solver")
+    assert len(MANAGER_TOOLS) == 18
+    for tool in MANAGER_TOOLS:
+        assert tool in text, tool
+
+
+def test_core_skill_makes_lead_native_tools_the_executor() -> None:
+    text = _skill_text("ctf-solver")
+    lowered = text.lower()
+    assert "lead" in lowered
+    assert "native harness tools" in lowered
+    assert "$env:DSH_SESSION_ID" in text
+    assert "lead_session_id" in text
+    assert "ctf_session_ingest" in text
+    assert "session log" in lowered
+    # ctf-exec / Worker MCP is described only as the legacy path.
+    assert "legacy worker path" in lowered
+    # Category routing is a hard step, and unrecorded steps are never facts.
+    assert "hard step" in lowered
+    assert "未执行" in text
+    assert "未记录" in text
+    assert "never fabricate" in lowered
+
+
+@pytest.mark.parametrize("name", EXPECTED[1:])
+def test_category_skills_carry_the_unified_evidence_paragraph(name: str) -> None:
+    text = _skill_text(name)
+    assert EVIDENCE_HEADING in text, name
+    block = text.split(EVIDENCE_HEADING, 1)[1].strip()
+    non_empty = [line for line in block.splitlines() if line.strip()]
+    assert 1 <= len(non_empty) <= 5, f"{name} evidence paragraph must be <=5 lines"
+    assert "turn{N}-step{S}" in block
+    for state in ("未执行", "执行失败", "未记录"):
+        assert state in block, state
+    assert "never hand-write" in block
+
+
+def test_category_evidence_paragraphs_are_identical() -> None:
+    blocks = set()
+    for name in EXPECTED[1:]:
+        text = _skill_text(name)
+        blocks.add(text.split(EVIDENCE_HEADING, 1)[1].strip())
+    assert len(blocks) == 1

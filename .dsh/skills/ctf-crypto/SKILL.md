@@ -50,3 +50,9 @@ description: Crypto challenge reasoning for CTF-Solver; prefer mathematical stru
   without a Task-scoped grant.
 - Do not install crypto libraries or tools; if a required library is missing, report the
   exact missing dependency as a blocked step instead.
+
+## Evidence recording (native tools)
+
+- Native Lead tool calls are recorded automatically from the Lead session log; never hand-write or copy evidence.
+- Capture screenshots only at real checkpoints, with `step_id` = `turn{N}-step{S}`.
+- Distinguish 未执行 / 执行失败 / 未记录 honestly; never state an unrecorded step as a fact.

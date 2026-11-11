@@ -486,7 +486,7 @@ def test_runtime_status_and_shutdown_cleanup(tmp_path) -> None:
     assert status["ipc_url"].startswith("tcp://127.0.0.1:")
     assert status["acp"]["ready"] is True
     assert status["round1_limits"]["model_calls"].startswith("blocked")
-    assert status["round1_limits"]["main_conversation_entrypoint"].startswith("BLOCKED")
+    assert "connected via project-scoped workspace MCP" in status["round1_limits"]["main_conversation_entrypoint"]
     service.shutdown()
     assert acp.alive is False
     assert service.ipc_url is None

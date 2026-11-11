@@ -31,6 +31,37 @@ from ..core.types import CaptureResult
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 BLANK_STDDEV_THRESHOLD = 1.0
 MIN_CAPTURE_SIDE = 8
+FAILURE_STDERR_LINES = 12
+
+
+def _decode_powershell_output(raw: bytes | bytearray | None) -> str:
+    """Decode captured PowerShell bytes for the Chinese Windows OEM code page.
+
+    ``subprocess`` runs without a declared encoding so the original bytes reach
+    this function; decode as UTF-8 first, then GBK, then latin-1 so a Windows
+    console pipe never turns a capture diagnostic into a decode exception.
+    """
+
+    data = bytes(raw or b"")
+    if not data:
+        return ""
+    for encoding in ("utf-8", "gbk"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return data.decode("latin-1", errors="replace")
+
+
+def _failure_tail(completed: Any, limit: int = FAILURE_STDERR_LINES) -> str:
+    """Return up to ``limit`` lines of the most useful captured process output."""
+
+    stderr = _decode_powershell_output(getattr(completed, "stderr", None)).strip()
+    stdout = _decode_powershell_output(getattr(completed, "stdout", None)).strip()
+    text = stderr or stdout
+    if not text:
+        return ""
+    return " | ".join(text.splitlines()[-limit:])
 
 
 # ---------------------------------------------------------------------------
@@ -225,9 +256,6 @@ class DesktopCapturer:
                 completed = subprocess.run(
                     command,
                     capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
                     timeout=self.timeout_s,
                     shell=False,
                 )
@@ -240,11 +268,14 @@ class DesktopCapturer:
                     captured_at=captured_at,
                 )
             if completed.returncode != 0 or not out_path.is_file():
-                stderr_tail = (completed.stderr or "").strip().splitlines()[-3:]
+                detail = _failure_tail(completed)
+                error = f"capture failed (exit {completed.returncode})"
+                if detail:
+                    error = f"{error}: {detail}"
                 return CaptureResult(
                     ok=False,
                     png_bytes=b"",
-                    error=f"capture failed (exit {completed.returncode}): {' | '.join(stderr_tail)}",
+                    error=error,
                     method=self.name,
                     captured_at=captured_at,
                 )
@@ -340,9 +371,6 @@ class WindowCapturer:
                 completed = subprocess.run(
                     command,
                     capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
                     timeout=self.timeout_s,
                     shell=False,
                 )
@@ -352,11 +380,14 @@ class WindowCapturer:
                     method=self.name, captured_at=captured_at,
                 )
             if completed.returncode != 0 or not out_path.is_file():
-                tail = (completed.stderr or "").strip().splitlines()[-3:]
+                detail = _failure_tail(completed)
+                error = f"window capture failed (exit {completed.returncode})"
+                if detail:
+                    error = f"{error}: {detail}"
                 return CaptureResult(
                     ok=False,
                     png_bytes=b"",
-                    error=f"window capture failed (exit {completed.returncode}): {' | '.join(tail)}",
+                    error=error,
                     method=self.name,
                     captured_at=captured_at,
                 )
@@ -487,6 +518,7 @@ _POWERSHELL_CAPTURE_SCRIPT = r"""
 param([Parameter(Mandatory=$true)][string]$OutPath)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.Windows.Forms
 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;

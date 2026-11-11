@@ -235,15 +235,58 @@ and requires **no** global Harness configuration. The six `SKILL.md` files shoul
 project Skills. This was verified by a real-provider A/B run where a workspace with the six
 Skills found 6 and two empty workspaces found 0.
 
-**Important distinction:** discovering Skills does not register the Manager MCP server.
-The main-conversation `/ctf-solver` → Manager MCP project-level entrypoint is **not
-implemented**; the six Skills and the Manager/Worker CLI/MCP surfaces are separate pieces.
-Completing this Skills step must not be interpreted as "Manager MCP is connected".
+**Important distinction:** discovering Skills does not by itself register the Manager MCP
+server. Registration is provided by the project-scoped Workspace MCP Bridge described in
+section 6.5; the six Skills and the Manager/Worker CLI/MCP surfaces are separate pieces.
+Completing only this Skills step must not be interpreted as "Manager MCP is connected".
+
+### 6.5 Connect the Lead conversation to the Manager (project-scoped MCP bridge)
+
+This is an environment step, not a product install. It requires the project-scoped
+Workspace MCP Bridge plugin `@momojie-s/dsh-workspace-mcp` to be installed in the running
+Harness profile (installed in the tested environment with `dsh plugin --profile desktop add
+<tgz>`; see the installation acceptance report). If the plugin is absent, report the
+integration BLOCKED — do not edit global profiles to fake registration.
+
+Create `<workspace>/.dsh/mcp.servers.yml` (project-scoped, only sessions whose cwd is this
+workspace see it):
+
+```yaml
+servers:
+  ctf-solver:
+    transport: stdio
+    command: "<venv>/Scripts/python.exe"
+    args:
+      - "-m"
+      - "ctf_solver"
+      - "manager"
+      - "serve"
+      - "--root"
+      - "<workspace>"
+      - "--lead-sessions-root"
+      - "<DSH_HOME>/sessions"
+      - "--capture-mode"
+      - "desktop"
+```
+
+- `--lead-sessions-root` is the **live** Harness sessions root (`<DSH_HOME>/sessions`, e.g.
+  `C:/Users/<user>/.dsh/sessions`). It is deliberately separate from the Manager's isolated
+  `--dsh-home`; the Manager never creates it and never reads Worker logs from it.
+- The running Harness hot-loads the changed config; the Manager MCP tools appear as
+  `mcp__ctf-solver__*` (18 tools).
+- The Lead conversation reads its own session id from the native shell
+  (`$env:DSH_SESSION_ID`) and passes it as `ctf_task_create(lead_session_id=...)`. The Manager
+  verifies the id, the single session log, the log header `id` and the header `cwd` before
+  binding it one time; evidence ingestion then resolves only the Manager-registered binding.
+- `ctf_session_ingest` never accepts a path or an arbitrary session id.
 
 ## 7. Current acceptance boundary — read before use
 
-- The main-conversation `/ctf-solver` → Manager MCP **project-level entrypoint is not
-  implemented**; do not expect it to work.
+- The main-conversation `/ctf-solver` → Manager MCP entrypoint is **connected in the tested
+  environment** through the project-scoped Workspace MCP Bridge plus a `--lead-sessions-root`
+  configuration. The Lead-session binding/evidence-ingestion path is implemented and verified;
+  it is NOT a global/profile registration and must not be faked on an environment without the
+  bridge.
 - Model-driven Workers and `session/prompt` are **not open**.
 - Tier 2 OS isolation, real competition targets, and challenge-code execution have **not
   passed acceptance**. Do not run untrusted challenge binaries, scripts, macros, exploit
@@ -251,7 +294,11 @@ Completing this Skills step must not be interpreted as "Manager MCP is connected
 - Real physical-console TTY confirmation is **NOT VERIFIED**.
 - Same-child ACP-spawned `tools/call` is **NOT VERIFIED** under the zero-model-call gate.
 - Skills being discovered by Harness does **not** mean the Manager MCP has been
-  automatically registered with the running session.
+  automatically registered with the running session; the project-scoped bridge configuration
+  in section 6.5 is what registers it.
+- A Lead session can be bound to one Task in this round (single-assignment binding). The
+  ingested evidence window is the whole bound Lead session, not a per-Task slice; do not
+  claim per-Task window filtering.
 - Human approval decisions and network-grant creation are local-console/TTY-only and are
   deliberately **not** MCP tools; an agent or MCP caller can request an approval but cannot
   decide it. A network grant is Task/target-scoped and cannot be widened. Real competition
@@ -262,11 +309,15 @@ Completing this Skills step must not be interpreted as "Manager MCP is connected
 Do not use this release for real CTF content until those boundaries are separately
 accepted.
 
-## 8. Test status (v0.1.1 release)
+## 8. Test status (v0.1.1 release + Lead-session evidence Round 1)
 
-The final regression is recorded in the v0.1.1 acceptance report in the source/release
-materials. The release is tested on the original Windows + Python 3.14.7 environment, with
-both system Python and an isolated venv.
+The final v0.1.1 regression is recorded in the v0.1.1 acceptance report in the source/release
+materials. The Lead-session evidence round adds regression tests for the schema 1.1→1.2
+migration, one-time Lead binding, Lead log resolution/identity checks, `source`-selected
+ingestion, completion auto-ingest, notes/completion-note separation, Writeup step/screenshot
+binding and ZIP internal verification; the final counts and raw outputs are recorded under
+`lead-session-evidence/`. The release is tested on the original Windows + Python 3.14.7
+environment, with both system Python and an isolated venv.
 
 ## 9. Troubleshooting
 

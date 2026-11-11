@@ -1469,7 +1469,7 @@ def test_runtime_status_reports_round1_limits_honestly(tmp_path: Path) -> None:
         limits = service.runtime_status()["round1_limits"]
         assert "blocked" in limits["model_calls"].lower()
         assert "blocked" in limits["untrusted_challenge_code"].lower()
-        assert limits["main_conversation_entrypoint"].startswith("BLOCKED")
+        assert "connected via project-scoped workspace MCP" in limits["main_conversation_entrypoint"]
         assert "BLOCKED" in limits["session_log_negative_delivery_test"]
     finally:
         _teardown_manager(service, store, evidence)

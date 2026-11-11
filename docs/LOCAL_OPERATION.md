@@ -182,12 +182,18 @@ under the zero-model-call gate.
 
 ## 9. Current boundaries
 
-- Main-conversation `/ctf-solver` → Manager MCP project-level entrypoint: **NOT IMPLEMENTED /
-  BLOCKED**.
+- Main-conversation `/ctf-solver` → Manager MCP project-level entrypoint: **CONNECTED** in the
+  tested environment via the project-scoped Workspace MCP Bridge (`.dsh/mcp.servers.yml`)
+  plus `--lead-sessions-root`; see `docs/LEAD_SESSION_EVIDENCE.md`.
 - Model-driven Workers / `session/prompt`: **BLOCKED** by ADR-020.
 - Tier 2 OS isolation, real targets and challenge-code execution: **BLOCKED / NOT VERIFIED**.
 - Real physical-console TTY approval: **NOT VERIFIED**.
 - Same-child ACP-spawned `tools/call`: **NOT VERIFIED** under the zero-model-call gate.
 - Skills being discovered by Harness is **not** registration of the Manager MCP.
-- Manager MCP is profile-entry-only where supported; there is no supported project-level MCP
-  registration. Do not edit global profiles to fake one.
+- Manager MCP registration is project-scoped (`<workspace>/.dsh/mcp.servers.yml`), loaded by
+  the Workspace MCP Bridge for sessions whose cwd is that workspace. Do not edit global
+  profiles to fake a registration; report BLOCKED when the bridge is absent.
+- Lead-session evidence: a Task may bind one Lead session (`lead_session_id`, verified by the
+  Manager) and ingest that session log from the configured live `lead_sessions_root`; the
+  evidence window is the whole bound session. `ctf_session_ingest` never accepts a path or an
+  arbitrary session id. `notes` (intake) and `completion_note` (outcome) are separate fields.

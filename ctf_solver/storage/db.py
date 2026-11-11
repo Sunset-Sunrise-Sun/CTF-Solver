@@ -51,11 +51,21 @@ CREATE TABLE IF NOT EXISTS tasks (
     started_at       INTEGER,
     ended_at         INTEGER,
     evidence_head    TEXT,
-    notes            TEXT NOT NULL DEFAULT ''
+    notes            TEXT NOT NULL DEFAULT '',
+    completion_note  TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_tasks_created ON tasks(created_at, task_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_conversation ON tasks(conversation_id);
+
+CREATE TABLE IF NOT EXISTS session_bindings (
+    session_id  TEXT PRIMARY KEY,
+    task_id     TEXT NOT NULL UNIQUE REFERENCES tasks(task_id),
+    bound_at    INTEGER NOT NULL,
+    bound_by    TEXT NOT NULL,
+    log_sha256  TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_session_bindings_task ON session_bindings(task_id);
 
 CREATE TABLE IF NOT EXISTS workers (
     worker_id       TEXT PRIMARY KEY,
@@ -264,7 +274,12 @@ def _ensure_column(conn: sqlite3.Connection, table: str, column: str, declaratio
 
 
 def _migrate_1_0_to_1_1(conn: sqlite3.Connection) -> None:
-    """Round 2 migration: human-confirmation columns + Task input registry."""
+    """Round 2 migration: human-confirmation columns + Task input registry.
+
+    Every statement is executed individually: ``executescript`` would issue an
+    implicit COMMIT and silently leave the surrounding migration transaction,
+    so it must not be used here.
+    """
 
     _ensure_column(conn, "approvals", "confirmation_channel", "TEXT")
     _ensure_column(conn, "approvals", "confirmation_id", "TEXT")
@@ -273,20 +288,42 @@ def _migrate_1_0_to_1_1(conn: sqlite3.Connection) -> None:
     _ensure_column(conn, "network_grants", "approval_id", "TEXT")
     _ensure_column(conn, "network_grants", "confirmation_id", "TEXT")
     _ensure_column(conn, "network_grants", "confirmation_os_user", "TEXT")
-    conn.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS task_inputs (
-            task_id         TEXT NOT NULL REFERENCES tasks(task_id),
-            rel_path        TEXT NOT NULL,
-            sha256          TEXT NOT NULL,
-            size            INTEGER NOT NULL,
-            media_type      TEXT NOT NULL DEFAULT 'application/octet-stream',
-            source_rel_path TEXT NOT NULL DEFAULT '',
-            imported_at     INTEGER NOT NULL,
-            PRIMARY KEY (task_id, rel_path)
-        );
-        CREATE INDEX IF NOT EXISTS idx_task_inputs_task ON task_inputs(task_id);
-        """
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS task_inputs ("
+        " task_id         TEXT NOT NULL REFERENCES tasks(task_id),"
+        " rel_path        TEXT NOT NULL,"
+        " sha256          TEXT NOT NULL,"
+        " size            INTEGER NOT NULL,"
+        " media_type      TEXT NOT NULL DEFAULT 'application/octet-stream',"
+        " source_rel_path TEXT NOT NULL DEFAULT '',"
+        " imported_at     INTEGER NOT NULL,"
+        " PRIMARY KEY (task_id, rel_path))"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_task_inputs_task ON task_inputs(task_id)"
+    )
+
+
+def _migrate_1_1_to_1_2(conn: sqlite3.Connection) -> None:
+    """Lead-session evidence migration: completion note + one-time bindings.
+
+    Additive only: no existing column is rewritten and no row is dropped. The
+    new table/index are created with individual ``conn.execute`` calls (never
+    ``executescript`` inside the caller's migration transaction).
+    """
+
+    _ensure_column(conn, "tasks", "completion_note", "TEXT NOT NULL DEFAULT ''")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS session_bindings ("
+        " session_id TEXT PRIMARY KEY,"
+        " task_id    TEXT NOT NULL UNIQUE REFERENCES tasks(task_id),"
+        " bound_at   INTEGER NOT NULL,"
+        " bound_by   TEXT NOT NULL,"
+        " log_sha256 TEXT)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_session_bindings_task"
+        " ON session_bindings(task_id)"
     )
 
 
@@ -313,6 +350,12 @@ def initialize_schema(conn: sqlite3.Connection) -> None:
             )
         elif row["value"] == "1.0":
             _migrate_1_0_to_1_1(conn)
+            _migrate_1_1_to_1_2(conn)
+            conn.execute(
+                "UPDATE meta SET value = ? WHERE key = ?", (SCHEMA_VERSION, META_SCHEMA_VERSION)
+            )
+        elif row["value"] == "1.1":
+            _migrate_1_1_to_1_2(conn)
             conn.execute(
                 "UPDATE meta SET value = ? WHERE key = ?", (SCHEMA_VERSION, META_SCHEMA_VERSION)
             )

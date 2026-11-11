@@ -174,4 +174,6 @@ def build_manager_service(
         pipeline=pipeline,
         deliverables=deliverables,
         capturer=capturer,
+        lead_sessions_root=config.lead_sessions_root,
+        workspace_root=config.root,
     )

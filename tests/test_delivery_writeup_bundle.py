@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
+import tempfile
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from ctf_solver.core.canonical import file_sha256, sha256_hex
 from ctf_solver.core.config import SolverPaths
+from ctf_solver.core.errors import DeliveryError
 from ctf_solver.core.types import (
     CaptureStatus,
     Category,
@@ -17,6 +22,7 @@ from ctf_solver.core.types import (
     TaskRecord,
     TaskStatus,
 )
+from ctf_solver.delivery import bundle as bundle_module
 from ctf_solver.delivery.bundle import EvidenceBundleBuilder, verify_manifest
 from ctf_solver.delivery.writeup import WriteupBuilder
 from tests.support.png import gradient_png
@@ -28,6 +34,7 @@ class FakeEvidence:
         self.screenshots: list[ScreenshotRecord] = []
         self.artifacts: dict[str, bytes] = {}
         self.exports: list[ExportInfo] = []
+        self.sources: list[dict] = []
 
     def list_events(self, *, task_id=None, after_seq=None, limit=None, event_type=None):
         items = self.events
@@ -68,7 +75,7 @@ class FakeEvidence:
         self.exports.append(info)
 
     def ingestion_sources(self, task_id: str):
-        return []
+        return list(self.sources)
 
 
 def _event(seq: int, event_type: str, payload: dict, timestamp: int | None = None) -> dict:
@@ -87,23 +94,32 @@ def _event(seq: int, event_type: str, payload: dict, timestamp: int | None = Non
     }
 
 
-def _task(tmp_path: Path) -> TaskRecord:
-    return TaskRecord(
-        task_id="t-writeup0001",
-        conversation_id="conv-1",
-        title="Synthetic Misc Challenge",
-        category=Category.MISC,
-        workspace_path=str(tmp_path / "tasks" / "t-writeup0001" / "work"),
-        source="synthetic-local",
-        scope_profile="synthetic-local",
-        status=TaskStatus.RUNNING,
-        created_at=1_700_000_000_000,
-        updated_at=1_700_000_000_500,
-        started_at=1_700_000_000_100,
-        evidence_head="b" * 64,
-        flag_state=FlagState.CANDIDATE,
-        notes="Synthetic challenge description for the Writeup test.",
-    )
+def _task(tmp_path: Path, *, completion_note: str = "") -> TaskRecord:
+    fields = {
+        "task_id": "t-writeup0001",
+        "conversation_id": "conv-1",
+        "title": "Synthetic Misc Challenge",
+        "category": Category.MISC,
+        "workspace_path": str(tmp_path / "tasks" / "t-writeup0001" / "work"),
+        "source": "synthetic-local",
+        "scope_profile": "synthetic-local",
+        "status": TaskStatus.RUNNING,
+        "created_at": 1_700_000_000_000,
+        "updated_at": 1_700_000_000_500,
+        "started_at": 1_700_000_000_100,
+        "evidence_head": "b" * 64,
+        "flag_state": FlagState.CANDIDATE,
+        "notes": "Synthetic challenge description for the Writeup test.",
+    }
+    has_field = "completion_note" in {field.name for field in dataclasses.fields(TaskRecord)}
+    if has_field:
+        fields["completion_note"] = completion_note
+    task = TaskRecord(**fields)
+    if completion_note and not has_field:
+        # TaskRecord.completion_note lands with the core-binding change; the
+        # Writeup reads it through getattr, so tests can exercise both states.
+        task.completion_note = completion_note  # type: ignore[attr-defined]
+    return task
 
 
 def _evidence(tmp_path: Path) -> FakeEvidence:
@@ -189,6 +205,8 @@ def _evidence(tmp_path: Path) -> FakeEvidence:
                 "call_id": "call-1",
                 "tool_name": "mcp__ctf-exec__ctf_exec",
                 "arguments": {"tool_name": "internal.file_hash"},
+                "turn": 2,
+                "step": 5,
             },
             t + 60,
         ),
@@ -236,6 +254,19 @@ def _evidence(tmp_path: Path) -> FakeEvidence:
             captured_at=t + 25,
             status=CaptureStatus.BLANK,
             failure_reason="blank capture (stddev below threshold)",
+        ),
+        ScreenshotRecord(
+            screenshot_id="shot-derived",
+            task_id="t-writeup0001",
+            worker_id=None,
+            step_id="turn2-step5",
+            session_id="session-1",
+            scope="desktop",
+            captured_at=t + 65,
+            status=CaptureStatus.OK,
+            sha256=sha256_hex(shot_png),
+            width=64,
+            height=48,
         ),
     ]
     return evidence
@@ -333,3 +364,152 @@ def test_manifest_verification_detects_tampering(tmp_path: Path) -> None:
     report = verify_manifest(extracted / "manifest.sha256", extracted)
     assert report["ok"] is False
     assert any("hash mismatch" in problem for problem in report["problems"])
+
+
+# ---------------------------------------------------------------------------
+# Round 1 delivery additions: intake notes, completion note, step binding,
+# raw Lead log inclusion and internal ZIP verification.
+# ---------------------------------------------------------------------------
+
+
+def _section(text: str, heading: str) -> str:
+    start = text.index(heading)
+    end = text.find("\n## ", start + len(heading))
+    return text[start:] if end == -1 else text[start:end]
+
+
+def test_intake_notes_rendered_exactly_once_in_section_1(tmp_path: Path) -> None:
+    task = _task(tmp_path)
+    text = WriteupBuilder(_evidence(tmp_path)).render(task)
+    notes = task.notes
+    assert text.count(notes) == 1
+    section_1 = _section(text, "## 1. Challenge metadata and supplied materials")
+    assert notes in section_1
+    section_2 = _section(text, "## 2. Challenge description and scope")
+    assert notes not in section_2
+    assert "reproduced in section 1 and not duplicated here" in section_2
+
+
+def test_completion_note_rendered_as_subsection_after_description(tmp_path: Path) -> None:
+    completion_note = "Outcome: candidate flag recorded; no platform verification claimed."
+    task = _task(tmp_path, completion_note=completion_note)
+    text = WriteupBuilder(_evidence(tmp_path)).render(task)
+    assert "### 2.1 Completion note (outcome record)" in text
+    assert text.count(completion_note) == 1
+    section_2 = _section(text, "## 2. Challenge description and scope")
+    assert completion_note in section_2
+    assert task.notes not in section_2
+    section_1 = _section(text, "## 1. Challenge metadata and supplied materials")
+    assert completion_note not in section_1
+    # The subsection comes after the description reference and the scope line.
+    assert text.index("reproduced in section 1") < text.index("### 2.1 Completion note")
+
+
+def test_empty_completion_note_renders_no_subsection(tmp_path: Path) -> None:
+    task = _task(tmp_path)
+    text = WriteupBuilder(_evidence(tmp_path)).render(task)
+    assert "### 2.1 Completion note" not in text
+    assert getattr(task, "completion_note", "") == ""
+
+
+def test_tool_call_heading_includes_recorded_turn_and_step(tmp_path: Path) -> None:
+    task = _task(tmp_path)
+    text = WriteupBuilder(_evidence(tmp_path)).render(task)
+    step_heading = "### Step 3 — Worker initiated `mcp__ctf-exec__ctf_exec` (turn 2, step 5) at "
+    assert step_heading in text
+
+
+def test_tool_call_heading_marks_lead_origin_when_worker_id_is_null(tmp_path: Path) -> None:
+    evidence = _evidence(tmp_path)
+    lead_event = _event(
+        90,
+        "tool_call",
+        {
+            "call_id": "call-lead-1",
+            "tool_name": "pwsh",
+            "arguments": json.dumps({"command": "Get-ChildItem"}),
+            "turn": 1,
+            "step": 7,
+        },
+    )
+    lead_event["worker_id"] = None
+    evidence.events.append(lead_event)
+    text = WriteupBuilder(evidence).render(_task(tmp_path))
+    assert "Lead initiated `pwsh` (turn 1, step 7)" in text
+    assert "the Lead requested this tool call" in text
+    # Worker-sourced evidence keeps the historical wording unchanged.
+    assert "Worker initiated `mcp__ctf-exec__ctf_exec`" in text
+
+
+def test_screenshot_bound_by_derived_turn_step_id_appears_under_its_step(tmp_path: Path) -> None:
+    task = _task(tmp_path)
+    text = WriteupBuilder(_evidence(tmp_path)).render(task)
+    heading = "### Step 3 — Worker initiated `mcp__ctf-exec__ctf_exec` (turn 2, step 5) at "
+    screenshot_line = "- Screenshot: `screenshots/shot-derived.png`"
+    assert screenshot_line in text
+    assert text.index(heading) < text.index(screenshot_line)
+    # The derived screenshot must not leak into another section (e.g. failures).
+    step_block = text[text.index(heading) :]
+    assert screenshot_line in step_block
+    assert step_block.index(screenshot_line) < step_block.index("\n## 5. ")
+
+
+def test_bundle_includes_raw_lead_session_log_from_cas(tmp_path: Path) -> None:
+    paths = SolverPaths.for_root(tmp_path)
+    paths.ensure()
+    task = _task(tmp_path)
+    evidence = _evidence(tmp_path)
+    raw_log = b"raw-lead-session-log-bytes"
+    raw_sha = sha256_hex(raw_log)
+    evidence.artifacts[raw_sha] = raw_log
+    evidence.sources = [
+        {"source_id": "lead", "task_id": task.task_id, "raw_sha256": raw_sha}
+    ]
+    (paths.task_workspace(task.task_id)).mkdir(parents=True, exist_ok=True)
+    info = EvidenceBundleBuilder(evidence, paths).build(task)
+    member = f"raw/session-{raw_sha[:16]}.jsonl.zstd"
+    with zipfile.ZipFile(info.path) as archive:
+        names = sorted(archive.namelist())
+        assert member in names
+        assert archive.read(member) == raw_log
+    report = EvidenceBundleBuilder.verify_zip(info.path, tmp_path / "verify-raw")
+    assert report["ok"] is True, report["problems"]
+    assert member in report["members"]
+
+
+def test_bundle_internal_verification_failure_raises_delivery_error(tmp_path: Path, monkeypatch) -> None:
+    paths = SolverPaths.for_root(tmp_path)
+    paths.ensure()
+    task = _task(tmp_path)
+    evidence = _evidence(tmp_path)
+    (paths.task_workspace(task.task_id)).mkdir(parents=True, exist_ok=True)
+
+    def failing_verify(zip_path, extract_to):
+        return {"ok": False, "checked": 0, "problems": ["synthetic manifest mismatch"]}
+
+    monkeypatch.setattr(EvidenceBundleBuilder, "verify_zip", staticmethod(failing_verify))
+    with pytest.raises(DeliveryError) as excinfo:
+        EvidenceBundleBuilder(evidence, paths).build(task)
+    assert "internal verification" in str(excinfo.value)
+    assert "synthetic manifest mismatch" in str(excinfo.value)
+
+
+def test_bundle_internal_verification_cleans_up_temp_dir(tmp_path: Path, monkeypatch) -> None:
+    paths = SolverPaths.for_root(tmp_path)
+    paths.ensure()
+    task = _task(tmp_path)
+    evidence = _evidence(tmp_path)
+    (paths.task_workspace(task.task_id)).mkdir(parents=True, exist_ok=True)
+    created: list[str] = []
+    real_mkdtemp = tempfile.mkdtemp
+
+    def recording_mkdtemp(*args, **kwargs):
+        path = real_mkdtemp(*args, **kwargs)
+        created.append(path)
+        return path
+
+    monkeypatch.setattr(bundle_module.tempfile, "mkdtemp", recording_mkdtemp)
+    info = EvidenceBundleBuilder(evidence, paths).build(task)
+    assert Path(info.path).is_file()
+    assert created, "internal verification temp dir was never created"
+    assert all(not Path(path).exists() for path in created)

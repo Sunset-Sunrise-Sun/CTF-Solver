@@ -190,9 +190,17 @@ class StubManager:
             height=64,
         )
 
-    def ingest_session_log(self, task_id: str, *, worker_id: str | None = None) -> dict[str, Any]:
+    def ingest_session_log(
+        self, task_id: str, *, worker_id: str | None = None, source: str = "auto"
+    ) -> dict[str, Any]:
         self._require_task(task_id)
-        return {"task_id": task_id, "appended": 0, "skipped_duplicates": 0, "gaps": []}
+        return {
+            "task_id": task_id,
+            "source": source,
+            "appended": 0,
+            "skipped_duplicates": 0,
+            "gaps": [],
+        }
 
     def export_events(self, task_id: str) -> ExportInfo:
         self._require_task(task_id)

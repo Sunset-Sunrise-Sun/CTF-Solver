@@ -34,10 +34,14 @@ def _iso(timestamp_ms: int | None) -> str:
 
 def _as_event_dict(event: Any) -> dict[str, Any]:
     if isinstance(event, Mapping):
-        return dict(event)
+        result = dict(event)
+        result.setdefault("worker_id", None)
+        return result
     to_dict = getattr(event, "to_dict", None)
     if callable(to_dict):
-        return dict(to_dict())
+        result = dict(to_dict())
+        result.setdefault("worker_id", None)
+        return result
     payload = getattr(event, "payload", None)
     return {
         "seq": getattr(event, "seq", 0),
@@ -48,7 +52,22 @@ def _as_event_dict(event: Any) -> dict[str, Any]:
         "source": getattr(event, "source", ""),
         "source_id": getattr(event, "source_id", ""),
         "source_seq": getattr(event, "source_seq", None),
+        "worker_id": getattr(event, "worker_id", None),
     }
+
+
+def _tool_call_actor(event: Mapping[str, Any]) -> tuple[str, str]:
+    """Who initiated a recorded ``tool_call``: the Lead or a Worker.
+
+    Lead-sourced evidence records the call with a NULL ``worker_id`` (the Lead
+    conversation is not a Worker); Worker ``ctf-exec`` calls keep their Worker
+    id. A record that does not carry the field at all is treated as the
+    historical Worker wording so older evidence renders unchanged.
+    """
+
+    if "worker_id" in event and not event.get("worker_id"):
+        return "Lead initiated", "the Lead requested this tool call"
+    return "Worker initiated", "the Worker requested this tool call"
 
 
 def _payload(event: Mapping[str, Any]) -> dict[str, Any]:
@@ -86,6 +105,68 @@ def _fence(text: str, language: str = "text") -> str:
             run = 0
     fence = "`" * max(3, longest + 1)
     return f"{fence}{language}\n{text}\n{fence}\n"
+
+
+def _turn_step(payload: Mapping[str, Any]) -> tuple[int, int] | None:
+    """Return the recorded ``(turn, step)`` for one tool-call record, when present."""
+
+    turn = payload.get("turn")
+    step = payload.get("step")
+    if isinstance(turn, bool) or isinstance(step, bool):
+        return None
+    try:
+        turn_value = int(turn)  # type: ignore[arg-type]
+        step_value = int(step)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return turn_value, step_value
+
+
+def _derived_step_id(payload: Mapping[str, Any]) -> str:
+    """Return the default-derived screenshot step id ``turn{T}-step{S}``."""
+
+    pair = _turn_step(payload)
+    if pair is None:
+        return ""
+    return f"turn{pair[0]}-step{pair[1]}"
+
+
+def _step_ids_for(payload: Mapping[str, Any]) -> list[str]:
+    """Candidate step ids a screenshot may be bound to for this record."""
+
+    candidates: list[str] = []
+    explicit = str(payload.get("step_id") or "")
+    if explicit:
+        candidates.append(explicit)
+    derived = _derived_step_id(payload)
+    if derived and derived not in candidates:
+        candidates.append(derived)
+    return candidates
+
+
+def _screenshots_for_step(
+    shots_by_step: Mapping[str, list[ScreenshotRecord]], payload: Mapping[str, Any]
+) -> list[ScreenshotRecord]:
+    """Screenshots bound by exact ``step_id`` or by derived ``turn{T}-step{S}``."""
+
+    matched: list[ScreenshotRecord] = []
+    seen: set[str] = set()
+    for step_id in _step_ids_for(payload):
+        for shot in shots_by_step.get(step_id, []):
+            if shot.screenshot_id in seen:
+                continue
+            seen.add(shot.screenshot_id)
+            matched.append(shot)
+    matched.sort(key=lambda item: (item.captured_at, item.screenshot_id))
+    return matched
+
+
+def _append_screenshot_lines(lines: list[str], shots: Iterable[ScreenshotRecord]) -> None:
+    for shot in shots:
+        lines.append(
+            f"- Screenshot: `screenshots/{shot.screenshot_id}.png` "
+            f"(sha256 `{shot.sha256}`, {shot.width}x{shot.height}, captured {_iso(shot.captured_at)})"
+        )
 
 
 class WriteupBuilder:
@@ -198,18 +279,29 @@ class WriteupBuilder:
     def _section_description(self, task: TaskRecord) -> list[str]:
         lines = ["## 2. Challenge description and scope", ""]
         if task.notes:
-            lines.append("The challenge description is the intake record stored with the Task:")
-            lines.append("")
-            lines.append(_fence(task.notes))
+            lines.append(
+                "The challenge description is the intake record stored with the Task; it is "
+                "reproduced in section 1 and not duplicated here."
+            )
         else:
             lines.append("No challenge description was recorded in the Task notes.")
-            lines.append("")
+        lines.append("")
         lines.append(
             "Scope: analysis and permitted local operations only. Public research/documentation "
             "lookup is distinct from competition-target traffic; target access requires a "
             "Task-scoped grant."
         )
         lines.append("")
+        completion_note = str(getattr(task, "completion_note", "") or "").strip()
+        if completion_note:
+            lines.append("### 2.1 Completion note (outcome record)")
+            lines.append("")
+            lines.append(
+                "The Task completion outcome recorded by the Manager when the Task closed "
+                "(an outcome record, not part of the intake record):"
+            )
+            lines.append("")
+            lines.append(_fence(completion_note))
         return lines
 
     def _section_versions(self, events: list[dict[str, Any]]) -> list[str]:
@@ -271,13 +363,9 @@ class WriteupBuilder:
                     self._append_outcome(lines, related)
                 else:
                     lines.append("- Outcome: _no matching completion event recorded (explicit gap)._")
-                step_shots = shots_by_step.get(step_id, [])
+                step_shots = _screenshots_for_step(shots_by_step, payload)
                 if step_shots:
-                    for shot in step_shots:
-                        lines.append(
-                            f"- Screenshot: `screenshots/{shot.screenshot_id}.png` "
-                            f"(sha256 `{shot.sha256}`, {shot.width}x{shot.height}, captured {_iso(shot.captured_at)})"
-                        )
+                    _append_screenshot_lines(lines, step_shots)
                 else:
                     lines.append(
                         "- Screenshot: _not captured for this step_ (no explicit capture was requested, "
@@ -286,13 +374,18 @@ class WriteupBuilder:
                 lines.append("")
             elif event_type == "tool_call":
                 step_index += 1
+                turn_step = _turn_step(payload)
+                turn_step_suffix = (
+                    f" (turn {turn_step[0]}, step {turn_step[1]})" if turn_step is not None else ""
+                )
+                actor, actor_sentence = _tool_call_actor(event)
                 lines.append(
-                    f"### Step {step_index} — Worker initiated `{payload.get('tool_name')}` "
-                    f"at {_iso(timestamp)}"
+                    f"### Step {step_index} — {actor} `{payload.get('tool_name')}`"
+                    f"{turn_step_suffix} at {_iso(timestamp)}"
                 )
                 lines.append("")
                 lines.append(
-                    "- Reason/hypothesis: the Worker requested this tool call; the recorded arguments "
+                    f"- Reason/hypothesis: {actor_sentence}; the recorded arguments "
                     "are the actual proposed action."
                 )
                 arguments = payload.get("arguments")
@@ -314,6 +407,9 @@ class WriteupBuilder:
                         )
                 else:
                     lines.append("- Outcome: _no matching tool/result recorded (explicit gap)._")
+                step_shots = _screenshots_for_step(shots_by_step, payload)
+                if step_shots:
+                    _append_screenshot_lines(lines, step_shots)
                 lines.append("")
         if step_index == 0:
             lines.append("No execution or tool-call steps were recorded for this Task.")

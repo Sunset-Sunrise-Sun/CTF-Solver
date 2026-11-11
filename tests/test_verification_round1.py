@@ -1872,7 +1872,7 @@ def test_preflight_is_read_only_and_never_launches_wsl_or_docker(tmp_path: Path)
 
 
 def test_privacy_gate_mechanism_evidence_and_canary_blocked() -> None:
-    patch_file = REPO_ROOT / "config" / "acp" / "cordis.patch.yml"
+    patch_file = REPO_ROOT / "ctf_solver" / "resources" / "acp" / "cordis.patch.yml"
     assert patch_file.is_file()
     patch_text = patch_file.read_text(encoding="utf-8")
     assert "session-log-deepseek" in patch_text

@@ -169,7 +169,7 @@ class SolverConfig:
             # Deliberately keep a caller-supplied relative path relative so the
             # launch builder can reject it (the privacy patch must be absolute).
             return Path(os.path.expanduser(configured))
-        return Path(__file__).resolve().parents[2] / "config" / "acp" / "cordis.patch.yml"
+        return Path(__file__).resolve().parents[1] / "resources" / "acp" / "cordis.patch.yml"
 
     def ensure_runtime_dirs(self) -> None:
         """Create runtime directories needed by the Manager (all git-ignored)."""

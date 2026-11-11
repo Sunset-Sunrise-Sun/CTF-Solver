@@ -3,7 +3,7 @@
 Covers docs/ROUND_2_INTERFACES.md §4.2 without installing anything:
 
 - pyproject uses the in-tree PEP 517 backend (``wheelbuild``, no build requires);
-- the backend builds a valid, deterministic ``ctf_solver-0.1.0-py3-none-any.whl``
+- the backend builds a valid, deterministic ``ctf_solver-0.1.1-py3-none-any.whl``
   with every ``ctf_solver/**`` package, dist-info metadata and a correct RECORD;
 - metadata/wheel/entry-point contents match authoritative ``[project]`` data;
 - the wheel extracts and imports ``ctf_solver.evidence.store``,
@@ -162,7 +162,7 @@ def test_pyproject_uses_in_tree_pep517_backend(backend: ModuleType) -> None:
     assert (REPO_ROOT / "tooling" / "wheelbuild.py").is_file()
     # [project] stays authoritative and dependency-free.
     assert PROJECT["name"] == "ctf-solver"
-    assert PROJECT["version"] == "0.1.0"
+    assert PROJECT["version"] == "0.1.1"
     assert PROJECT["dependencies"] == []
     assert PROJECT["scripts"] == {"ctf-solver": "ctf_solver.cli:main"}
     assert backend.BACKEND_NAME == "wheelbuild"
@@ -214,6 +214,9 @@ def test_wheel_contains_every_package_file_and_valid_record(
     for package in BASELINE_PACKAGES:
         assert f"{package.replace('.', '/')}/__init__.py" in names, package
     assert "ctf_solver/intake.py" in names
+    resource = "ctf_solver/resources/acp/cordis.patch.yml"
+    assert resource in names, "privacy patch package resource missing from wheel"
+    assert entries[resource] == (frozen / "ctf_solver/resources/acp/cordis.patch.yml").read_bytes()
 
     for required in ("METADATA", "WHEEL", "RECORD", "entry_points.txt"):
         assert f"{DIST_INFO}/{required}" in names, required
@@ -254,7 +257,7 @@ def test_metadata_wheel_and_entry_points_content(backend: ModuleType, tmp_path: 
         headers[key.strip().lower()] = value.strip()
     assert headers["metadata-version"] == "2.1"
     assert headers["name"] == "ctf-solver"
-    assert headers["version"] == "0.1.0"
+    assert headers["version"] == "0.1.1"
     assert headers["requires-python"] == ">=3.11"
     assert headers["summary"] == PROJECT["description"]
     assert headers["provides-extra"] == "dev"
@@ -282,7 +285,7 @@ def test_extracted_wheel_imports_and_version_cli(
     assert report["ok"] is True
     assert report["imported_version"] == PROJECT["version"]
     assert report["version_command"]["returncode"] == 0
-    assert "ctf-solver 0.1.0" in report["version_command"]["stdout_tail"]
+    assert "ctf-solver 0.1.1" in report["version_command"]["stdout_tail"]
 
     # Independent re-extraction, away from the repository, with only PYTHONPATH.
     extract_dir = tmp_path / "extract"
@@ -467,7 +470,7 @@ def test_sdist_hook_is_deterministic_and_contains_sources(
     out_two = tmp_path / "sdist-two"
     first_name = backend.build_sdist_for_repo(frozen, out_one)
     second_name = backend.build_sdist_for_repo(frozen, out_two)
-    assert first_name == second_name == "ctf_solver-0.1.0.tar.gz"
+    assert first_name == second_name == "ctf_solver-0.1.1.tar.gz"
     assert (out_one / first_name).read_bytes() == (out_two / second_name).read_bytes()
     with tarfile.open(out_one / first_name, "r:gz") as archive:
         names = archive.getnames()

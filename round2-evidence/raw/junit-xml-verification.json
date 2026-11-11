@@ -398,6 +398,90 @@
         "summary_line": "930 passed, 3 skipped in 58.97s"
       },
       "derived_passed": 930
+    },
+    "round2-evidence/raw/junit-v011-default.xml": {
+      "totals": {
+        "tests": 1043,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 4
+      },
+      "contains_raw_placeholder_markup": false,
+      "personal_home_remaining": false,
+      "log": "round2-evidence/raw/v011-full-default.txt",
+      "log_summary": {
+        "passed": 1039,
+        "skipped": 4,
+        "failed": 0,
+        "errors": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "summary_line": "1039 passed, 4 skipped in 91.69s (0:01:31)"
+      },
+      "derived_passed": 1039
+    },
+    "round2-evidence/raw/junit-v011-venv-default.xml": {
+      "totals": {
+        "tests": 1043,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 4
+      },
+      "contains_raw_placeholder_markup": false,
+      "personal_home_remaining": false,
+      "log": "round2-evidence/raw/v011-venv-default.txt",
+      "log_summary": {
+        "passed": 1039,
+        "skipped": 4,
+        "failed": 0,
+        "errors": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "summary_line": "1039 passed, 4 skipped in 92.84s (0:01:32)"
+      },
+      "derived_passed": 1039
+    },
+    "round2-evidence/raw/junit-v011-venv-with-real-acp.xml": {
+      "totals": {
+        "tests": 1043,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 3
+      },
+      "contains_raw_placeholder_markup": false,
+      "personal_home_remaining": false,
+      "log": "round2-evidence/raw/v011-venv-with-real-acp.txt",
+      "log_summary": {
+        "passed": 1040,
+        "skipped": 3,
+        "failed": 0,
+        "errors": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "summary_line": "1040 passed, 3 skipped in 93.62s (0:01:33)"
+      },
+      "derived_passed": 1040
+    },
+    "round2-evidence/raw/junit-v011-with-real-acp.xml": {
+      "totals": {
+        "tests": 1043,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 3
+      },
+      "contains_raw_placeholder_markup": false,
+      "personal_home_remaining": false,
+      "log": "round2-evidence/raw/v011-full-with-real-acp.txt",
+      "log_summary": {
+        "passed": 1040,
+        "skipped": 3,
+        "failed": 0,
+        "errors": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "summary_line": "1040 passed, 3 skipped in 95.65s (0:01:35)"
+      },
+      "derived_passed": 1040
     }
   },
   "problems": [],

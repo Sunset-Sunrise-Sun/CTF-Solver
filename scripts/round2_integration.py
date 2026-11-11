@@ -64,7 +64,7 @@ def check(name: str, condition: bool, detail: str = "") -> bool:
     return condition
 
 
-def run_window_probe(text: str) -> subprocess.Popen:
+def run_window_probe(text: str) -> tuple[subprocess.Popen, dict]:
     proc = subprocess.Popen(
         [sys.executable, str(REPO / "scripts" / "window_probe.py"), "--text", text],
         cwd=str(REPO),
@@ -81,7 +81,7 @@ def run_window_probe(text: str) -> subprocess.Popen:
     info = json.loads(line)
     info["process_pid"] = info.get("process_pid") or proc.pid
     log(f"window probe ready: {info}")
-    return proc
+    return proc, info
 
 
 def decode_session_log_records(path: Path) -> tuple[list[dict], dict]:
@@ -262,8 +262,8 @@ def main(argv: list[str]) -> int:
         for task_dir in TASKS.glob("t-*"):
             shutil.rmtree(task_dir, ignore_errors=True)
 
-        probe = run_window_probe("CTF-Solver Round 2 synthetic evidence")
-        probe_pid = probe.pid
+        probe, probe_info = run_window_probe("CTF-Solver Round 2 synthetic evidence")
+        probe_pid = int(probe_info["process_pid"])
 
         config = SolverConfig(
             root=REPO,
@@ -476,9 +476,9 @@ def main(argv: list[str]) -> int:
             "tools-list evidence comes from the actual ACP-spawned child. Under the "
             "zero-model-call gate, same-child tools/call is NOT VERIFIED."
         )
-        banner = run_window_probe("Round 2 E2E | " + candidate)
+        banner, banner_info = run_window_probe("Round 2 E2E | " + candidate)
         try:
-            service.capturer.set_target_pid(banner.pid)
+            service.capturer.set_target_pid(int(banner_info["process_pid"]))
             e2e_shot = service.take_screenshot(e2e.task_id, step_id="e2e-search", scope="window")
             check("E2E screenshot of synthetic program window", e2e_shot.status.value == "ok" and bool(e2e_shot.sha256), f"{e2e_shot.status.value} {e2e_shot.width}x{e2e_shot.height}")
             service.record_candidate_flag(e2e.task_id, flag=candidate, source="internal.text_search output")

@@ -36,7 +36,7 @@ INVALID_PARAMS = -32602
 INTERNAL_ERROR = -32603
 
 SERVER_NAME = "ctf-solver"
-SERVER_VERSION = "0.1.0"
+SERVER_VERSION = "0.1.1"
 
 
 class McpToolError(Exception):

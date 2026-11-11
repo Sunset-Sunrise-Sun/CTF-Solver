@@ -336,7 +336,7 @@ class FakeAcpServer:
             },
             "agentInfo": {
                 "name": "ctf-solver-fake-acp",
-                "version": "0.1.0",
+                "version": "0.1.1",
                 "synthetic": True,
             },
             "authMethods": [],

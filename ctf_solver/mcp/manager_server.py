@@ -356,7 +356,7 @@ def build_manager_tools(manager: ManagerControl) -> list[McpTool]:
 def build_server(manager: ManagerControl) -> McpServer:
     return McpServer(
         name="ctf-solver-manager",
-        version="0.1.0",
+        version="0.1.1",
         instructions=(
             "CTF-Solver Manager control surface. The Core Skill /ctf-solver enters CTF mode and "
             "uses these tools to create, continue, pause, cancel and retrieve Tasks. Sensitive "

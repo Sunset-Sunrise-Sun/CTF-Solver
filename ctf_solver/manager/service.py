@@ -18,6 +18,7 @@ from ..core.canonical import canonical_json, sha256_hex, sha256_text
 from ..core.config import SolverConfig
 from ..core.errors import (
     AcpError,
+    AcpUnavailableError,
     ConfigError,
     DenyReason,
     IpcError,
@@ -700,6 +701,34 @@ class ManagerService(ManagerControl):
         notes: str = "",
         supplied_files: list[str] | None = None,
     ) -> TaskRecord:
+        # A Task is only useful if a Worker can actually start. Previously a
+        # failed ACP startup still allowed creation and the Task sat queued
+        # forever with a green exit code. Fail before persistence instead.
+        if not self._started:
+            raise AcpUnavailableError(
+                "Manager is not started; refusing to create a Task that cannot run",
+                details={"reason_code": "acp_unavailable", "acp_ready": False},
+            )
+        if self._acp is None or not self._acp_ready:
+            raise AcpUnavailableError(
+                f"Manager ACP is unavailable ({self._acp_error or 'unknown ACP error'}); "
+                "refusing to create a Task that cannot leave the queue",
+                details={
+                    "reason_code": "acp_unavailable",
+                    "acp_ready": False,
+                    "acp_error": self._acp_error,
+                },
+            )
+        if not self._acp.is_alive():
+            self.handle_acp_failure("ACP server process is not alive; refusing new Task")
+            raise AcpUnavailableError(
+                "ACP server process exited; refusing to create a Task that cannot run",
+                details={
+                    "reason_code": "acp_unavailable",
+                    "acp_ready": False,
+                    "acp_error": self._acp_error,
+                },
+            )
         if not str(title).strip():
             raise ValidationError("Task title must not be empty")
         if not str(conversation_id).strip():

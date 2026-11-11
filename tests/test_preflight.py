@@ -29,8 +29,6 @@ def test_preflight_reports_project_skills_and_is_read_only(tmp_path: Path) -> No
     root = tmp_path / "project"
     root.mkdir()
     _copy_skills(root)
-    (root / "config" / "acp").mkdir(parents=True)
-    shutil.copy(PROJECT_ROOT / "config" / "acp" / "cordis.patch.yml", root / "config" / "acp" / "cordis.patch.yml")
     before = _tree_state(root)
 
     report = run_preflight(root)

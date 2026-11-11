@@ -81,6 +81,16 @@ class AcpError(CtfSolverError):
     reason_code = "acp_error"
 
 
+class AcpUnavailableError(AcpError):
+    """The Manager cannot start a Worker because ACP is unavailable.
+
+    Callers (CLI/MCP) must surface this instead of creating a Task that can
+    never leave the queue.
+    """
+
+    reason_code = "acp_unavailable"
+
+
 class AcpStateError(AcpError):
     reason_code = "acp_state_error"
 

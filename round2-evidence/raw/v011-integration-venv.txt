@@ -1,0 +1,55 @@
+[06:16:46] window probe ready: {'event': 'window_ready', 'pid': 5706114, 'process_pid': 36840, 'width': 720, 'height': 420, 'title': 'CTF-Solver synthetic evidence window'}
+[06:16:50] PASS real ACP client ready ！ {"state": "ready", "pid": 43160, "command": ["C:\\Windows\\system32\\cmd.exe", "/c", "<USER_HOME>\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd", "--profile", "acp", "--patch", "D:\\CTF-SOLVER\\ctf_solver\\resources\\acp\\cordis.patch.yml"], "protocol_versio
+[06:16:50] PASS ACP launch uses --profile acp ！ ['C:\\Windows\\system32\\cmd.exe', '/c', '<USER_HOME>\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd', '--profile', 'acp', '--patch', 'D:\\CTF-SOLVER\\ctf_solver\\resources\\acp\\cordis.patch.yml']
+[06:16:50] PASS Manager ACP argv composes abs project privacy patch ！ ['C:\\Windows\\system32\\cmd.exe', '/c', '<USER_HOME>\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd', '--profile', 'acp', '--patch', 'D:\\CTF-SOLVER\\ctf_solver\\resources\\acp\\cordis.patch.yml']
+[06:16:51] PASS two Workers active and third queued ！ running,running,queued
+[06:16:51] PASS distinct real ACP sessions ！ 223ae1e7-1496-4bce-8071-1f7cda8dcfba / 586ddf2e-083f-4543-ab91-839da8fee3b2
+[06:16:51] PASS distinct workspaces
+[06:16:51] PASS real ACP-spawned MCP child completed initialize + tools/list ！ {"t-165a23515aef41e6a978a8301f3fc3ce": {"initialize_at_ms": 1794377810867, "initialize_received": true, "parent_pid": 45140, "pid": 44768, "protocol_version": "2025-06-18", "server_name": "ctf-exec", "server_version": "0.1.1", "task_id": "t-165a23515aef41e6a978a8301f3fc3ce", "tool_names": ["ctf_exec"], "tools_list_at_ms": 1794377810873, "tools_list_received": true, "worker_token_sha256": "c361eba94db126872f909e0cf3e5c8f0c5fcb3e887ca2700acf9273d3c7fd5d0"}, "t-7fe85d86ef5140719cef34e16c63fd3d": {"initialize_at_ms": 1794377811569, "initialize_received": true, "parent_pid": 39420, "pid": 40908, "p
+[06:16:51] PASS MCP handshake identity matches Worker token
+[06:16:51] PASS MCP handshake records owning Task id
+[06:16:51] PASS MCP handshake protocol version recorded
+[06:16:52] PASS handshake PID descends from the ACP server process ！ {"handshake_pid": 44768, "acp_pid": 43160, "ancestors": [6336, 12728, 13196, 13232, 27112, 32948, 36200, 36616, 39388, 43160]}
+[06:16:52] PASS direct MCP tools/call executes typed trusted tool ！ completed
+[06:16:52] PASS denied typed execution fails closed ！ tier_not_available
+[06:16:52] PASS real Harness wrote session log(s) ！ 2 file(s) under D:\CTF-SOLVER\.ctf-solver-data\r2-dsh-home\sessions
+[06:16:53] PASS real session log ingested via registry ！ {"frames": 2, "decoded_records": 4, "appended": 4, "gaps": []}
+[06:16:53] PASS session log ingestion idempotent ！ 0
+[06:16:54] PASS real project-owned window screenshot captured ！ status=ok size=1104x689 sha=ebba53dddc7e86a0c089bb6b80ea76b01088844db884186e632b3156d6133dcb
+[06:16:54] PASS screenshot bytes stored in CAS
+[06:16:54] PASS Writeup generated
+[06:16:54] PASS evidence ZIP generated
+[06:16:54] PASS evidence ZIP manifest independently verified ！ []
+[06:16:55] PASS cancel confirms quiescence
+[06:16:55] PASS FIFO task promoted to running ！ running
+[06:16:55] PASS promoted task received its own ACP session + MCP mount
+[06:16:55] PASS synthetic challenge task created with imported input
+[06:16:56] PASS imported challenge file exists in isolated Task workspace
+[06:16:56] PASS typed tools produced real evidence ！ {"match_count":1,"matches":[{"column":12,"line":5,"path":"inputs/round2_synthetic_challenge.txt","text":"candidate: flag{synthetic_round2_e2e}"}],"pattern":"fla
+[06:16:56] PASS candidate flag recovered from real tool output
+[06:16:56] PASS E2E ACP-spawned MCP child initialized and listed tools ！ {"initialize_at_ms": 1794377815890, "initialize_received": true, "parent_pid": 44624, "pid": 41832, "protocol_version": "2025-06-18", "server_name": "ctf-exec", "server_version": "0.1.1", "task_id": "t-3173ac2a44294863b8f9de8521cd5505", "tool_names": ["ctf_exec"], "tools_list_at_ms": 1794377815892, "tools_list_received": true, "worker_token_sha256": "65edee6aa64428c06fb602bf1e36c2184c34f6272f2f07b
+[06:16:56] PASS E2E independent MCP tools/call process differs from ACP-spawned child ！ {"independent_mcp_pid": 8564, "acp_child_pid": 41832}
+[06:16:56] window probe ready: {'event': 'window_ready', 'pid': 13962660, 'process_pid': 17808, 'width': 720, 'height': 420, 'title': 'CTF-Solver synthetic evidence window'}
+[06:16:57] PASS E2E screenshot of synthetic program window ！ ok 1104x689
+[06:16:57] PASS E2E real session log ingested before completion ！ {"frames": 2, "decoded_records": 4, "appended": 4, "skipped_duplicates": 0, "gaps": [], "raw_sha256": "f51171cffea68e13ca21c1de4e75936f77b383b711d942f55c3433b7ca1672ec", "complete": true, "source_id": "session:e7ed86a3-f3b7-4556-bd7a-604272f45beb", "task_id": "t-3173ac2a44294863b8f9de8521cd5505", "w
+[06:16:57] PASS E2E Task reaches completed terminal state ！ {"task_id": "t-3173ac2a44294863b8f9de8521cd5505", "status": "completed", "result_state": "solved_flag_candidate", "ended_at": 1794377817851, "worker_stopped": true, "session_closed": true, "slot_released": true, "revoked_grants": [], "evidence_head": "234a0fa85339bf583a415e8064229e61bba12f6cf7c8c8b55ea5f28de4550319", "already_completed": false}
+[06:16:57] PASS E2E completed Task has real ended_at and concrete result_state ！ {"status": "completed", "ended_at": 1794377817851, "result_state": "solved_flag_candidate"}
+[06:16:57] PASS E2E Writeup shows completed status and concrete result_state ！ # CTF Writeup ！ Synthetic Round 2 end-to-end challenge
+
+> Generated by CTF-Solver from committed evidence records. SQLite is the
+> authoritative store; this document is a deterministic derived view.
+> No tool output, screenshot or Flag in this document is fabricated; gaps are marked.
+
+- Task ID: `t-3173ac2a44294863b8f9de8521cd5505`
+- Category: `misc`
+- Status: `completed`
+- Result state: `solved_f
+[06:16:58] PASS E2E evidence ZIP verifies ！ []
+[06:16:58] PASS E2E ZIP contains final Writeup + manifest ！ ["events.jsonl", "manifest.sha256", "outputs/exec-a86572b268de47138d580f9e8cb5d665-stdout.txt", "outputs/exec-d80911ec3cb84385b783b5e277f498ff-stdout.txt", "raw/session-f51171cffea68e13.jsonl.zstd", "screenshots/shot-c16ca26fd9a140b6bfdd8524acc88291.png", "writeup.md"]
+[06:17:01] PASS restart recovery marks active tasks interrupted (never completed) ！ {"t-a1518dcbc04a4a5493bb2e1097cfe555": "interrupted"}
+[06:17:01] PASS restart recovery creates no duplicate sessions
+[06:17:01] PASS interrupted tasks are not reported complete
+[06:17:01] PASS restart keeps completed E2E Task completed (not interrupted) ！ {"before": "completed", "after": "completed"}
+[06:17:01] PASS Manager ACP argv evidence A: --profile acp --patch <abs project patch> ！ {"manager_argv": ["C:\\Windows\\system32\\cmd.exe", "/c", "<USER_HOME>\\AppData\\Local\\Programs\\DeepSeek Harness\\resources\\runtime\\cli\\bin\\dsh.cmd", "--profile", "acp", "--patch", "D:\\CTF-SOLVER\\ctf_solver\\resources\\acp\\cordis.patch.yml"], "profile_args_present": true, "patch_arg_present": true, "patch_path": "D:\\CTF-SOLVER\\ctf_solver\\resources\\acp\\cordis.patch.yml", "patch_i
+[06:17:01] PASS isolated effective config evidence B disables session-log delivery ！ {"exit_code": 0, "composed_config_disables_delivery": true, "dump_config_stdout_sha256": "2e258d59d9dbbb1f9a0541480a33a05b5dfe034fff9bc9ba2c59ad1456500b75"}
+[06:17:01] PASS=43 FAIL=0; summary -> D:\CTF-SOLVER\round2-evidence\raw\round2-integration-summary.json

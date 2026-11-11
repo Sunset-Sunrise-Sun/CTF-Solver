@@ -154,7 +154,10 @@ def test_exec_server_writes_handshake_only_after_mcp_initialize(fake_ipc: FakeMa
         first = json.loads(handshake.read_text(encoding="utf-8"))
         assert first["initialize_received"] is True
         assert first["tools_list_received"] is False
-        assert first["pid"] == client.pid
+        # On Windows venv installs, Popen.pid may be the launcher/redirector
+        # process, with the real interpreter as its child. Accept only one of
+        # those two exact identities; never drop the process assertion.
+        assert first["pid"] == client.pid or first["parent_pid"] == client.pid
         assert first["task_id"] == "t-handshake"
         assert first["protocol_version"]
         assert first["worker_token_sha256"] == __import__("hashlib").sha256(
@@ -165,7 +168,7 @@ def test_exec_server_writes_handshake_only_after_mcp_initialize(fake_ipc: FakeMa
         second = json.loads(handshake.read_text(encoding="utf-8"))
         assert second["tools_list_received"] is True
         assert second["tool_names"] == ["ctf_exec"]
-        assert second["pid"] == client.pid
+        assert second["pid"] == client.pid or second["parent_pid"] == client.pid
         assert second["initialize_at_ms"] <= second["tools_list_at_ms"]
     finally:
         client.close()

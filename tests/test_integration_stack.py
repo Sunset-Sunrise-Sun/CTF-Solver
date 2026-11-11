@@ -320,10 +320,14 @@ def test_manager_serves_control_while_acp_unavailable(tmp_path: Path) -> None:
         assert status["acp"]["ready"] is False
         is_error, task = client.call_tool(
             "ctf_task_create",
-            {"title": "queued-only", "category": "misc", "conversation_id": "conv-degraded"},
+            {"title": "cannot-run", "category": "misc", "conversation_id": "conv-degraded"},
         )
-        assert is_error is False, task
-        assert task["status"] == "queued"
-        assert _task_status(client, task["task_id"])["worker"] is None
+        assert is_error is True, task
+        assert task.get("reason_code") == "acp_unavailable", task
+        assert task.get("details", {}).get("acp_ready") is False, task
+        # No fake queued Task may be persisted when no Worker can ever start.
+        is_error, tasks = client.call_tool("ctf_task_list", {})
+        assert is_error is False
+        assert tasks == []
     finally:
         client.close()

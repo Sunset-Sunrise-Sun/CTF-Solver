@@ -87,7 +87,7 @@ def build_initialize_params() -> dict[str, Any]:
             "terminal": False,
             "mcpCapabilities": {"http": False, "sse": False},
         },
-        "clientInfo": {"name": "ctf-solver", "version": "0.1.0"},
+        "clientInfo": {"name": "ctf-solver", "version": "0.1.1"},
     }
 
 

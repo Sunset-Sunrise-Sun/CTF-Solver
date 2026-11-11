@@ -4,26 +4,34 @@
 
 CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skill and five specialist Skills, a Manager with an ACP Client, independent per-challenge Workers, a typed ctf-exec runtime interface, scoped approvals, durable evidence, and reproducible writeups. It is not a standalone CTF platform and does not introduce a second model loop.
 
-> **Status (2026-11-10, Round 2 acceptance remediation):** final independent-acceptance
-> patch on `fix/round2-acceptance-remediation` (based on Round 2 `d388453`; Round 1 and
-> Round 2 branches untouched). It fixes the four P0 defects found by the independent
-> review: approvals now bind the **full** network scope (Task, profile, host/port/
-> protocol/method/path, granted TTL and call budget) and cannot be widened after the
-> human decision; human-confirmation text is normalized/rejected against terminal
-> injection (C0/C1/ESC/ANSI/OSC/CR/LF/bidi, bounded length) so the displayed content is
-> exactly the hashed content; every Manager-managed ACP Worker is launched with the
-> absolute project privacy patch (`--profile acp --patch <abs>`, fail-closed if missing)
-> with isolated `DSH_HOME`; and a normal Task-completion lifecycle (`ctf_task_complete`)
-> closes the ACP session first, only then releases the Worker slot, persists
-> `completed`/`result_state`/`ended_at`, verifies evidence, and promotes the FIFO queue.
-> MCP mount evidence is now protocol-level (`initialize` + `tools/list` from the actual
-> ACP-spawned child, PID ancestry checked), and evidence logs are committed under
-> explicit gitignore exceptions. Real zero-model-call Harness integration passes 43/43
-> checks, including a synthetic end-to-end Task that finishes `completed`. The
-> main-conversation `/ctf-solver` → Manager tool entrypoint and the session-log
-> negative-delivery canary remain BLOCKED (see
-> [remediation report](docs/ROUND_2_REMEDIATION_REPORT.md)).
-> This remains an integration candidate and does **not** claim final MVP acceptance.
+> **Status (2026-11-11, v0.1.1 installation hardening candidate):** this maintenance
+> patch fixes the v0.1.0-final installation blockers found by independent testing: the
+> Harness privacy patch is now a canonical Python package resource
+> (`ctf_solver/resources/acp/cordis.patch.yml`), so a wheel installed outside the source
+> checkout can locate it and Manager ACP no longer fails silently; `task create` /
+> MCP `ctf_task_create` now fail explicitly with `acp_unavailable` when ACP cannot start
+> instead of creating a permanently queued Task; Windows venv Python-launcher PID
+> redirection is handled in the handshake/PID evidence and window-capture path without
+> weakening process-identity checks; and the docs/CLI/version/dependency statements are
+> aligned with actual behavior. See [Installation Guide](INSTALLATION_GUIDE.md) and
+> [Local Operation](docs/LOCAL_OPERATION.md).
+>
+> The main-conversation `/ctf-solver` → Manager MCP project-level entrypoint remains
+> **BLOCKED**, model-driven Workers / `session/prompt` remain **BLOCKED** by ADR-020, and
+> Tier 2 isolation / real targets / challenge-code execution are **BLOCKED/NOT VERIFIED**.
+> Skills being discovered by Harness is not Manager MCP registration. This is a candidate
+> for independent review and does **not** claim final MVP acceptance.
+
+## Current implementation status
+
+| Item | Status |
+|---|---|
+| Main-conversation `/ctf-solver` → Manager tools | BLOCKED — no supported project-level MCP registration |
+| Session-log negative delivery canary | BLOCKED — requires a model request |
+| Model-mediated Worker / `session/prompt` | BLOCKED — ADR-020 zero-model-call gate |
+| Tier 2 OS isolation / real targets / challenge execution | BLOCKED / NOT VERIFIED |
+| Installed wheel outside the source checkout | v0.1.1 candidate: package-resource privacy patch and explicit ACP failure |
+
 
 ## Product contract
 

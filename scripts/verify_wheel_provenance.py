@@ -186,6 +186,23 @@ def main(argv: list[str] | None = None) -> int:
                 problems.append(f"source bytes differ from Git: {rel}")
             source_checks += 1
 
+        # The privacy patch must ship as a package resource and be byte-identical
+        # to the source-controlled resource in the build checkout.
+        patch_rel = "ctf_solver/resources/acp/cordis.patch.yml"
+        patch_git = _git(repo, "show", f"{head}:{patch_rel}", binary=True)
+        patch_wheel = archive.read(patch_rel) if patch_rel in names else b""
+        if patch_rel not in names:
+            problems.append("privacy patch package resource missing from wheel")
+        elif patch_wheel != patch_git:
+            problems.append("privacy patch resource bytes differ from Git")
+        security = {
+            "privacy_patch_resource": patch_rel,
+            "present": patch_rel in names,
+            "byte_identical": bool(patch_wheel) and patch_wheel == patch_git,
+            "size": len(patch_wheel),
+            "sha256": hashlib.sha256(patch_wheel).hexdigest() if patch_wheel else "",
+        }
+
     record_report = verify_record(wheel)
     if not record_report["ok"]:
         problems.extend(str(item) for item in record_report["problems"])
@@ -254,6 +271,7 @@ def main(argv: list[str] | None = None) -> int:
             and not missing_in_wheel
             and not extra_in_wheel,
         },
+        "security": security,
         "record": {
             "ok": bool(record_report["ok"]),
             "members_checked": int(record_report["members_checked"]),

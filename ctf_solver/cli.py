@@ -115,28 +115,40 @@ def _cmd_task(args: argparse.Namespace) -> int:
     config = SolverConfig(root=args.root, capture_mode="fake", extra=extra)
     service = build_manager_service(config)
     try:
-        service.start()
-        if args.action == "create":
-            task = service.create_task(
-                title=args.title,
-                category=args.category,
-                conversation_id=args.conversation_id,
-                source=args.source or "",
-                scope_profile=args.scope_profile or "",
-                notes=args.notes or "",
-                supplied_files=list(args.supplied_file or []),
-            )
-            print(json.dumps(task.to_dict(), ensure_ascii=False, indent=2))
-            return 0
-        if args.action == "list":
-            tasks = service.list_tasks()
-            print(json.dumps([task.to_dict() for task in tasks], ensure_ascii=False, indent=2))
-            return 0
-        if args.action == "status":
-            print(json.dumps(service.get_task_status(args.task_id), ensure_ascii=False, indent=2))
-            return 0
-        print(f"unknown task action: {args.action}", file=sys.stderr)
-        return 2
+        try:
+            status = service.start()
+            if not status.get("acp", {}).get("ready"):
+                detail = status.get("acp", {}).get("error") or "unknown ACP startup error"
+                print(
+                    f"CTF-Solver Manager startup failed: ACP unavailable: {detail}",
+                    file=sys.stderr,
+                )
+                if args.action == "create":
+                    return 1
+            if args.action == "create":
+                task = service.create_task(
+                    title=args.title,
+                    category=args.category,
+                    conversation_id=args.conversation_id,
+                    source=args.source or "",
+                    scope_profile=args.scope_profile or "",
+                    notes=args.notes or "",
+                    supplied_files=list(args.supplied_file or []),
+                )
+                print(json.dumps(task.to_dict(), ensure_ascii=False, indent=2))
+                return 0
+            if args.action == "list":
+                tasks = service.list_tasks()
+                print(json.dumps([task.to_dict() for task in tasks], ensure_ascii=False, indent=2))
+                return 0
+            if args.action == "status":
+                print(json.dumps(service.get_task_status(args.task_id), ensure_ascii=False, indent=2))
+                return 0
+            print(f"unknown task action: {args.action}", file=sys.stderr)
+            return 2
+        except Exception as exc:  # noqa: BLE001 - CLI reports domain failures
+            print(f"task operation failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+            return 1
     finally:
         service.shutdown()
 

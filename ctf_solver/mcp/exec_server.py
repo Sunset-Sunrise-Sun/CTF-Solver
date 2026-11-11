@@ -172,6 +172,11 @@ class HandshakeRecorder:
     def _payload(self) -> dict[str, Any]:
         return {
             "pid": os.getpid(),
+            # A Windows venv launcher can redirect to a child interpreter, so
+            # Popen.pid may be this process's parent rather than its own pid.
+            # Recording both lets evidence/tests distinguish launcher and
+            # executor without weakening the handshake assertion.
+            "parent_pid": os.getppid(),
             "task_id": self.task_id,
             "worker_token_sha256": self.worker_token_sha256,
             "server_name": self.server_name,
@@ -217,13 +222,13 @@ def build_server(env: dict[str, str] | None = None) -> McpServer:
             token=token,
             task_id=environ.get("CTF_SOLVER_TASK_ID", "").strip(),
             server_name="ctf-exec",
-            server_version="0.1.0",
+            server_version="0.1.1",
         )
     client = ManagerIpcClient(ipc_url, token, timeout_s=timeout_s)
     service = ExecToolService(client)
     server = McpServer(
         name="ctf-exec",
-        version="0.1.0",
+        version="0.1.1",
         instructions=(
             "Typed CTF execution interface. Call ctf_exec with an allowlisted tool id and an "
             "argv array. This server does not expose a shell and cannot bypass the Manager Broker."

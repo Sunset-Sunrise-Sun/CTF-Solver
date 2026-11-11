@@ -170,7 +170,11 @@ def _skill_report(root: Path) -> dict[str, Any]:
 
 
 def _privacy_gate_report(root: Path) -> dict[str, Any]:
-    patch = root / "config" / "acp" / "cordis.patch.yml"
+    # The canonical patch is a package resource, so source-checkout and wheel
+    # installations resolve the exact same bytes. Do not read a second copy.
+    from ..core.config import SolverConfig
+
+    patch = SolverConfig(root=root).privacy_patch_path
     documented = patch.is_file()
     configured = False
     if documented:

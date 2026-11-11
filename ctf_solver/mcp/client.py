@@ -273,7 +273,7 @@ class McpStdioClient:
         params: dict[str, Any] = {
             "protocolVersion": "2025-06-18",
             "capabilities": {},
-            "clientInfo": client_info or {"name": "ctf-solver-test-client", "version": "0.1.0"},
+            "clientInfo": client_info or {"name": "ctf-solver-test-client", "version": "0.1.1"},
         }
         result = self.request("initialize", params)
         self.notify("notifications/initialized", {})

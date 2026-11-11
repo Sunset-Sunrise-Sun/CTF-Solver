@@ -25,3 +25,4 @@ round2-evidence/raw/junit-v011-default.xml {'tests': 1043, 'failures': 0, 'error
 round2-evidence/raw/junit-v011-venv-default.xml {'tests': 1043, 'failures': 0, 'errors': 0, 'skipped': 4} log= round2-evidence/raw/v011-venv-default.txt
 round2-evidence/raw/junit-v011-venv-with-real-acp.xml {'tests': 1043, 'failures': 0, 'errors': 0, 'skipped': 3} log= round2-evidence/raw/v011-venv-with-real-acp.txt
 round2-evidence/raw/junit-v011-with-real-acp.xml {'tests': 1043, 'failures': 0, 'errors': 0, 'skipped': 3} log= round2-evidence/raw/v011-full-with-real-acp.txt
+round2-evidence/raw/v011-final-clean-clone-junit.xml {'tests': 1043, 'failures': 0, 'errors': 0, 'skipped': 4} log= round2-evidence/raw/v011-final-clean-clone-tests.txt

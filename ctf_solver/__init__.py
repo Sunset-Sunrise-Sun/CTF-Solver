@@ -1,4 +1,4 @@
-"""CTF-Solver Round 1 candidate package."""
+"""CTF-Solver v0.1.1: DeepSeek Harness CTF solving extension package."""
 
 from __future__ import annotations
 

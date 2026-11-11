@@ -1,10 +1,10 @@
 # CTF-Solver
 
-**A semi-autonomous CTF solving extension for DeepSeek Harness.** Start it once with /ctf-solver; keep solving in the same conversation without repeating the command.
+**A semi-autonomous CTF solving extension for DeepSeek Harness.** It is not a standalone CTF platform and does not introduce a second model loop.
 
 CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skill and five specialist Skills, a Manager with an ACP Client, independent per-challenge Workers, a typed ctf-exec runtime interface, scoped approvals, durable evidence, and reproducible writeups. It is not a standalone CTF platform and does not introduce a second model loop.
 
-> **Status (2026-11-11, v0.1.1 installation hardening candidate):** this maintenance
+> **Status (2026-11-11, v0.1.1 installation hardening release):** this maintenance
 > patch fixes the v0.1.0-final installation blockers found by independent testing: the
 > Harness privacy patch is now a canonical Python package resource
 > (`ctf_solver/resources/acp/cordis.patch.yml`), so a wheel installed outside the source
@@ -19,8 +19,7 @@ CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skil
 > The main-conversation `/ctf-solver` → Manager MCP project-level entrypoint remains
 > **BLOCKED**, model-driven Workers / `session/prompt` remain **BLOCKED** by ADR-020, and
 > Tier 2 isolation / real targets / challenge-code execution are **BLOCKED/NOT VERIFIED**.
-> Skills being discovered by Harness is not Manager MCP registration. This is a candidate
-> for independent review and does **not** claim final MVP acceptance.
+> Skills being discovered by Harness is not Manager MCP registration. This release does **not** claim final MVP acceptance; the known boundaries below still apply.
 
 ## Current implementation status
 
@@ -30,12 +29,16 @@ CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skil
 | Session-log negative delivery canary | BLOCKED — requires a model request |
 | Model-mediated Worker / `session/prompt` | BLOCKED — ADR-020 zero-model-call gate |
 | Tier 2 OS isolation / real targets / challenge execution | BLOCKED / NOT VERIFIED |
-| Installed wheel outside the source checkout | v0.1.1 candidate: package-resource privacy patch and explicit ACP failure |
+| Installed wheel outside the source checkout | v0.1.1 release: package-resource privacy patch and explicit ACP failure |
 
 
 ## Product contract
 
-- One explicit entry: /ctf-solver enters CTF mode for the current conversation.
+- Target entry (NOT IMPLEMENTED in this release): `/ctf-solver` would enter CTF mode for the
+  current conversation. The main-conversation `/ctf-solver` → Manager MCP project-level
+  registration is currently unavailable; do not treat this as a usable entrypoint.
+- Current usable surfaces: the six project Skill files (when placed under
+  `<workspace>/.dsh/skills/`) plus the CLI/MCP servers described in the Installation Guide.
 - Persistent mode: subsequent messages, attachments, and “continue” requests remain in CTF mode. Do not require the command again for each challenge.
 - Semi-autonomous: the Agent analyzes, plans, writes helper scripts, and runs permitted routine tools; sensitive actions require human approval.
 - Independent challenge Workers: each challenge receives its own Task, workspace, and Harness ACP session.
@@ -48,7 +51,8 @@ CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skil
 
 ## Architecture at a glance
 
-User → /ctf-solver Core Skill → CTF Manager → Manager ACP Client → dsh --profile acp (ACP Server) → one Worker session per Task.
+Target architecture (the project-level Manager MCP entrypoint is not implemented):
+User → `/ctf-solver` Core Skill → CTF Manager → Manager ACP Client → `dsh --profile acp` (ACP Server) → one Worker session per Task.
 
 Worker → typed ctf-exec MCP tool → Manager/Broker → Runtime → approved CLI/headless tool.
 

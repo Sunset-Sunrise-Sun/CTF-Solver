@@ -3,7 +3,7 @@
 CTF-Solver is a semi-autonomous CTF solving extension for DeepSeek Harness. It is not a
 standalone CTF platform and does not introduce a second model loop.
 
-This guide covers the **v0.1.1 installation-hardening candidate**. It is written from the
+This guide covers the **v0.1.1 installation-hardening release**. It is written from the
 actual CLI and the final installation acceptance tests; do not assume unlisted features.
 
 ## 1. Requirements
@@ -155,13 +155,90 @@ The Manager control MCP exposes exactly **18** tools: `ctf_task_create`,
 `ctf_runtime_status`. Approval decisions and grant creation are human-only and are not
 MCP tools.
 
-## 6. Skills
+## 6. Install the six Skills into a Harness project workspace (Windows)
 
-The six project Skills live in `<workspace>/.dsh/skills/<name>/SKILL.md`. A workspace with
-these files is discovered by the Harness project-skill provider; this was verified with a
-real-provider A/B test (6 vs 0). Placing Skills is **not** the same as registering the
-Manager MCP server: Harness currently has no supported project-level MCP registration, so
-the main-conversation Manager entrypoint remains unavailable.
+**Wheel installation only installs the CTF-Solver program.** The six Skills are product
+files that must be placed in the Harness project workspace; the wheel does not copy them
+into your project automatically.
+
+### 6.1 Download and extract the source ZIP
+
+Download **both** the wheel and `CTF-Solver-0.1.1-source.zip` from the same GitHub Release.
+The source ZIP contains the complete source tree, including `.dsh\skills\`.
+
+```powershell
+$Download = "$env:USERPROFILE\Downloads"
+$Release  = Join-Path $Download "CTF-Solver-0.1.1"
+New-Item -ItemType Directory -Force -Path $Release | Out-Null
+Expand-Archive -LiteralPath (Join-Path $Download "CTF-Solver-0.1.1-source.zip") `
+    -DestinationPath $Release -Force
+
+# The source ZIP has no top-level wrapper directory: .dsh is directly under $Release.
+Get-ChildItem (Join-Path $Release ".dsh\skills") -Directory |
+    Select-Object -ExpandProperty Name
+# Expected: ctf-solver ctf-web ctf-misc ctf-crypto ctf-reverse ctf-pwn
+```
+
+### 6.2 Copy Skills safely into a project workspace
+
+Choose the **project workspace** you open in DeepSeek Harness. Its project root is the
+nearest ancestor containing `.git`; if there is no `.git`, the workspace cwd itself is the
+project root. Create `<project root>\.dsh\skills\` and copy only the six named folders.
+Do **not** delete or replace the whole `.dsh` directory: it may contain other Skills or
+project configuration.
+
+```powershell
+$Project = "D:\work\my-harness-project"       # <-- change to your project workspace
+$Source  = Join-Path $Release ".dsh\skills"
+$Target  = Join-Path $Project ".dsh\skills"
+New-Item -ItemType Directory -Force -Path $Target | Out-Null
+
+$Skills = @("ctf-solver", "ctf-web", "ctf-misc", "ctf-crypto", "ctf-reverse", "ctf-pwn")
+foreach ($Name in $Skills) {
+    $Src = Join-Path $Source $Name
+    $Dst = Join-Path $Target $Name
+    if (-not (Test-Path -LiteralPath (Join-Path $Src "SKILL.md"))) {
+        throw "missing expected Skill: $Src"
+    }
+    if (Test-Path -LiteralPath $Dst) {
+        # Preserve any existing same-name Skill before replacing it.
+        $Backup = "$Dst.backup-$(Get-Date -Format yyyyMMddHHmmss)"
+        Copy-Item -LiteralPath $Dst -Destination $Backup -Recurse -Force
+        Remove-Item -LiteralPath $Dst -Recurse -Force
+        Write-Host "backed up existing $Name -> $Backup"
+    }
+    Copy-Item -LiteralPath $Src -Destination $Dst -Recurse -Force
+}
+```
+
+This copies only the six named folders and leaves any other `.dsh` content untouched. If a
+same-name folder already exists, a timestamped `.backup-*` copy is created first.
+
+### 6.3 Verify with the actual CLI
+
+Run from the wheel's venv (or use `python -m ctf_solver skills` if the console script is not
+on `PATH`):
+
+```powershell
+ctf-solver skills --root "D:\work\my-harness-project"
+```
+
+Expected: exit code 0, JSON `"ok": true`, all six expected names under `"found"`, and
+`"missing": []`. A missing directory or malformed `SKILL.md` returns exit code 1 with a
+specific problem.
+
+### 6.4 Verify project Skills in DeepSeek Harness
+
+Open the same project workspace in DeepSeek Harness. The `dsh-skill-filesystem` provider
+discovers `<project root>/.dsh/skills` at rank 100 (`project-dsh`); this is project-local
+and requires **no** global Harness configuration. The six `SKILL.md` files should appear as
+project Skills. This was verified by a real-provider A/B run where a workspace with the six
+Skills found 6 and two empty workspaces found 0.
+
+**Important distinction:** discovering Skills does not register the Manager MCP server.
+The main-conversation `/ctf-solver` → Manager MCP project-level entrypoint is **not
+implemented**; the six Skills and the Manager/Worker CLI/MCP surfaces are separate pieces.
+Completing this Skills step must not be interpreted as "Manager MCP is connected".
 
 ## 7. Current acceptance boundary — read before use
 
@@ -175,11 +252,17 @@ the main-conversation Manager entrypoint remains unavailable.
 - Same-child ACP-spawned `tools/call` is **NOT VERIFIED** under the zero-model-call gate.
 - Skills being discovered by Harness does **not** mean the Manager MCP has been
   automatically registered with the running session.
+- Human approval decisions and network-grant creation are local-console/TTY-only and are
+  deliberately **not** MCP tools; an agent or MCP caller can request an approval but cannot
+  decide it. A network grant is Task/target-scoped and cannot be widened. Real competition
+  target access and challenge-code execution remain unaccepted in this release.
+- The project is proprietary and no open-source license has been granted; do not assume
+  open-source redistribution rights.
 
 Do not use this release for real CTF content until those boundaries are separately
 accepted.
 
-## 8. Test status (v0.1.1 candidate)
+## 8. Test status (v0.1.1 release)
 
 The final regression is recorded in the v0.1.1 acceptance report in the source/release
 materials. The release is tested on the original Windows + Python 3.14.7 environment, with

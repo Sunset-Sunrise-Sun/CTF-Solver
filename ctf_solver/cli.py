@@ -1,4 +1,4 @@
-"""Command line entry points for CTF-Solver Round 1.
+"""Command line entry points for CTF-Solver v0.1.1.
 
 Sub-commands are imported lazily so a partially-integrated module never breaks
 the whole CLI, and so `python -m ctf_solver ...` works from the repository root
@@ -251,8 +251,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ctf-solver",
         description=(
-            "CTF-Solver Round 1 candidate: Manager/ACP/Worker runtime, typed ctf-exec, "
-            "scoped approvals, evidence and delivery. CLI/headless first."
+            "CTF-Solver v0.1.1: DeepSeek Harness extension, not a standalone CTF platform; "
+            "Manager/ACP/Worker runtime, typed ctf-exec, scoped approvals, evidence and "
+            "delivery. CLI/headless first; main-conversation Manager MCP registration and "
+            "model-driven Workers are not enabled."
         ),
     )
     sub = parser.add_subparsers(dest="command", required=True)

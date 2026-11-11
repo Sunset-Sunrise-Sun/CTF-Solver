@@ -9,7 +9,7 @@ backend-path = ["tooling"]
 [project]
 name = "ctf-solver"
 version = "0.1.1"
-description = "Semi-autonomous CTF solving extension for DeepSeek Harness (Round 1 candidate)"
+description = "Semi-autonomous CTF solving extension for DeepSeek Harness (v0.1.1)"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Proprietary" }

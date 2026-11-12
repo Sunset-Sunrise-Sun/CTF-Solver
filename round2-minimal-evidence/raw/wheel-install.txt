@@ -1,0 +1,8 @@
+﻿Processing D:\CTF-SOLVER\scratch\round2-plan\wheel\ctf_solver-0.1.1-py3-none-any.whl
+Installing collected packages: ctf-solver
+  Attempting uninstall: ctf-solver
+    Found existing installation: ctf-solver 0.1.1
+    Uninstalling ctf-solver-0.1.1:
+      Successfully uninstalled ctf-solver-0.1.1
+Successfully installed ctf-solver-0.1.1
+

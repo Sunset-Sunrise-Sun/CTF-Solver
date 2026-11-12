@@ -1,0 +1,2312 @@
+﻿{
+  "base": {
+    "meta_version": "1.2",
+    "schema_version": "1.2",
+    "tables": {
+      "approvals": {
+        "columns": [
+          {
+            "default": null,
+            "name": "approval_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "action_kind",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "action_digest",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "requested_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "decided_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "approver",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "note",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'{}'",
+            "name": "payload_json",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "expires_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "consumed_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "confirmation_channel",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "confirmation_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "confirmation_os_user",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "confirmation_note",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_approvals_task",
+          "sqlite_autoindex_approvals_1"
+        ]
+      },
+      "artifacts": {
+        "columns": [
+          {
+            "default": null,
+            "name": "sha256",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "size",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "media_type",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "source",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "sqlite_autoindex_artifacts_1"
+        ]
+      },
+      "events": {
+        "columns": [
+          {
+            "default": null,
+            "name": "seq",
+            "notnull": 0,
+            "pk": 1,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "record_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "worker_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "session_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "source",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "source_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "source_seq",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "event_type",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "timestamp",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "payload_json",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "prev_hash",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "record_hash",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "ingested_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "idx_events_source_seq",
+          "idx_events_task_seq",
+          "idx_events_type",
+          "sqlite_autoindex_events_1"
+        ]
+      },
+      "executions": {
+        "columns": [
+          {
+            "default": null,
+            "name": "execution_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "worker_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "step_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "tool_name",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "tool_version",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "argv_json",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "cwd",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "tier",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "exit_code",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "reason_code",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "reason",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "started_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "ended_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "stdout_sha256",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "stderr_sha256",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "stdout_preview",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "stderr_preview",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "network_grant_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "approval_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "request_json",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'{}'",
+            "name": "result_json",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_exec_task",
+          "idx_exec_worker",
+          "sqlite_autoindex_executions_1"
+        ]
+      },
+      "exports": {
+        "columns": [
+          {
+            "default": null,
+            "name": "export_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "kind",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "path",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "sha256",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "idx_exports_task",
+          "sqlite_autoindex_exports_1"
+        ]
+      },
+      "ingestion_sources": {
+        "columns": [
+          {
+            "default": null,
+            "name": "source_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "session_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "-1",
+            "name": "last_seq",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": "''",
+            "name": "sha256",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "raw_sha256",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "0",
+            "name": "frames",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": "0",
+            "name": "records",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": "0",
+            "name": "gaps",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "updated_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "sqlite_autoindex_ingestion_sources_1"
+        ]
+      },
+      "meta": {
+        "columns": [
+          {
+            "default": null,
+            "name": "key",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "value",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "sqlite_autoindex_meta_1"
+        ]
+      },
+      "network_grants": {
+        "columns": [
+          {
+            "default": null,
+            "name": "grant_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "competition_profile",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "host",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "port",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "protocol",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "method",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'/'",
+            "name": "path_prefix",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "max_calls",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": "0",
+            "name": "calls_used",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "approver",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "grant_digest",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "approval_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "confirmation_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "confirmation_os_user",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_grants_task",
+          "sqlite_autoindex_network_grants_1"
+        ]
+      },
+      "screenshots": {
+        "columns": [
+          {
+            "default": null,
+            "name": "screenshot_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "worker_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "step_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "session_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "scope",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "captured_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "sha256",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "width",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "height",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "failure_reason",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'image/png'",
+            "name": "media_type",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "execution_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_shots_task",
+          "sqlite_autoindex_screenshots_1"
+        ]
+      },
+      "session_bindings": {
+        "columns": [
+          {
+            "default": null,
+            "name": "session_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "bound_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "bound_by",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "log_sha256",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_session_bindings_task",
+          "sqlite_autoindex_session_bindings_1",
+          "sqlite_autoindex_session_bindings_2"
+        ]
+      },
+      "task_inputs": {
+        "columns": [
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "rel_path",
+            "notnull": 1,
+            "pk": 2,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "sha256",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "size",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": "'application/octet-stream'",
+            "name": "media_type",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "source_rel_path",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "imported_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "idx_task_inputs_task",
+          "sqlite_autoindex_task_inputs_1"
+        ]
+      },
+      "tasks": {
+        "columns": [
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "conversation_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "title",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "category",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "source",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "scope_profile",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "workspace_path",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "acp_session_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "worker_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'unknown'",
+            "name": "result_state",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'none'",
+            "name": "flag_state",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "flag_value",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "updated_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "started_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "ended_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "evidence_head",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "notes",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "completion_note",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_tasks_conversation",
+          "idx_tasks_created",
+          "idx_tasks_status",
+          "sqlite_autoindex_tasks_1"
+        ]
+      },
+      "workers": {
+        "columns": [
+          {
+            "default": null,
+            "name": "worker_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "acp_session_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "workspace_path",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "worker_token",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "updated_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "idx_workers_status",
+          "sqlite_autoindex_workers_1",
+          "sqlite_autoindex_workers_2",
+          "sqlite_autoindex_workers_3"
+        ]
+      }
+    },
+    "triggers": [
+      "events_no_delete",
+      "events_no_update"
+    ]
+  },
+  "frozen": {
+    "meta_version": "1.2",
+    "schema_version": "1.2",
+    "tables": {
+      "approvals": {
+        "columns": [
+          {
+            "default": null,
+            "name": "approval_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "action_kind",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "action_digest",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "requested_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "decided_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "approver",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "note",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'{}'",
+            "name": "payload_json",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "expires_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "consumed_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "confirmation_channel",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "confirmation_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "confirmation_os_user",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "confirmation_note",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_approvals_task",
+          "sqlite_autoindex_approvals_1"
+        ]
+      },
+      "artifacts": {
+        "columns": [
+          {
+            "default": null,
+            "name": "sha256",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "size",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "media_type",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "source",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "sqlite_autoindex_artifacts_1"
+        ]
+      },
+      "events": {
+        "columns": [
+          {
+            "default": null,
+            "name": "seq",
+            "notnull": 0,
+            "pk": 1,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "record_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "worker_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "session_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "source",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "source_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "source_seq",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "event_type",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "timestamp",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "payload_json",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "prev_hash",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "record_hash",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "ingested_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "idx_events_source_seq",
+          "idx_events_task_seq",
+          "idx_events_type",
+          "sqlite_autoindex_events_1"
+        ]
+      },
+      "executions": {
+        "columns": [
+          {
+            "default": null,
+            "name": "execution_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "worker_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "step_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "tool_name",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "tool_version",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "argv_json",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "cwd",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "tier",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "exit_code",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "reason_code",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "reason",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "started_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "ended_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "stdout_sha256",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "stderr_sha256",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "stdout_preview",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "stderr_preview",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "network_grant_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "approval_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "request_json",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'{}'",
+            "name": "result_json",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_exec_task",
+          "idx_exec_worker",
+          "sqlite_autoindex_executions_1"
+        ]
+      },
+      "exports": {
+        "columns": [
+          {
+            "default": null,
+            "name": "export_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "kind",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "path",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "sha256",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "idx_exports_task",
+          "sqlite_autoindex_exports_1"
+        ]
+      },
+      "ingestion_sources": {
+        "columns": [
+          {
+            "default": null,
+            "name": "source_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "session_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "-1",
+            "name": "last_seq",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": "''",
+            "name": "sha256",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "raw_sha256",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "0",
+            "name": "frames",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": "0",
+            "name": "records",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": "0",
+            "name": "gaps",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "updated_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "sqlite_autoindex_ingestion_sources_1"
+        ]
+      },
+      "meta": {
+        "columns": [
+          {
+            "default": null,
+            "name": "key",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "value",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "sqlite_autoindex_meta_1"
+        ]
+      },
+      "network_grants": {
+        "columns": [
+          {
+            "default": null,
+            "name": "grant_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "competition_profile",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "host",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "port",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "protocol",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "method",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'/'",
+            "name": "path_prefix",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "expires_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "max_calls",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": "0",
+            "name": "calls_used",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "approver",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "grant_digest",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "approval_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "confirmation_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "confirmation_os_user",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_grants_task",
+          "sqlite_autoindex_network_grants_1"
+        ]
+      },
+      "screenshots": {
+        "columns": [
+          {
+            "default": null,
+            "name": "screenshot_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "worker_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "step_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "session_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "scope",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "captured_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "sha256",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "width",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "height",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "failure_reason",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'image/png'",
+            "name": "media_type",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "execution_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_shots_task",
+          "sqlite_autoindex_screenshots_1"
+        ]
+      },
+      "session_bindings": {
+        "columns": [
+          {
+            "default": null,
+            "name": "session_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "bound_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "bound_by",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "log_sha256",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_session_bindings_task",
+          "sqlite_autoindex_session_bindings_1",
+          "sqlite_autoindex_session_bindings_2"
+        ]
+      },
+      "task_inputs": {
+        "columns": [
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "rel_path",
+            "notnull": 1,
+            "pk": 2,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "sha256",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "size",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": "'application/octet-stream'",
+            "name": "media_type",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "source_rel_path",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "imported_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "idx_task_inputs_task",
+          "sqlite_autoindex_task_inputs_1"
+        ]
+      },
+      "tasks": {
+        "columns": [
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "conversation_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "title",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "category",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "source",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "scope_profile",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "workspace_path",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "acp_session_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "worker_id",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'unknown'",
+            "name": "result_state",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "'none'",
+            "name": "flag_state",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "flag_value",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "updated_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "started_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "ended_at",
+            "notnull": 0,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "evidence_head",
+            "notnull": 0,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "notes",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": "''",
+            "name": "completion_note",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          }
+        ],
+        "indexes": [
+          "idx_tasks_conversation",
+          "idx_tasks_created",
+          "idx_tasks_status",
+          "sqlite_autoindex_tasks_1"
+        ]
+      },
+      "workers": {
+        "columns": [
+          {
+            "default": null,
+            "name": "worker_id",
+            "notnull": 0,
+            "pk": 1,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "task_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "acp_session_id",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "workspace_path",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "status",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "worker_token",
+            "notnull": 1,
+            "pk": 0,
+            "type": "TEXT"
+          },
+          {
+            "default": null,
+            "name": "created_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          },
+          {
+            "default": null,
+            "name": "updated_at",
+            "notnull": 1,
+            "pk": 0,
+            "type": "INTEGER"
+          }
+        ],
+        "indexes": [
+          "idx_workers_status",
+          "sqlite_autoindex_workers_1",
+          "sqlite_autoindex_workers_2",
+          "sqlite_autoindex_workers_3"
+        ]
+      }
+    },
+    "triggers": [
+      "events_no_delete",
+      "events_no_update"
+    ]
+  }
+}

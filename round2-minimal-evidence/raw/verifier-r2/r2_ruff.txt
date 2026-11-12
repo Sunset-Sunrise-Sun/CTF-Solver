@@ -1,0 +1,8 @@
+﻿ruff command: python -m ruff check --output-format=json (20 files)
+frozen ruff exit: 1
+base-vs-frozen comparison:
+changed python files: 20 (new: 2)
+frozen ruff findings: 28; base ruff findings: 31
+NEW findings introduced by Round 2: 0
+
+

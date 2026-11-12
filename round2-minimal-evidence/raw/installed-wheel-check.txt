@@ -1,0 +1,4 @@
+﻿version 0.1.1 schema 1.2
+privacy module: True
+take_screenshot sig: (self, task_id: 'str', *, step_id: 'str | None' = None, scope: 'str | None' = None) -> 'ScreenshotRecord'
+

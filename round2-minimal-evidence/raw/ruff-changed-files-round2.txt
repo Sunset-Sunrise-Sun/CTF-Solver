@@ -1,0 +1,31 @@
+﻿[*] 20 fixable with the `--fix` option (7 hidden fixes can be enabled with the `--unsafe-fixes` option).
+ctf_solver\cli.py:13:20: F401 [*] `typing.Any` imported but unused
+ctf_solver\delivery\bundle.py:206:9: F841 Local variable `screenshots` is assigned to but never used
+ctf_solver\delivery\bundle.py:207:9: F841 Local variable `outputs` is assigned to but never used
+ctf_solver\delivery\bundle.py:216:9: F841 Local variable `manifest_info` is assigned to but never used
+ctf_solver\delivery\bundle.py:25:38: F401 [*] `..core.types.ScreenshotRecord` imported but unused
+ctf_solver\delivery\screenshot.py:20:8: F401 [*] `os` imported but unused
+ctf_solver\delivery\writeup.py:23:26: F401 [*] `..core.types.ExecutionStatus` imported but unused
+ctf_solver\delivery\writeup.py:665:30: F541 [*] f-string without any placeholders
+ctf_solver\evidence\store.py:36:27: F401 [*] `..core.errors.NotFoundError` imported but unused
+ctf_solver\manager\service.py:18:30: F401 [*] `..core.canonical.canonical_json` imported but unused
+ctf_solver\manager\service.py:18:46: F401 [*] `..core.canonical.sha256_hex` imported but unused
+ctf_solver\manager\service.py:2014:9: F841 Local variable `task` is assigned to but never used
+ctf_solver\manager\service.py:26:5: F401 [*] `..core.errors.NotFoundError` imported but unused
+ctf_solver\manager\service.py:32:26: F401 [*] `..core.paths.is_within` imported but unused
+ctf_solver\manager\service.py:45:5: F401 [*] `..core.types.ApprovalAction` imported but unused
+ctf_solver\manager\service.py:51:5: F401 [*] `..core.types.ExecutionResult` imported but unused
+ctf_solver\mcp\manager_server.py:28:41: F401 [*] `..core.config.discover_acp_command` imported but unused
+ctf_solver\wiring.py:10:8: F401 [*] `sys` imported but unused
+Found 28 errors.
+scripts\round2_integration.py:248:43: F401 [*] `ctf_solver.core.protocols.SystemClock` imported but unused
+scripts\round2_integration.py:249:44: F401 [*] `ctf_solver.manager.service.ManagerService` imported but unused
+scripts\round2_integration.py:250:58: F401 [*] `ctf_solver.wiring.default_acp_factory` imported but unused
+scripts\round2_integration.py:324:9: F841 Local variable `worker2` is assigned to but never used
+scripts\round2_integration.py:575:9: F841 Local variable `status2` is assigned to but never used
+tests\test_evidence_store.py:25:5: F401 [*] `tests.test_evidence_support.raw_execute` imported but unused
+tests\test_manager_service.py:11:36: F401 [*] `ctf_solver.core.errors.AcpError` imported but unused
+tests\test_manager_service.py:297:36: F821 Undefined name `Any`
+tests\test_wheel_provenance.py:147:5: F841 Local variable `record_name` is assigned to but never used
+tests\test_wheel_provenance.py:8:8: F401 [*] `tempfile` imported but unused
+

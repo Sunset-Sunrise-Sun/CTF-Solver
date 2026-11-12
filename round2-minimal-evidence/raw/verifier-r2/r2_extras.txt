@@ -1,0 +1,16 @@
+﻿==============================================================================
+EXTRAS �� remaining contract details
+==============================================================================
+[PASS] N01 SKILL.md native skill-loading hard rule :: SKILL.md hard native skill call + category mapping + stop-on-failure, no substitute, frontmatter/persist kept
+[PASS] N02 CLI/MCP capture-mode plumbing details :: task CLI stays fake/no PID; manager CLI + MCP server wire real-window/PID
+[PASS] N03 MCP screenshot handler scope default/validation :: ctf_screenshot_capture scope optional (handler default None); Lead-bound omitted scope -> window; desktop/unknown scopes are MCP tool errors
+[PASS] N04 export_events_jsonl privacy_filtered switch :: privacy_filtered=False keeps raw rows (39); default filters (27)
+[PASS] N05 bundle/writeup wiring details :: bundle raw-log path removed; Writeup uses filter_events; build materialises screenshots
+[PASS] N06 ctf_events_export default is privacy-filtered :: service.export_events (ctf_events_export path) writes the filtered view
+[PASS] N07 no Harness plugin/agent/config changes :: .dsh changed only the ctf-solver Skill; no Harness config/plugin/agent change
+[PASS] N08 Writeup event pipeline is privacy-projected :: Writeup event loading path always goes through filter_events
+[PASS] N09 missing capture metadata renders 'not recorded' :: screenshot without capture event renders explicit not-recorded metadata (no fabrication)
+[PASS] N10 ZIP manifest covers all members, no raw/ :: manifest lists exactly the 3 non-manifest members; no raw/ member; writeup+events+screenshots covered
+
+{"total": 10, "pass": 10, "fail": 0, "skip": 0}
+

@@ -1,0 +1,21 @@
+﻿{
+  "zip_test_ok": true,
+  "entries": 66,
+  "record_checked": 65,
+  "record_mismatches": [],
+  "extracted_version": {
+    "cmd": [
+      "C:\\Users\\28746\\AppData\\Local\\CTF-Solver\\venv\\Scripts\\python.exe",
+      "-m",
+      "ctf_solver",
+      "version"
+    ],
+    "rc": 0,
+    "out": "ctf-solver 0.1.1",
+    "err": ""
+  },
+  "extracted_import": {
+    "cmd": [
+      "C:\\Users\\28746\\AppData\\Local\\CTF-Solver\\venv\\Scripts\\python.exe",
+      "-c",
+

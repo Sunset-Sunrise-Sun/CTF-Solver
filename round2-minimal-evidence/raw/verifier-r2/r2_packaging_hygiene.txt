@@ -1,0 +1,34 @@
+﻿==============================================================================
+PKG-1 �� frozen state + base commit
+==============================================================================
+[PASS] PKG01 frozen worktree at d00cdbd; base f30c9a2; clean :: HEAD d00cdbd5c45f, tree 5ab908deea2b, clean status, base f30c9a24a0f3
+[PASS] PKG02 no DB schema/migration drift vs base f30c9a2 :: 13 tables identical to base; schema_version 1.2; triggers identical (2)
+
+==============================================================================
+PKG-2 �� independent dependencies scan
+==============================================================================
+[PASS] PKG03 zero new third-party dependencies :: project.development dependencies empty; no lock/manifest change; build-system requires []
+[PASS] PKG04 added imports are stdlib/local/existing only :: 32 added imports, all stdlib/existing: ['__future__', 'copy', 'ctf_solver', 'dataclasses', 'json', 'pathlib', 'tests', 'typing', 'zipfile']
+
+==============================================================================
+PKG-3 �� forbidden strings, encoding, lint
+==============================================================================
+[PASS] PKG05 forbidden placeholder strings absent :: no TODO/FIXME/XXX/TBD/NotImplemented/placeholder/'not implemented' in 12 changed product/skill files
+[PASS] PKG06 changed files UTF-8 without BOM :: 20 changed product/test/skill files valid UTF-8 without BOM
+[PASS] PKG07 ruff clean on changed/new files vs base :: ruff delta base->frozen on 20 changed/new Python files: 0 NEW findings (frozen 28 pre-existing, base 31)
+
+==============================================================================
+PKG-4 �� in-tree wheel build + RECORD provenance
+==============================================================================
+[PASS] PKG08 in-tree wheel build + RECORD 66/65 :: wheel ctf_solver-0.1.1-py3-none-any.whl sha256 54e1bd2e6369faaf..., 66 members, RECORD verified 65/65, deterministic rebuild
+[PASS] PKG09 skills discovery ok/found=6 :: python -m ctf_solver skills --root . -> ok=true, found=6, no BOM/problems
+
+==============================================================================
+PKG-5 �� MCP server argument plumbing + fail-closed startup, baseline drift
+==============================================================================
+[PASS] PKG10 MCP server argument plumbing + fail-closed real-window start :: MCP server --help exposes args; real-window starts with PID and fails closed without it
+[PASS] PKG11 baseline drift identical at base f30c9a2; only failure :: baseline drift identical at base (mtime 1794409697473832700 != 1794246751302462400); frozen full suite failure list = [baseline drift]; summary: 1 failed, 1141 passed, 5 skipped in 82.16s (0:01:22)
+
+==============================================================================
+{"total": 11, "pass": 11, "fail": 0, "skip": 0}
+

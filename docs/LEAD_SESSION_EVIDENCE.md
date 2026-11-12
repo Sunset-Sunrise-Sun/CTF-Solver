@@ -151,3 +151,39 @@ CLI equivalents exist for local/headless use: `ctf-solver manager serve
 - Wheel installation in the tested environment replaced the installed `0.1.1` package
   with the rebuilt wheel from this branch; roll back with the v0.1.1 release wheel if
   needed (see the acceptance report's rollback section).
+
+
+## 8. Round 2 minimal delivery (final development round)
+
+Round 2 (branch `fix/round2-minimal-delivery`, commit `d00cdbd`, base `f30c9a2`) closes the
+remaining delivery gaps on top of the Round 1 Lead-session evidence integration:
+
+- **Real target-window capture.** `capture_mode` defaults to `real-window` and a positive
+  `--target-window-pid <PID>` is required; the Manager refuses to build a desktop capturer
+  for Lead-bound Tasks, never falls back to the desktop on failure, and records
+  `capture_method`/`target_pid`/`scope`/`session_id`/`worker_id`/`step_id` in the
+  `screenshot_captured`/`screenshot_failed` event. Screenshot ownership for a Lead-bound Task
+  is `worker_id=null`, `session_id=<Lead session>`.
+- **Writeup shows the real work.** Section 3 lists Harness-native Lead tool calls separately
+  from Worker `ctf-exec` executions; successful screenshots are embedded as Markdown images
+  under the real `turn{T}-step{S}` (materialised to `tasks/<id>/screenshots/`) with sha256,
+  time, dimensions, capture method and target PID; failed/missing captures are marked
+  honestly. Historical gaps are classified as resolved / unresolved, and the final ingest
+  self-call gap is labelled `Expected capture-boundary gap`.
+- **Delivery privacy policy.** One projection in `ctf_solver/delivery/privacy.py` is shared by
+  the Writeup, `events.jsonl` export and evidence ZIP: `assistant_message`, `passthrough`,
+  job/command bookkeeping and unknown event types are dropped, turn/step events keep only
+  numeric metadata, Skill result bodies are replaced by a policy notice, and raw session logs
+  are never placed in the ZIP. Raw logs stay unmodified in the local CAS and the evidence
+  chain remains append-only/verifiable. Technical tool calls/results, approvals, grants,
+  flags, screenshots and gaps are retained as real evidence.
+- **Category Skill loading.** The Core Skill requires an actual native
+  `skill({"name": "ctf-<category>"})` load after the Task category is known and before reading
+  challenge material; discovery output is not a substitute, and load failure stops analysis.
+- **Verification.** Full suite 1141 passed / 5 skipped / 1 pre-existing environment-drift
+  failure (identical at base `f30c9a2`); independent verifier PASS (matrices 16/16, 10/10,
+  11/11); wheel 66 members / RECORD 65/65; 0 new Ruff findings; no new dependencies; no DB
+  migration. A live fresh-Harness acceptance run produced a real Task, a Lead-bound session,
+  a real target-window screenshot (780x330, only the target window), a Writeup with the real
+  tool calls and the embedded image, and a privacy-filtered evidence ZIP
+  (no raw log, canary-free) with a verifying manifest. See `ROUND2_ACCEPTANCE_REPORT.md`.

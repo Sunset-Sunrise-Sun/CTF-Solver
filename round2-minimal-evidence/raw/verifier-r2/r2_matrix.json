@@ -1,0 +1,88 @@
+﻿{
+  "total": 16,
+  "pass": 16,
+  "fail": 0,
+  "skip": 0,
+  "results": [
+    {
+      "check": "M01 SolverConfig capture_mode/target_window_pid validation",
+      "status": "PASS",
+      "detail": "default real-window, PID optional at config level, modes validated, invalid PIDs rejected: [0, -5, True, False, '123', 1.5]"
+    },
+    {
+      "check": "M02 CLI --capture-mode/--target-window-pid plumbing",
+      "status": "PASS",
+      "detail": "CLI manager serve default real-window; --target-window-pid parsed; all modes accepted"
+    },
+    {
+      "check": "M03 build_capturer factory fail-closed behaviour",
+      "status": "PASS",
+      "detail": "real-window requires positive PID; desktop/fake/fake-blank/unknown handled fail-closed"
+    },
+    {
+      "check": "M04 Lead-bound screenshot ownership (P0-2)",
+      "status": "PASS",
+      "detail": "Lead-bound capture owned by Lead session (worker_id NULL, session_id=binding)"
+    },
+    {
+      "check": "M05 Worker legacy screenshot ownership unchanged",
+      "status": "PASS",
+      "detail": "Worker-only capture keeps legacy Worker/task ownership and desktop default scope"
+    },
+    {
+      "check": "M06 Lead-bound Task refuses desktop capture",
+      "status": "PASS",
+      "detail": "Lead-bound Task refuses desktop/unknown scopes before any capture (desktop fallback impossible)"
+    },
+    {
+      "check": "M07 no desktop fallback after window capture failure",
+      "status": "PASS",
+      "detail": "failed window capture: exactly 1 attempt, failed status recorded, no desktop fallback"
+    },
+    {
+      "check": "M08 screenshot event metadata completeness",
+      "status": "PASS",
+      "detail": "event payload carries capture_method/target_pid/scope/owner/step/sha/dimensions/timestamp"
+    },
+    {
+      "check": "M09 privacy canaries absent from all delivery surfaces",
+      "status": "PASS",
+      "detail": "reasoning/passthrough/skill-body/turn-payload canaries absent from Writeup, events.jsonl and every ZIP text member"
+    },
+    {
+      "check": "M10 events.jsonl structural privacy projection",
+      "status": "PASS",
+      "detail": "default export = privacy projection: dropped types absent, turn payload numeric-only, skill body replaced, real tool output kept"
+    },
+    {
+      "check": "M11 no raw log in ZIP; raw CAS + chain preserved",
+      "status": "PASS",
+      "detail": "no raw/ member, raw log bytes absent from ZIP, raw CAS object intact, chain ok over 37 events"
+    },
+    {
+      "check": "M12 Markdown image embedding in standalone Writeup and ZIP",
+      "status": "PASS",
+      "detail": "Markdown image + materialised tasks/<id>/screenshots + ZIP member path all resolve; failed capture has no image"
+    },
+    {
+      "check": "M13 ZIP manifest + determinism",
+      "status": "PASS",
+      "detail": "ZIP byte-identical rebuild (sha256 da494786a5fafc3f...), manifest verifies, canaries still absent"
+    },
+    {
+      "check": "M14 gap tri-state classification",
+      "status": "PASS",
+      "detail": "gap tri-state: resolved vs unresolved vs expected capture-boundary rendered in sections 5/7"
+    },
+    {
+      "check": "M15 Writeup section 3 Lead vs Worker tool reporting",
+      "status": "PASS",
+      "detail": "section 3 distinguishes Worker execution versions from Harness-native tool calls"
+    },
+    {
+      "check": "M16 Round 1 regression constraints + no DB migration",
+      "status": "PASS",
+      "detail": "18 MCP tools; allow_model_calls rejected; Lead bind/resolve/ingest and worker-only path unchanged; notes/completion_note split preserved; schema 1.2 unchanged"
+    }
+  ]
+}

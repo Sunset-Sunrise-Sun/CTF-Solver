@@ -1,0 +1,62 @@
+﻿{
+  "root": ".dsh\\skills",
+  "found": {
+    "ctf-crypto": {
+      "path": ".dsh\\skills\\ctf-crypto\\SKILL.md",
+      "size": 3193,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-crypto",
+      "description": true
+    },
+    "ctf-misc": {
+      "path": ".dsh\\skills\\ctf-misc\\SKILL.md",
+      "size": 2984,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-misc",
+      "description": true
+    },
+    "ctf-pwn": {
+      "path": ".dsh\\skills\\ctf-pwn\\SKILL.md",
+      "size": 3153,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-pwn",
+      "description": true
+    },
+    "ctf-reverse": {
+      "path": ".dsh\\skills\\ctf-reverse\\SKILL.md",
+      "size": 3417,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-reverse",
+      "description": true
+    },
+    "ctf-solver": {
+      "path": ".dsh\\skills\\ctf-solver\\SKILL.md",
+      "size": 11824,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-solver",
+      "description": true
+    },
+    "ctf-web": {
+      "path": ".dsh\\skills\\ctf-web\\SKILL.md",
+      "size": 3095,
+      "utf8": true,
+      "bom": false,
+      "frontmatter": true,
+      "name": "ctf-web",
+      "description": true
+    }
+  },
+  "missing": [],
+  "problems": [],
+  "ok": true
+}

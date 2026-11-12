@@ -1,0 +1,44 @@
+﻿{
+  "changed_files": [
+    "ctf_solver/cli.py",
+    "ctf_solver/core/config.py",
+    "ctf_solver/core/protocols.py",
+    "ctf_solver/delivery/bundle.py",
+    "ctf_solver/delivery/privacy.py",
+    "ctf_solver/delivery/screenshot.py",
+    "ctf_solver/delivery/writeup.py",
+    "ctf_solver/evidence/store.py",
+    "ctf_solver/manager/service.py",
+    "ctf_solver/mcp/manager_server.py",
+    "ctf_solver/wiring.py",
+    "scripts/round2_integration.py",
+    "tests/test_delivery_privacy.py",
+    "tests/test_delivery_screenshot.py",
+    "tests/test_delivery_writeup_bundle.py",
+    "tests/test_evidence_store.py",
+    "tests/test_lead_task_flow.py",
+    "tests/test_manager_service.py",
+    "tests/test_skills.py",
+    "tests/test_wheel_provenance.py"
+  ],
+  "new_files": [
+    "ctf_solver/delivery/privacy.py",
+    "tests/test_delivery_privacy.py"
+  ],
+  "frozen_total": 28,
+  "base_total": 31,
+  "new_findings": [],
+  "new_findings_total": 0,
+  "frozen_by_code": {
+    "F401": 19,
+    "F841": 7,
+    "F541": 1,
+    "F821": 1
+  },
+  "base_by_code": {
+    "F401": 21,
+    "F841": 8,
+    "F541": 1,
+    "F821": 1
+  }
+}

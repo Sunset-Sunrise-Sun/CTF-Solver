@@ -1,0 +1,3 @@
+﻿ok= True status= ok method= real-window width= 780 height= 330 blank= False error= 
+bytes= 16783 sha256= cd4aa8dbba5ef48bbab816ce1f8cb8a874af6385789899679ee4fd4fe4278d9f path= D:\CTF-SOLVER\scratch\round2-plan\probe-target-window.png
+

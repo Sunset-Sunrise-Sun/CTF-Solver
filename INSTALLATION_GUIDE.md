@@ -279,6 +279,14 @@ servers:
   verifies the id, the single session log, the log header `id` and the header `cwd` before
   binding it one time; evidence ingestion then resolves only the Manager-registered binding.
 - `ctf_session_ingest` never accepts a path or an arbitrary session id.
+- Process screenshots require the real target window: add
+  `--capture-mode real-window --target-window-pid <TARGET_WINDOW_PID>` (the PID of the
+  process that owns the challenge/program window). `real-window` refuses to build a
+  capturer without a positive PID, never falls back to the desktop, and Lead-bound Tasks
+  reject an explicit `scope=desktop`. There is no automatic window discovery.
+- Delivery privacy: the Writeup, `events.jsonl` and the evidence ZIP share one policy that
+  excludes model reasoning, `passthrough` prompts, full Skill bodies and raw session logs.
+  Raw logs remain in the local CAS; the ZIP manifest and chain stay verifiable locally.
 
 ## 7. Current acceptance boundary — read before use
 
@@ -305,6 +313,15 @@ servers:
   target access and challenge-code execution remain unaccepted in this release.
 - The project is proprietary and no open-source license has been granted; do not assume
   open-source redistribution rights.
+
+- Lead-bound process screenshots require a configured real target window
+  (`real-window` + `--target-window-pid`); `desktop` capture is refused for Lead Tasks and
+  there is no automatic window discovery or desktop fallback. Worker-only Tasks keep the
+  legacy desktop capturer when configured.
+- Delivered artifacts are a privacy-filtered view, not the raw session log: reasoning,
+  raw passthrough prompts and full Skill bodies are excluded, and the raw log stays in the
+  local CAS. Tool arguments/outputs and target-window screenshots can still contain
+  sensitive business content; review before sharing.
 
 Do not use this release for real CTF content until those boundaries are separately
 accepted.

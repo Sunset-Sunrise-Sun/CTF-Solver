@@ -1,0 +1,58 @@
+﻿{
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "skip": 0,
+  "results": [
+    {
+      "check": "N01 SKILL.md native skill-loading hard rule",
+      "status": "PASS",
+      "detail": "SKILL.md hard native skill call + category mapping + stop-on-failure, no substitute, frontmatter/persist kept"
+    },
+    {
+      "check": "N02 CLI/MCP capture-mode plumbing details",
+      "status": "PASS",
+      "detail": "task CLI stays fake/no PID; manager CLI + MCP server wire real-window/PID"
+    },
+    {
+      "check": "N03 MCP screenshot handler scope default/validation",
+      "status": "PASS",
+      "detail": "ctf_screenshot_capture scope optional (handler default None); Lead-bound omitted scope -> window; desktop/unknown scopes are MCP tool errors"
+    },
+    {
+      "check": "N04 export_events_jsonl privacy_filtered switch",
+      "status": "PASS",
+      "detail": "privacy_filtered=False keeps raw rows (39); default filters (27)"
+    },
+    {
+      "check": "N05 bundle/writeup wiring details",
+      "status": "PASS",
+      "detail": "bundle raw-log path removed; Writeup uses filter_events; build materialises screenshots"
+    },
+    {
+      "check": "N06 ctf_events_export default is privacy-filtered",
+      "status": "PASS",
+      "detail": "service.export_events (ctf_events_export path) writes the filtered view"
+    },
+    {
+      "check": "N07 no Harness plugin/agent/config changes",
+      "status": "PASS",
+      "detail": ".dsh changed only the ctf-solver Skill; no Harness config/plugin/agent change"
+    },
+    {
+      "check": "N08 Writeup event pipeline is privacy-projected",
+      "status": "PASS",
+      "detail": "Writeup event loading path always goes through filter_events"
+    },
+    {
+      "check": "N09 missing capture metadata renders 'not recorded'",
+      "status": "PASS",
+      "detail": "screenshot without capture event renders explicit not-recorded metadata (no fabrication)"
+    },
+    {
+      "check": "N10 ZIP manifest covers all members, no raw/",
+      "status": "PASS",
+      "detail": "manifest lists exactly the 3 non-manifest members; no raw/ member; writeup+events+screenshots covered"
+    }
+  ]
+}

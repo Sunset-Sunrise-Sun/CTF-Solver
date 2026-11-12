@@ -1,0 +1,50 @@
+﻿== task
+task_id: t-121579912bf84b35b574f88c45e33a96
+status: completed result_state: solved_flag_candidate flag_state: candidate
+notes_len: 192 notes_has_intake_canary: True
+completion_note_len: 102 notes_ne_completion: True
+evidence_head: 9cc02980ec245ffcd3065f08d210bc348f423b32eb7411dcfa7adee2198b0405
+binding: {'session_id': 'b0020ecd-237d-4264-8b38-bf00c8917a01', 'task_id': 't-121579912bf84b35b574f88c45e33a96', 'bound_at': 1794449513652, 'bound_by': 'lead', 'log_sha256': '21a09288152d6d70150d44c389c639f151ba9d913d3751c0c4ee9f013e85dc95'}
+chain_head_meta: 9cc02980ec245ffcd3065f08d210bc348f423b32eb7411dcfa7adee2198b0405 matches_task_head: True
+== screenshots
+{"captured_at": 1794449528696, "height": 330, "scope": "window", "screenshot_id": "shot-70fe96b7ec9c478986920e4cc6db0161", "session_id": "b0020ecd-237d-4264-8b38-bf00c8917a01", "sha256": "cd4aa8dbba5ef48bbab816ce1f8cb8a874af6385789899679ee4fd4fe4278d9f", "status": "ok", "step_id": "turn1-step9", "width": 780, "worker_id": null}
+screenshot_cas_exists: True cas_sha_ok: True
+standalone_image_exists: True standalone_sha_ok: True
+== writeup
+writeup_path: D:\CTF-SOLVER\tasks\t-121579912bf84b35b574f88c45e33a96\writeup.md bytes: 18623 sha256: 9ac91654321608ffcf6bcd85f4986939d24ffe1eb5bcad4d9d14e05e56ebe164
+image_lines: 1
+  image: ![Screenshot shot-70fe96b7ec9c478986920e4cc6db0161](screenshots/shot-70fe96b7ec9c478986920e4cc6db0161.png)
+metadata_lines: 1
+  meta: - sha256: `cd4aa8dbba5ef48bbab816ce1f8cb8a874af6385789899679ee4fd4fe4278d9f`; captured_at: `2026-11-12T02:12:08.696Z`; dimensions: 780x330; capture_method: `real-window`; target_pid: `<TARGET_WINDOW_PID>`; scope: `window`; session_id: `b0020ecd-237d-4264
+writeup_section3_no_execution_claim: True
+writeup_has_lead_native: True
+writeup_has_expected_boundary: True
+writeup_gap_resolved_marker: True
+== deliverable canaries
+intake_canary_in_writeup(should be True): True
+writeup_reasoning_present: False
+writeup_passthrough_present: False
+writeup_skill_body_present: False
+writeup_raw_challenge_present: True
+events_rows: 57
+events_assistant_message: 0
+events_passthrough: 0
+events_tool_call: 13
+events_tool_result: 12
+events_reasoning_present: False
+events_passthrough_present: False
+events_skill_body_present: False
+events_challenge_canary_present: True
+events_skill_policy_notice: True
+== ZIP
+zip_path: D:\CTF-SOLVER\tasks\t-121579912bf84b35b574f88c45e33a96\evidence.zip bytes: 26731 sha256: f258c4a4ac7cf1416be3f3f99fff060b2e642150a21f1b0e5e910f9f1ec19847
+zip_members: ["events.jsonl", "manifest.sha256", "screenshots/shot-70fe96b7ec9c478986920e4cc6db0161.png", "writeup.md"]
+zip_has_raw_member: False
+manifest_ok: True checked: 3 problems: []
+zip_text_canary_violations: []
+zip_contains_challenge_canary: True
+== raw session log preservation
+source: session:b0020ecd-237d-4264-8b38-bf00c8917a01 raw_sha256: 88d638621e976ef609f26bee2d0a80b0e2ccbee4a34dfff781a3e19ff1bfae3d cas_exists: True cas_sha_ok: True
+== evidence chain
+chain_ok: True records: 1198 head: 9cc02980ec245ffcd3065f08d210bc348f423b32eb7411dcfa7adee2198b0405 error: 
+

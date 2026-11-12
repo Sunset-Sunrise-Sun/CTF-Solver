@@ -1,0 +1,35 @@
+﻿==============================================================================
+MATRIX 1-3 �� capture mode / PID plumbing and fail-closed capturer factory
+==============================================================================
+[PASS] M01 SolverConfig capture_mode/target_window_pid validation :: default real-window, PID optional at config level, modes validated, invalid PIDs rejected: [0, -5, True, False, '123', 1.5]
+[PASS] M02 CLI --capture-mode/--target-window-pid plumbing :: CLI manager serve default real-window; --target-window-pid parsed; all modes accepted
+[PASS] M03 build_capturer factory fail-closed behaviour :: real-window requires positive PID; desktop/fake/fake-blank/unknown handled fail-closed
+
+==============================================================================
+MATRIX 4-7 �� screenshot ownership, Lead desktop refusal, no fallback, metadata
+==============================================================================
+[PASS] M04 Lead-bound screenshot ownership (P0-2) :: Lead-bound capture owned by Lead session (worker_id NULL, session_id=binding)
+[PASS] M05 Worker legacy screenshot ownership unchanged :: Worker-only capture keeps legacy Worker/task ownership and desktop default scope
+[PASS] M06 Lead-bound Task refuses desktop capture :: Lead-bound Task refuses desktop/unknown scopes before any capture (desktop fallback impossible)
+[PASS] M07 no desktop fallback after window capture failure :: failed window capture: exactly 1 attempt, failed status recorded, no desktop fallback
+[PASS] M08 screenshot event metadata completeness :: event payload carries capture_method/target_pid/scope/owner/step/sha/dimensions/timestamp
+
+==============================================================================
+MATRIX 9-13 �� privacy projection, Writeup images, ZIP no-raw, determinism, gaps
+==============================================================================
+[PASS] M09 privacy canaries absent from all delivery surfaces :: reasoning/passthrough/skill-body/turn-payload canaries absent from Writeup, events.jsonl and every ZIP text member
+[PASS] M10 events.jsonl structural privacy projection :: default export = privacy projection: dropped types absent, turn payload numeric-only, skill body replaced, real tool output kept
+[PASS] M11 no raw log in ZIP; raw CAS + chain preserved :: no raw/ member, raw log bytes absent from ZIP, raw CAS object intact, chain ok over 37 events
+[PASS] M12 Markdown image embedding in standalone Writeup and ZIP :: Markdown image + materialised tasks/<id>/screenshots + ZIP member path all resolve; failed capture has no image
+[PASS] M13 ZIP manifest + determinism :: ZIP byte-identical rebuild (sha256 da494786a5fafc3f...), manifest verifies, canaries still absent
+[PASS] M14 gap tri-state classification :: gap tri-state: resolved vs unresolved vs expected capture-boundary rendered in sections 5/7
+
+==============================================================================
+MATRIX 15-16 �� Writeup section 3 and Round 1 regression constraints
+==============================================================================
+[PASS] M15 Writeup section 3 Lead vs Worker tool reporting :: section 3 distinguishes Worker execution versions from Harness-native tool calls
+[PASS] M16 Round 1 regression constraints + no DB migration :: 18 MCP tools; allow_model_calls rejected; Lead bind/resolve/ingest and worker-only path unchanged; notes/completion_note split preserved; schema 1.2 unchanged
+
+==============================================================================
+{"total": 16, "pass": 16, "fail": 0, "skip": 0}
+

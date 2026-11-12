@@ -1,0 +1,63 @@
+﻿........................................................................ [  6%]
+........................................................................ [ 12%]
+........................................................................ [ 18%]
+........................................................................ [ 25%]
+........................................................................ [ 31%]
+........................................................................ [ 37%]
+...................................................................s..s. [ 43%]
+....................................s................................... [ 50%]
+........................................................................ [ 56%]
+........................................................................ [ 62%]
+s....................................................................... [ 69%]
+........................................................................ [ 75%]
+........................................................................ [ 81%]
+......................................................................s. [ 87%]
+........................................................................ [ 94%]
+.........F.........................................................      [100%]
+================================== FAILURES ===================================
+___________ test_protected_ctfworker_state_and_audit_hash_unchanged ___________
+
+    def test_protected_ctfworker_state_and_audit_hash_unchanged() -> None:
+        assert BASELINE_PATH.is_file(), f"verifier baseline missing: {BASELINE_PATH}"
+        baseline = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+        worker_dir = Path(r"D:\CTFworker")
+        if not worker_dir.is_dir():  # pragma: no cover - environment dependent
+            pytest.skip("D:\\CTFworker is not present on this machine")
+        status = subprocess.run(
+            ["git", "-C", str(worker_dir), "status", "--porcelain"],
+            capture_output=True,
+            check=False,
+        )
+        current_hash = sha256_bytes(status.stdout)
+        assert status.returncode == baseline["worker_status_exit_code"], (
+            "git status on the protected D:\\CTFworker directory failed"
+        )
+        assert current_hash == baseline["worker_status_sha256"], (
+            "protected D:\\CTFworker working-tree state changed during verification "
+            f"(start={baseline['worker_status_sha256']}, now={current_hash})"
+        )
+        audit = Path(baseline["audit_path"])
+        assert audit.is_file(), "the local audit report cited by the task is missing"
+        assert sha256_file(audit) == "955136d156a878fc932243081cc42d72575bc4f65510dc03163cb689d7fe5373"
+        assert audit.stat().st_size == 46444
+        profiles = Path.home() / ".dsh" / "profiles"
+        if profiles.is_dir() and "desktop" in baseline.get("global_profiles_mtimes_ns", {}):
+>           assert (profiles / "desktop").stat().st_mtime_ns == baseline["global_profiles_mtimes_ns"]["desktop"], (
+                "the live Harness profile directory was modified during verification"
+            )
+E           AssertionError: the live Harness profile directory was modified during verification
+E           assert 1794409697473832700 == 1794246751302462400
+E            +  where 1794409697473832700 = os.stat_result(st_mode=16895, st_ino=844424931128173, st_dev=488305890463550589, st_nlink=1, st_uid=0, st_gid=0, st_size=4096, st_atime=1794449530, st_mtime=1794409697, st_ctime=1791329090).st_mtime_ns
+E            +    where os.stat_result(st_mode=16895, st_ino=844424931128173, st_dev=488305890463550589, st_nlink=1, st_uid=0, st_gid=0, st_size=4096, st_atime=1794449530, st_mtime=1794409697, st_ctime=1791329090) = stat()
+E            +      where stat = (WindowsPath('C:/Users/28746/.dsh/profiles') / 'desktop').stat
+
+tests\test_verification_round1.py:1823: AssertionError
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_intake.py:85: cannot create file symlink on this Windows host without elevation
+SKIPPED [1] tests\test_intake.py:85: cannot create destination symlink on this Windows host without elevation
+SKIPPED [1] tests\test_lead_session_binding.py:759: Windows symlink creation unavailable in this environment (not elevated and/or Developer Mode off); link case not exercised
+SKIPPED [1] tests\test_real_acp_smoke.py:24: real ACP smoke test is opt-in (CTF_SOLVER_ENABLE_REAL_ACP=1); Round 1 default is fake-only
+SKIPPED [1] tests\test_session_log_resolver.py:554: Windows symlink/junction creation unavailable in this environment (not elevated and/or Developer Mode off); link-escape case not exercised
+FAILED tests/test_verification_round1.py::test_protected_ctfworker_state_and_audit_hash_unchanged
+1 failed, 1141 passed, 5 skipped in 82.16s (0:01:22)
+

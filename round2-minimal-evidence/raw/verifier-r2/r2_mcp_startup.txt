@@ -1,0 +1,23 @@
+﻿valid PID exit=0
+no PID exit=1
+no-PID stderr tail:
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\CTF-SOLVER\scratch\round2-minimal\ctf_solver\mcp\manager_server.py", line 511, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "D:\CTF-SOLVER\scratch\round2-minimal\ctf_solver\mcp\manager_server.py", line 502, in main
+    service = build_manager_service(config)
+  File "D:\CTF-SOLVER\scratch\round2-minimal\ctf_solver\wiring.py", line 167, in build_manager_service
+    capturer = build_capturer(config.capture_mode, target_pid=config.target_window_pid)
+  File "D:\CTF-SOLVER\scratch\round2-minimal\ctf_solver\delivery\screenshot.py", line 488, in build_capturer
+    return WindowCapturer(target_pid=_validated_target_pid(target_pid))
+                                     ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\CTF-SOLVER\scratch\round2-minimal\ctf_solver\delivery\screenshot.py", line 470, in _validated_target_pid
+    raise ConfigError(
+    ...<2 lines>...
+    )
+ctf_solver.core.errors.ConfigError: real-window capture requires an explicit positive target window PID; refusing to build a capturer that could capture the desktop
+
+

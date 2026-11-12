@@ -29,7 +29,12 @@ CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skil
 | Session-log negative delivery canary | BLOCKED — requires a model request |
 | Model-mediated Worker / `session/prompt` | BLOCKED — ADR-020 zero-model-call gate |
 | Tier 2 OS isolation / real targets / challenge execution | BLOCKED / NOT VERIFIED |
-| Installed wheel outside the source checkout | v0.1.1 release: package-resource privacy patch and explicit ACP failure |
+| Installed wheel outside the source checkout | v0.1.1 release: package-resource privacy patch and explicit ACP failure; Round 2 wheel (66/65 RECORD) installed in the managed venv |
+| Target-window screenshots (Lead path) | **PASS** — `real-window` + explicit `--target-window-pid <PID>`; Lead-bound Tasks refuse `desktop` capture and never fall back; screenshot events record capture_method/target_pid/scope/owner; live acceptance screenshot 780x330 (`shot-70fe…`) |
+| Delivery privacy policy | **PASS** — one shared projection drops `assistant_message`, `passthrough`, Skill bodies and raw session logs from the Writeup, `events.jsonl` and evidence ZIP; raw bytes stay in the local CAS; canaries verified absent |
+| Writeup process display + embedded screenshots | **PASS** — section 3 shows Lead-native Harness tool calls vs Worker executions; successful screenshots are Markdown-embedded with sha256/time/size/capture_method/target_pid under the real `turn{T}-step{S}`; failed/missing captures are marked honestly |
+| Category Skill hard loading | **PASS** — after the Task category is known and before reading challenge material the Lead must call native `skill({"name": "ctf-<cat>"})`; live run loaded `ctf-misc` before the first file read |
+| Round 2 gap display | **PASS** — historical gaps show `resolved (matched by a later ingestion)`; the final ingest self-call gap is labelled `Expected capture-boundary gap`; real unresolved gaps are listed separately |
 
 
 ## Product contract
@@ -49,9 +54,15 @@ CTF-Solver preserves Harness as the reasoning/runtime layer. It adds a Core Skil
   conversation using native Harness tools.
 - Bounded concurrency: at most **2 active Workers**; additional Tasks wait FIFO.
 - Five categories only: Web, Misc, Crypto, Reverse, and Pwn. First Blood scanning is a separate future project and excluded from this MVP.
-- CLI/headless first; GUI is auxiliary and used primarily for required program-running screenshots.
+- CLI/headless first; GUI is auxiliary. Process screenshots use an explicitly configured target
+  window (`--capture-mode real-window --target-window-pid <PID>`); Lead-bound Tasks never
+  capture the desktop, and no automatic window discovery is performed.
 - No arbitrary host Shell: Workers use typed ctf-exec through MCP; they receive neither unrestricted host Shell nor Docker Socket.
-- Evidence-first delivery: record actual argv, cwd, tool version, timestamps, exit code, stdout/stderr, files, and screenshots.
+- Evidence-first delivery: record actual argv, cwd, tool version, timestamps, exit code,
+  stdout/stderr, files, and screenshots. Delivered artifacts (Writeup, `events.jsonl`, ZIP)
+  pass through one delivery-privacy projection: model reasoning, raw passthrough prompts,
+  Skill bodies and raw session logs are not included; the append-only evidence chain and raw
+  CAS data stay local.
 - Human controls: approve untrusted-binary execution, software installation, and CTF target access; the user confirms and submits the Flag.
 
 ## Architecture at a glance
@@ -104,7 +115,7 @@ Session-log delivery to the official API must be disabled/excluded and verified 
 - docs/HARNESS_INTEGRATION_AUDIT_SUMMARY.md — summary of the latest local capability audit.
 - docs/ACCEPTANCE.md — objective implementation/release gates.
 
-## Current implementation status (v0.1.1 + Lead-session evidence Round 1)
+## Current implementation status (v0.1.1 + Lead-session evidence Round 1 + Round 2 minimal delivery)
 
 | Area | Status |
 |---|---|

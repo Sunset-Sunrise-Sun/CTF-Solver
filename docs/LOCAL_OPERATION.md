@@ -197,3 +197,11 @@ under the zero-model-call gate.
   Manager) and ingest that session log from the configured live `lead_sessions_root`; the
   evidence window is the whole bound session. `ctf_session_ingest` never accepts a path or an
   arbitrary session id. `notes` (intake) and `completion_note` (outcome) are separate fields.
+- Lead-bound process screenshots use the configured target window only
+  (`--capture-mode real-window --target-window-pid <TARGET_WINDOW_PID>`); `desktop` scope is
+  refused for Lead Tasks, capture failure never falls back to the desktop, and screenshots
+  are attributed to the Lead session (`worker_id` null). There is no automatic window
+  discovery.
+- Delivery is a privacy-filtered view: the Writeup, `events.jsonl` and evidence ZIP exclude
+  model reasoning, raw passthrough prompts, full Skill bodies and raw session logs. The
+  append-only evidence chain and raw CAS bytes remain local and unmodified.

@@ -12,13 +12,14 @@ from __future__ import annotations
 
 import hashlib
 import os
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from ctf_solver.core.config import SolverConfig
 from ctf_solver.core.errors import StateError, ValidationError
-from ctf_solver.core.types import TaskStatus
+from ctf_solver.core.types import CaptureResult, CaptureStatus, TaskStatus
 from ctf_solver.evidence.store import EvidenceStore
 from ctf_solver.manager.service import ManagerService
 from ctf_solver.manager.session_logs import SessionLogError
@@ -34,6 +35,20 @@ from tests.support.session_events import session_header, standard_session, tool_
 from tests.support.zstd_fixtures import write_session_log
 
 LEAD_SESSION_ID = "11111111-2222-3333-4444-555555555555"
+
+
+class FakeWindowCapturer(FakeCapturer):
+    """Fake capturer that reports itself as the real-window capturer (P0-1/P0-2)."""
+
+    name = "real-window"
+
+    def __init__(self, mode: str = "ok", *, target_pid: int = 4321) -> None:
+        super().__init__(mode)
+        self.target_pid = target_pid
+
+    def capture(self, *, scope: str, workdir: str | None = None) -> CaptureResult:
+        result = super().capture(scope=scope, workdir=workdir)
+        return replace(result, method=self.name)
 
 
 class RecordingEvidence(FakeEvidence):
@@ -65,6 +80,7 @@ def _build_service(
     lead_root: Path | None = None,
     evidence: FakeEvidence | None = None,
     config_extra: dict[str, str] | None = None,
+    capturer: FakeCapturer | None = None,
 ) -> tuple[ManagerService, FakeAcp, FakeEvidence, ManagerStore]:
     config = SolverConfig(root=tmp_path, extra=dict(config_extra or {}))
     paths = config.ensure_layout()
@@ -78,7 +94,7 @@ def _build_service(
         evidence=evidence,
         pipeline=FakePipeline(),
         deliverables=FakeDeliverables(tmp_path),
-        capturer=FakeCapturer("ok"),
+        capturer=capturer if capturer is not None else FakeCapturer("ok"),
         lead_sessions_root=lead_root,
         workspace_root=tmp_path,
     )
@@ -552,6 +568,119 @@ def test_take_screenshot_derives_latest_tool_step(tmp_path) -> None:
         assert explicit.step_id == "step-42"
         with pytest.raises(ValueError):
             service.take_screenshot(task.task_id, step_id="not a step")
+    finally:
+        service.shutdown()
+        store.close()
+
+
+def test_lead_bound_screenshot_is_owned_by_the_lead_session(tmp_path) -> None:
+    """P0-2: a Lead-bound screenshot belongs to the Lead session, never the Worker."""
+
+    lead_root = tmp_path / "lead-sessions"
+    lead_root.mkdir()
+    _write_lead_log(lead_root, LEAD_SESSION_ID, cwd=str(tmp_path))
+    capturer = FakeWindowCapturer("ok", target_pid=4321)
+    service, _acp, evidence, store = _build_service(
+        tmp_path, lead_root=lead_root, capturer=capturer
+    )
+    try:
+        service.start()
+        task = _create(service, lead_session_id=LEAD_SESSION_ID)
+        assert store.get_lead_binding(task.task_id) is not None
+        record = service.take_screenshot(task.task_id)
+        # Ownership: the Lead session, not the shell Worker / Worker ACP session.
+        assert record.worker_id is None
+        assert record.session_id == LEAD_SESSION_ID
+        # Default scope is the real-window target, never the desktop.
+        assert record.scope == "window"
+        assert record.status is CaptureStatus.OK
+        assert capturer.calls == [
+            {"scope": "window", "workdir": task.workspace_path}
+        ]
+        # Record and event ownership must match exactly.
+        event = _events(evidence, "screenshot_captured")[-1]
+        assert event["worker_id"] is None
+        assert event["session_id"] == LEAD_SESSION_ID
+        payload = event["payload"]
+        assert payload["screenshot_id"] == record.screenshot_id
+        assert payload["capture_method"] == "real-window"
+        assert payload["target_pid"] == 4321
+        assert payload["scope"] == "window"
+        assert payload["status"] == "ok"
+        assert payload["session_id"] == LEAD_SESSION_ID
+        assert payload["worker_id"] is None
+        assert payload["step_id"] is None
+        assert payload["sha256"] == record.sha256 and payload["sha256"]
+        assert payload["width"] == 96 and payload["height"] == 64
+        assert payload["captured_at"] == record.captured_at
+        assert payload["failure_reason"] == ""
+        # Explicit real-window scopes are accepted and passed through unchanged.
+        explicit = service.take_screenshot(task.task_id, scope="real-window")
+        assert explicit.scope == "real-window"
+        assert capturer.calls[-1] == {
+            "scope": "real-window",
+            "workdir": task.workspace_path,
+        }
+        # Other scopes are refused for a Lead-bound Task.
+        with pytest.raises(ValidationError, match="unsupported screenshot scope"):
+            service.take_screenshot(task.task_id, scope="screen")
+    finally:
+        service.shutdown()
+        store.close()
+
+
+def test_lead_bound_screenshot_refuses_desktop_without_any_capture(tmp_path) -> None:
+    """P0-2: no silent desktop fallback for a Lead-bound Task process screenshot."""
+
+    lead_root = tmp_path / "lead-sessions"
+    lead_root.mkdir()
+    _write_lead_log(lead_root, LEAD_SESSION_ID, cwd=str(tmp_path))
+    capturer = FakeWindowCapturer("ok", target_pid=4321)
+    service, _acp, evidence, store = _build_service(
+        tmp_path, lead_root=lead_root, capturer=capturer
+    )
+    try:
+        service.start()
+        task = _create(service, lead_session_id=LEAD_SESSION_ID)
+        with pytest.raises(ValidationError, match="desktop capture is refused"):
+            service.take_screenshot(task.task_id, scope="desktop")
+        # Refused before any capture attempt and without recording any screenshot.
+        assert capturer.calls == []
+        assert _events(evidence, "screenshot_captured") == []
+        assert _events(evidence, "screenshot_failed") == []
+        assert store.list_screenshots(task.task_id) == []
+    finally:
+        service.shutdown()
+        store.close()
+
+
+def test_worker_only_screenshot_keeps_legacy_ownership(tmp_path) -> None:
+    """P0-2: a Worker-only Task keeps the existing Worker/Task ownership."""
+
+    capturer = FakeCapturer("ok")
+    service, _acp, evidence, store = _build_service(tmp_path, capturer=capturer)
+    try:
+        service.start()
+        task = _create(service)
+        worker = store.get_worker_for_task(task.task_id)
+        assert worker is not None
+        record = service.take_screenshot(task.task_id, step_id="step-1")
+        assert record.worker_id == worker.worker_id == task.worker_id
+        assert record.session_id == task.acp_session_id
+        # A non-real-window capturer keeps the legacy desktop default scope.
+        assert record.scope == "desktop"
+        assert capturer.calls == [
+            {"scope": "desktop", "workdir": task.workspace_path}
+        ]
+        event = _events(evidence, "screenshot_captured")[-1]
+        assert event["worker_id"] == record.worker_id
+        assert event["session_id"] == record.session_id
+        assert event["payload"]["worker_id"] == record.worker_id
+        assert event["payload"]["session_id"] == record.session_id
+        assert event["payload"]["capture_method"] == "fake"
+        assert event["payload"]["target_pid"] is None
+        assert event["payload"]["scope"] == "desktop"
+        assert event["payload"]["status"] == "ok"
     finally:
         service.shutdown()
         store.close()

@@ -244,7 +244,6 @@ def main(argv: list[str]) -> int:
     END_TO_END.mkdir(parents=True, exist_ok=True)
 
     from ctf_solver.core.config import SolverConfig
-    from ctf_solver.delivery.screenshot import WindowCapturer
     from ctf_solver.delivery.bundle import EvidenceBundleBuilder
     from ctf_solver.core.protocols import SystemClock
     from ctf_solver.manager.service import ManagerService
@@ -268,6 +267,7 @@ def main(argv: list[str]) -> int:
         config = SolverConfig(
             root=REPO,
             capture_mode="real-window",
+            target_window_pid=probe_pid,
             extra={
                 "dsh_home": str(RUNTIME / "r2-dsh-home"),
                 "mcp_handshake_dir": str(RUNTIME / "r2-handshakes"),
@@ -276,7 +276,6 @@ def main(argv: list[str]) -> int:
         )
         config.ensure_runtime_dirs()
         service = build_manager_service(config)
-        service.capturer = WindowCapturer(target_pid=probe_pid)
         status = service.start()
         check("real ACP client ready", status["acp"]["ready"] is True, json.dumps(status["acp"]["diagnostics"])[:300])
         acp_command = list(status["acp"]["diagnostics"].get("command") or [])

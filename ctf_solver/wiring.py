@@ -164,7 +164,7 @@ def build_manager_service(
         executor=executor,
     )
     deliverables = Deliverables(evidence_store, paths)
-    capturer = build_capturer(config.capture_mode)
+    capturer = build_capturer(config.capture_mode, target_pid=config.target_window_pid)
     factory = acp_factory or default_acp_factory(config)
     return ManagerService(
         config=config,

@@ -3,6 +3,13 @@
 Every statement in the generated Writeup must come from committed evidence
 records or the durable Task row. The generator never invents tool output,
 screenshots or Flags, and it marks missing evidence explicitly.
+
+The events used here are projected through the shared delivery privacy policy
+(:func:`ctf_solver.delivery.privacy.filter_events`), so the Writeup, the exported
+``events.jsonl`` and the evidence ZIP all render the same delivery-safe view.
+Successful captures are embedded as real Markdown images and materialised next
+to the standalone Writeup; captures whose bytes cannot be read are reported as
+explicitly unavailable instead of being faked.
 """
 
 from __future__ import annotations
@@ -14,8 +21,25 @@ from typing import Any, Iterable, Mapping
 from ..core.canonical import sha256_hex
 from ..core.errors import DeliveryError
 from ..core.types import ExecutionStatus, FlagState, ScreenshotRecord, TaskRecord
+from .privacy import filter_events
 
 MAX_PREVIEW_CHARS = 1200
+
+#: Worker ``ctf-exec`` execution lifecycle event types that report a tool version.
+EXECUTION_EVENT_TYPES = frozenset(
+    {"execution_started", "execution_completed", "execution_failed"}
+)
+
+#: Manager tools whose own result can never appear in the log snapshot they ingest.
+#: An unmatched call to one of them is an expected capture boundary, not a gap.
+INGEST_TOOL_NAMES = frozenset(
+    {"ctf_session_ingest", "mcp__ctf-solver__ctf_session_ingest"}
+)
+
+#: Derived gap states rendered in sections 5 and 7 (evidence stays append-only).
+GAP_RESOLVED = "resolved (matched by a later ingestion)"
+GAP_CAPTURE_BOUNDARY = "Expected capture-boundary gap"
+GAP_UNRESOLVED = "unresolved"
 
 
 def _iso(timestamp_ms: int | None) -> str:
@@ -161,12 +185,187 @@ def _screenshots_for_step(
     return matched
 
 
-def _append_screenshot_lines(lines: list[str], shots: Iterable[ScreenshotRecord]) -> None:
-    for shot in shots:
-        lines.append(
-            f"- Screenshot: `screenshots/{shot.screenshot_id}.png` "
-            f"(sha256 `{shot.sha256}`, {shot.width}x{shot.height}, captured {_iso(shot.captured_at)})"
+def _recorded(value: Any) -> str:
+    """Render a recorded metadata value, or the explicit ``not recorded`` marker."""
+
+    if value is None:
+        return "not recorded"
+    text = str(value).strip()
+    return text if text else "not recorded"
+
+
+def _screenshot_metadata_line(shot: ScreenshotRecord, capture: Mapping[str, Any]) -> str:
+    """One indented metadata line for an embedded screenshot.
+
+    ``capture_method``/``target_pid``/``scope`` come from the matching
+    ``screenshot_captured``/``screenshot_failed`` event payload because the
+    screenshot row has no columns for them (no migration is permitted); absent
+    values are rendered as ``not recorded``.
+    """
+
+    if shot.width is not None and shot.height is not None:
+        dimensions = f"{shot.width}x{shot.height}"
+    else:
+        dimensions = "not recorded"
+    session_id = _recorded(capture.get("session_id") or shot.session_id)
+    return (
+        f"  - sha256: `{_recorded(shot.sha256)}`; captured_at: `{_iso(shot.captured_at)}`; "
+        f"dimensions: {dimensions}; capture_method: `{_recorded(capture.get('capture_method'))}`; "
+        f"target_pid: `{_recorded(capture.get('target_pid'))}`; "
+        f"scope: `{_recorded(capture.get('scope'))}`; session_id: `{session_id}`"
+    )
+
+
+def _screenshot_capture_metadata(
+    events: Iterable[Mapping[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Map ``screenshot_id`` -> capture event payload (first recorded event wins)."""
+
+    metadata: dict[str, dict[str, Any]] = {}
+    for event in events:
+        if event.get("event_type") not in {"screenshot_captured", "screenshot_failed"}:
+            continue
+        payload = _payload(event)
+        screenshot_id = str(payload.get("screenshot_id") or "")
+        if screenshot_id and screenshot_id not in metadata:
+            metadata[screenshot_id] = payload
+    return metadata
+
+
+def _read_cas_bytes(evidence: Any, sha256: str) -> bytes:
+    """Read a CAS object through any supported evidence/CAS accessor.
+
+    Mirrors the accessor pattern used by :mod:`ctf_solver.delivery.bundle` so the
+    Writeup materialises exactly the bytes the evidence ZIP ships.
+    """
+
+    cas = getattr(evidence, "cas", None)
+    if cas is not None and callable(getattr(cas, "get_bytes", None)):
+        return bytes(cas.get_bytes(sha256))
+    for name in ("read_artifact", "get_artifact", "read_bytes"):
+        reader = getattr(evidence, name, None)
+        if callable(reader):
+            result = reader(sha256)
+            if isinstance(result, (bytes, bytearray)):
+                return bytes(result)
+            data = getattr(result, "data", None)
+            if isinstance(data, (bytes, bytearray)):
+                return bytes(data)
+    raise DeliveryError("evidence store exposes no readable CAS accessor")
+
+
+def _int_or_none(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _gap_states(events: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Classify every recorded ``evidence_gap`` for the delivery view.
+
+    The event log stays append-only: nothing is deleted or rewritten. Derived
+    status values are:
+
+    - ``unmatched_call``: ``resolved`` when a later ``tool_result`` with the same
+      ``call_id`` exists; the expected capture boundary when the call is the
+      latest ``ctf_session_ingest`` call (its own result cannot appear in the
+      snapshot it ingests); otherwise unresolved.
+    - ``unmatched_result``: ``resolved`` when a ``tool_call`` with the same
+      ``call_id`` exists; otherwise unresolved.
+    - every other gap reason: unresolved.
+    """
+
+    ordered = list(events)
+    calls: dict[str, dict[str, Any]] = {}
+    results: dict[str, list[dict[str, Any]]] = {}
+    ingest_source_seqs: list[int] = []
+    for event in ordered:
+        event_type = event.get("event_type")
+        payload = _payload(event)
+        call_id = str(payload.get("call_id") or "")
+        if event_type == "tool_call" and call_id:
+            calls.setdefault(call_id, dict(event))
+            if str(payload.get("tool_name") or "") in INGEST_TOOL_NAMES:
+                source_seq = _int_or_none(event.get("source_seq"))
+                if source_seq is None:
+                    source_seq = _int_or_none(payload.get("source_seq"))
+                if source_seq is not None:
+                    ingest_source_seqs.append(source_seq)
+        elif event_type == "tool_result" and call_id:
+            results.setdefault(call_id, []).append(dict(event))
+    last_ingest_source_seq = max(ingest_source_seqs) if ingest_source_seqs else None
+    states: list[dict[str, Any]] = []
+    for event in ordered:
+        if event.get("event_type") != "evidence_gap":
+            continue
+        payload = _payload(event)
+        reason = str(payload.get("reason") or "")
+        call_id = str(payload.get("call_id") or "")
+        gap_seq = _int_or_none(event.get("seq"))
+        origin_call = calls.get(call_id)
+        origin_payload = _payload(origin_call) if origin_call is not None else {}
+        tool_name = str(origin_payload.get("tool_name") or payload.get("tool_name") or "")
+        source_seq = _int_or_none(origin_call.get("source_seq")) if origin_call else None
+        if source_seq is None:
+            source_seq = _int_or_none(payload.get("source_seq"))
+        status = GAP_UNRESOLVED
+        if reason == "unmatched_call":
+            later_results = [
+                result
+                for result in results.get(call_id, [])
+                if gap_seq is not None
+                and _int_or_none(result.get("seq")) is not None
+                and _int_or_none(result.get("seq")) > gap_seq
+            ]
+            if call_id and later_results:
+                status = GAP_RESOLVED
+            elif (
+                tool_name in INGEST_TOOL_NAMES
+                and source_seq is not None
+                and source_seq == last_ingest_source_seq
+            ):
+                status = GAP_CAPTURE_BOUNDARY
+        elif reason == "unmatched_result":
+            if call_id and call_id in calls:
+                status = GAP_RESOLVED
+        states.append(
+            {
+                "seq": gap_seq,
+                "record_id": str(event.get("record_id") or ""),
+                "reason": reason,
+                "detail": str(payload.get("detail") or ""),
+                "call_id": call_id,
+                "tool_name": tool_name,
+                "source_seq": source_seq,
+                "status": status,
+            }
         )
+    return states
+
+
+def _gap_status_line(state: Mapping[str, Any]) -> str:
+    """One section-5 line for a gap with its derived tri-state status."""
+
+    label = f"Evidence gap at seq {state.get('seq')} (`{state.get('reason')}`"
+    if state.get("call_id"):
+        label += f", call `{state.get('call_id')}`"
+    label += ")"
+    return f"- {label}: status **{state.get('status')}** — {state.get('detail')}"
+
+
+def _capture_boundary_line(state: Mapping[str, Any]) -> str:
+    """One section-7 line for the expected ingestion-time capture boundary."""
+
+    return (
+        f"- Expected capture-boundary gap at seq {state.get('seq')} "
+        f"(`{state.get('reason')}`, tool `{state.get('tool_name') or 'unknown'}`): "
+        "an expected ingestion-time boundary, not a missing solve step; the ingestion "
+        "call's own result cannot appear in the log snapshot it ingests. "
+        f"{state.get('detail')}"
+    )
 
 
 class WriteupBuilder:
@@ -176,7 +375,11 @@ class WriteupBuilder:
     # -- data loading -------------------------------------------------
 
     def _events(self, task_id: str) -> list[dict[str, Any]]:
-        events = [_as_event_dict(item) for item in self.evidence.list_events(task_id=task_id)]
+        raw = [_as_event_dict(item) for item in self.evidence.list_events(task_id=task_id)]
+        # One shared delivery privacy projection for the Writeup, events.jsonl
+        # and the evidence ZIP; raw reasoning/passthrough/Skill bodies never
+        # reach the delivered document.
+        events = filter_events(raw)
         events.sort(key=lambda item: (int(item.get("seq") or 0), str(item.get("record_id", ""))))
         return events
 
@@ -193,6 +396,84 @@ class WriteupBuilder:
                 result.append(ScreenshotRecord.from_row(dict(item)))
         result.sort(key=lambda item: (item.captured_at, item.screenshot_id))
         return result
+
+    def _screenshot_bytes(self, shot: ScreenshotRecord) -> tuple[bytes | None, str]:
+        """Return ``(png bytes, "")`` for a stored capture, else ``(None, reason)``.
+
+        A capture that is failed/blank, has no recorded hash, or whose CAS object
+        cannot be read is never represented as an image link: the caller renders
+        an explicit ``screenshot unavailable`` line instead.
+        """
+
+        status = shot.status.value
+        if status != "ok":
+            reason = f"capture status `{status}`"
+            if shot.failure_reason:
+                reason += f" ({shot.failure_reason})"
+            return None, reason
+        if not shot.sha256:
+            return None, "sha256 not recorded for the capture"
+        try:
+            data = _read_cas_bytes(self.evidence, shot.sha256)
+        except Exception:  # noqa: BLE001 - a missing CAS object is an explicit gap
+            return None, (
+                f"CAS object sha256:{shot.sha256} is not readable from the evidence store"
+            )
+        if not data:
+            return None, f"CAS object sha256:{shot.sha256} is empty"
+        return data, ""
+
+    def _append_screenshots(
+        self,
+        lines: list[str],
+        shots: Iterable[ScreenshotRecord],
+        metadata: Mapping[str, Mapping[str, Any]],
+    ) -> None:
+        for shot in shots:
+            data, reason = self._screenshot_bytes(shot)
+            if data is None:
+                lines.append(
+                    f"- screenshot unavailable: {reason} "
+                    f"(screenshot `{shot.screenshot_id}`; no image link emitted)"
+                )
+                continue
+            lines.append(
+                f"![Screenshot {shot.screenshot_id}](screenshots/{shot.screenshot_id}.png)"
+            )
+            lines.append(_screenshot_metadata_line(shot, metadata.get(shot.screenshot_id, {})))
+
+    def _materialise_screenshots(self, task: TaskRecord, task_dir: Any) -> list[dict[str, Any]]:
+        """Write readable capture bytes to ``<task_dir>/screenshots/<id>.png``.
+
+        The standalone ``tasks/<task_id>/writeup.md`` then renders the images it
+        links, and the same relative member path resolves inside the evidence ZIP.
+        A capture whose bytes cannot be read is skipped explicitly; no file is
+        fabricated and the Writeup reports it as unavailable.
+        """
+
+        from pathlib import Path
+
+        base = Path(task_dir)
+        written: list[dict[str, Any]] = []
+        for shot in self._screenshots(task.task_id):
+            data, reason = self._screenshot_bytes(shot)
+            if data is None:
+                written.append(
+                    {"screenshot_id": shot.screenshot_id, "written": False, "reason": reason}
+                )
+                continue
+            target = base / "screenshots" / f"{shot.screenshot_id}.png"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+            written.append(
+                {
+                    "screenshot_id": shot.screenshot_id,
+                    "written": True,
+                    "path": str(target),
+                    "sha256": sha256_hex(data),
+                }
+            )
+        return written
 
     # -- rendering ----------------------------------------------------
 
@@ -306,19 +587,53 @@ class WriteupBuilder:
 
     def _section_versions(self, events: list[dict[str, Any]]) -> list[str]:
         versions: dict[tuple[str, str], int] = {}
+        execution_tools: set[str] = set()
         for event in events:
-            if event.get("event_type") not in {"execution_started", "execution_completed", "execution_failed"}:
+            if event.get("event_type") not in EXECUTION_EVENT_TYPES:
                 continue
             payload = _payload(event)
             tool = str(payload.get("tool_name", ""))
             version = str(payload.get("tool_version", "") or "unknown")
             if tool:
                 versions[(tool, version)] = versions.get((tool, version), 0) + 1
+                execution_tools.add(tool)
+        native: dict[str, int] = {}
+        for event in events:
+            if event.get("event_type") != "tool_call":
+                continue
+            tool = str(_payload(event).get("tool_name") or "").strip()
+            if tool:
+                native[tool] = native.get(tool, 0) + 1
         lines = ["## 3. Tool and environment versions actually observed", ""]
         if versions:
+            lines.append(
+                "Worker `ctf-exec` execution records (tool and version reported at "
+                "execution time):"
+            )
+            lines.append("")
             for (tool, version), count in sorted(versions.items()):
                 lines.append(f"- `{tool}` — version `{version}` ({count} execution record(s))")
-        else:
+        if native:
+            total = sum(native.values())
+            lines.append("")
+            lines.append(
+                "Harness-native tool calls recorded in the ingested session logs "
+                f"({total} call(s) across {len(native)} tool(s)):"
+            )
+            lines.append("")
+            for tool in sorted(native):
+                if tool in execution_tools:
+                    lines.append(
+                        f"- `{tool}` — worker execution record version listed above; "
+                        "Harness-native tool version not recorded separately."
+                    )
+                else:
+                    lines.append(
+                        f"- `{tool}` — Harness-native tool call "
+                        "(tool version not recorded separately); "
+                        f"{native[tool]} call(s)"
+                    )
+        if not versions and not native:
             lines.append("No tool executions were recorded for this Task.")
         lines.append("")
         return lines
@@ -330,9 +645,9 @@ class WriteupBuilder:
         task: TaskRecord,
     ) -> list[str]:
         lines = ["## 4. Chronological steps", ""]
-        ok_shots = [shot for shot in screenshots if shot.status.value == "ok"]
+        capture_metadata = _screenshot_capture_metadata(events)
         shots_by_step: dict[str, list[ScreenshotRecord]] = {}
-        for shot in ok_shots:
+        for shot in screenshots:
             shots_by_step.setdefault(shot.step_id or "", []).append(shot)
         step_index = 0
         for event in events:
@@ -365,11 +680,11 @@ class WriteupBuilder:
                     lines.append("- Outcome: _no matching completion event recorded (explicit gap)._")
                 step_shots = _screenshots_for_step(shots_by_step, payload)
                 if step_shots:
-                    _append_screenshot_lines(lines, step_shots)
+                    self._append_screenshots(lines, step_shots, capture_metadata)
                 else:
                     lines.append(
-                        "- Screenshot: _not captured for this step_ (no explicit capture was requested, "
-                        "or capture failed; see section 7)."
+                        "- Screenshot: _not captured for this step_ (no explicit capture was "
+                        "requested; failed captures are reported explicitly when recorded)."
                     )
                 lines.append("")
             elif event_type == "tool_call":
@@ -409,7 +724,7 @@ class WriteupBuilder:
                     lines.append("- Outcome: _no matching tool/result recorded (explicit gap)._")
                 step_shots = _screenshots_for_step(shots_by_step, payload)
                 if step_shots:
-                    _append_screenshot_lines(lines, step_shots)
+                    self._append_screenshots(lines, step_shots, capture_metadata)
                 lines.append("")
         if step_index == 0:
             lines.append("No execution or tool-call steps were recorded for this Task.")
@@ -466,6 +781,7 @@ class WriteupBuilder:
 
     def _section_failures(self, events: list[dict[str, Any]]) -> list[str]:
         lines = ["## 5. Failed attempts and meaningful negative results", ""]
+        gap_states = {state["record_id"]: state for state in _gap_states(events)}
         failures: list[str] = []
         for event in events:
             event_type = event.get("event_type")
@@ -486,9 +802,13 @@ class WriteupBuilder:
                     f"(exit code {payload.get('exit_code')})."
                 )
             elif event_type == "evidence_gap":
-                failures.append(
-                    f"- Evidence gap: `{payload.get('reason')}` — {payload.get('detail', '')}"
-                )
+                state = gap_states.get(str(event.get("record_id") or ""))
+                if state is not None:
+                    failures.append(_gap_status_line(state))
+                else:
+                    failures.append(
+                        f"- Evidence gap: `{payload.get('reason')}` — {payload.get('detail', '')}"
+                    )
         if failures:
             lines.extend(failures)
         else:
@@ -523,16 +843,26 @@ class WriteupBuilder:
     ) -> list[str]:
         lines = ["## 7. Unresolved or blocked steps", ""]
         items: list[str] = []
-        for event in events:
-            if event.get("event_type") != "evidence_gap":
-                continue
-            payload = _payload(event)
-            items.append(f"- Evidence gap recorded at seq {event.get('seq')}: `{payload.get('reason')}` — {payload.get('detail', '')}")
+        # Only genuinely open items belong here: the expected ingestion-time
+        # boundary is shown so it is not mistaken for a missing solve step;
+        # gaps resolved by a later ingestion are handled in section 5 only.
+        for state in _gap_states(events):
+            if state["status"] == GAP_UNRESOLVED:
+                items.append(_gap_status_line(state))
+            elif state["status"] == GAP_CAPTURE_BOUNDARY:
+                items.append(_capture_boundary_line(state))
         for shot in screenshots:
             if shot.status.value != "ok":
                 items.append(
                     f"- Screenshot `{shot.screenshot_id}` was not usable: status `{shot.status.value}`"
                     f" (reason: {shot.failure_reason or 'not recorded'})."
+                )
+                continue
+            data, reason = self._screenshot_bytes(shot)
+            if data is None:
+                items.append(
+                    f"- screenshot unavailable: {reason} "
+                    f"(screenshot `{shot.screenshot_id}`; no image link emitted)"
                 )
         if task.status.value in {"blocked", "interrupted", "cancel_requested"}:
             items.append(f"- The Task ended this round in state `{task.status.value}`.")
@@ -583,6 +913,10 @@ class WriteupBuilder:
         from pathlib import Path
 
         target = Path(out_path)  # type: ignore[arg-type]
+        # Materialise the captures the Writeup links before writing the document,
+        # so the standalone tasks/<task_id>/writeup.md renders its images and the
+        # same screenshots/<id>.png member path resolves inside the evidence ZIP.
+        self._materialise_screenshots(task, target.parent)
         text = self.render(task)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text, encoding="utf-8", newline="\n")

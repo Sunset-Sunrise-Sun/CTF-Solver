@@ -25,7 +25,7 @@ import zlib
 from pathlib import Path
 from typing import Any
 
-from ..core.errors import CaptureError
+from ..core.errors import CaptureError, ConfigError
 from ..core.types import CaptureResult
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
@@ -458,14 +458,41 @@ class FakeScreenCapturer:
         )
 
 
-def build_capturer(mode: str = "desktop") -> DesktopCapturer | WindowCapturer | FakeScreenCapturer:
+def _validated_target_pid(target_pid: int | None) -> int:
+    """Return an explicit positive target window PID or fail closed.
+
+    ``bool`` is an ``int`` subclass, so it is rejected explicitly. A real-window
+    capturer is never built without an explicit PID: there is no automatic window
+    discovery and no desktop fallback.
+    """
+
+    if isinstance(target_pid, bool) or not isinstance(target_pid, int) or target_pid <= 0:
+        raise ConfigError(
+            "real-window capture requires an explicit positive target window PID; "
+            "refusing to build a capturer that could capture the desktop"
+        )
+    return target_pid
+
+
+def build_capturer(
+    mode: str = "real-window", *, target_pid: int | None = None
+) -> DesktopCapturer | WindowCapturer | FakeScreenCapturer:
+    """Build the capturer for one explicit capture mode.
+
+    ``real-window`` is the production default and requires an explicit target
+    window PID; ``desktop`` exists only for Worker legacy compatibility; ``fake``
+    and ``fake-blank`` are deterministic test modes. Unknown modes fail closed.
+    """
+
+    if mode == "real-window":
+        return WindowCapturer(target_pid=_validated_target_pid(target_pid))
+    if mode == "desktop":
+        return DesktopCapturer()
     if mode == "fake":
         return FakeScreenCapturer("nonblank")
     if mode == "fake-blank":
         return FakeScreenCapturer("blank")
-    if mode == "real-window":
-        return WindowCapturer()
-    return DesktopCapturer()
+    raise ConfigError(f"unsupported capture mode: {mode!r}")
 
 
 # ---------------------------------------------------------------------------

@@ -166,11 +166,28 @@ Using exactly these specialist Skills is a **hard step**:
 
 - `ctf-web`, `ctf-misc`, `ctf-crypto`, `ctf-reverse`, `ctf-pwn`.
 
-Before any challenge analysis, load the category Skill that matches the Task category;
-analysis performed without the matching category Skill loaded is a process violation and
-must be corrected before proceeding. If a challenge spans categories, pick the dominant
-category for the Task and consult other Skills as references; do not create duplicate
-Tasks for one challenge.
+As soon as the Task category is known — and **before reading or analysing any challenge
+material** — call the Harness native `skill` tool to load the matching category Skill:
+
+| Task category | required native call |
+|---|---|
+| `web` | `skill({"name": "ctf-web"})` |
+| `misc` | `skill({"name": "ctf-misc"})` |
+| `crypto` | `skill({"name": "ctf-crypto"})` |
+| `reverse` | `skill({"name": "ctf-reverse"})` |
+| `pwn` | `skill({"name": "ctf-pwn"})` |
+
+- This native `skill` call is mandatory: analysis performed without the matching category
+  Skill loaded into the session is a process violation and must be corrected before
+  proceeding.
+- If the category Skill cannot be loaded, **STOP the analysis** immediately and report the
+  blockage to the user. Do not analyse the challenge material, do not guess or reconstruct
+  the Skill content from memory, and do not substitute another Skill.
+- The output of `python -m ctf_solver skills` or any Skill discovery listing is **not a
+  substitute** for the actual `skill` tool call: discovery only proves that a Skill file
+  exists, it does not load its instructions into this session.
+- If a challenge spans categories, pick the dominant category for the Task and consult
+  other Skills as references; do not create duplicate Tasks for one challenge.
 
 ## Deliverables
 

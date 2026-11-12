@@ -114,6 +114,27 @@ MANAGER_TOOLS = (
 EVIDENCE_HEADING = "## Evidence recording (native tools)"
 
 
+def test_core_skill_requires_native_category_skill_load_before_analysis() -> None:
+    text = _skill_text("ctf-solver")
+    normalized = " ".join(text.lower().split())
+    assert "before reading or analysing any challenge material" in normalized
+    assert "harness native `skill` tool" in normalized
+    for category, skill in (
+        ("web", "ctf-web"),
+        ("misc", "ctf-misc"),
+        ("crypto", "ctf-crypto"),
+        ("reverse", "ctf-reverse"),
+        ("pwn", "ctf-pwn"),
+    ):
+        assert f"`{category}`" in text, category
+        assert f'skill({{"name": "{skill}"}})' in text, skill
+    # The load is mandatory and a discovery listing cannot replace it.
+    assert "mandatory" in normalized
+    assert "stop the analysis" in normalized
+    assert "not a substitute" in normalized
+    assert "python -m ctf_solver skills" in text
+
+
 def test_core_skill_lists_all_eighteen_manager_tools() -> None:
     text = _skill_text("ctf-solver")
     assert len(MANAGER_TOOLS) == 18

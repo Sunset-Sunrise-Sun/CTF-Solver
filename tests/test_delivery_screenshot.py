@@ -6,7 +6,7 @@ import types
 
 import pytest
 
-from ctf_solver.core.errors import CaptureError
+from ctf_solver.core.errors import CaptureError, ConfigError
 from ctf_solver.core.types import CaptureStatus
 from ctf_solver.delivery import screenshot as screenshot_module
 from ctf_solver.delivery.screenshot import (
@@ -87,8 +87,31 @@ def test_desktop_capturer_reports_missing_powershell() -> None:
 def test_build_capturer_modes() -> None:
     assert isinstance(build_capturer("desktop"), DesktopCapturer)
     assert isinstance(build_capturer("fake"), FakeScreenCapturer)
+    fake_blank = build_capturer("fake-blank")
+    assert isinstance(fake_blank, FakeScreenCapturer)
+    assert fake_blank.mode == "blank"
+    # The production default mode is real-window and requires an explicit PID.
+    window = build_capturer("real-window", target_pid=4321)
+    assert isinstance(window, WindowCapturer)
+    assert window.target_pid == 4321
     with pytest.raises(ValueError):
         FakeScreenCapturer("bogus")
+
+
+def test_build_capturer_real_window_requires_an_explicit_positive_pid() -> None:
+    # Missing PID (including the default argument) fails closed: no capturer is
+    # ever built that could silently capture the desktop.
+    with pytest.raises(ConfigError, match="positive target window PID"):
+        build_capturer("real-window")
+    with pytest.raises(ConfigError):
+        build_capturer("real-window", target_pid=None)
+    # Invalid PID values, including bool (an int subclass) and non-int values.
+    for invalid in (0, -1, True, False, 4321.0, "4321"):
+        with pytest.raises(ConfigError):
+            build_capturer("real-window", target_pid=invalid)  # type: ignore[arg-type]
+    # Unknown modes fail closed instead of silently returning a desktop capturer.
+    with pytest.raises(ConfigError, match="unsupported capture mode"):
+        build_capturer("bogus")
 
 
 # ---------------------------------------------------------------------------

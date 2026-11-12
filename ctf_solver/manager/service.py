@@ -1833,8 +1833,57 @@ class ManagerService(ManagerControl):
         derived = f"turn{turn}-step{step}"
         return derived if is_valid_step_id(derived) else None
 
+    def _is_real_window_capturer(self) -> bool:
+        """Whether the injected capturer records an explicit target window."""
+
+        if getattr(self.capturer, "name", "") == "real-window":
+            return True
+        from ..delivery.screenshot import WindowCapturer
+
+        return isinstance(self.capturer, WindowCapturer)
+
+    def _screenshot_owner(
+        self, task: TaskRecord, binding: Any
+    ) -> tuple[str | None, str | None]:
+        """Resolve the (worker_id, session_id) owner of one screenshot (P0-2).
+
+        A Task with a verified one-time Lead-session binding is owned by that Lead
+        session: ``worker_id`` is ``None`` and ``session_id`` is the binding id, so a
+        Lead process screenshot is never attributed to the shell Worker. A
+        Worker-only Task keeps the legacy Worker/Task fallback exactly.
+        """
+
+        if binding is not None:
+            return None, str(binding.session_id)
+        worker = self.store.get_worker_for_task(task.task_id)
+        return (worker.worker_id if worker else task.worker_id), task.acp_session_id
+
+    def _resolve_screenshot_scope(self, scope: str | None, *, lead_bound: bool) -> str:
+        """Resolve the capture scope without ever falling back to the desktop.
+
+        A Lead-bound Task must capture the configured real-window target: an
+        explicit ``desktop`` scope is refused (no silent desktop fallback).
+        Worker-only Tasks keep their legacy default (desktop unless the Manager is
+        configured with the real-window capturer) and may pass an explicit scope.
+        """
+
+        if lead_bound:
+            if scope == "desktop":
+                raise ValidationError(
+                    "Lead-bound Task process screenshots must use real-window/target window; "
+                    "desktop capture is refused"
+                )
+            if scope not in (None, "window", "real-window"):
+                raise ValidationError(
+                    f"unsupported screenshot scope for a Lead-bound Task: {scope!r}"
+                )
+            return "window" if scope is None else scope
+        if scope is None:
+            return "window" if self._is_real_window_capturer() else "desktop"
+        return scope
+
     def take_screenshot(
-        self, task_id: str, *, step_id: str | None = None, scope: str = "desktop"
+        self, task_id: str, *, step_id: str | None = None, scope: str | None = None
     ) -> ScreenshotRecord:
         task = self.store.require_task(task_id)
         if step_id is not None:
@@ -1844,17 +1893,22 @@ class ManagerService(ManagerControl):
             # evidence so a default screenshot lands under its real step; when no
             # tool call has been recorded yet the screenshot stays unbound.
             step_id = self._latest_tool_step_id(task_id)
-        worker = self.store.get_worker_for_task(task_id)
-        result = self.capturer.capture(scope=scope, workdir=task.workspace_path)
+        binding_getter = getattr(self.store, "get_lead_binding", None)
+        binding = binding_getter(task_id) if callable(binding_getter) else None
+        owner_worker_id, owner_session_id = self._screenshot_owner(task, binding)
+        resolved_scope = self._resolve_screenshot_scope(scope, lead_bound=binding is not None)
+        # Exactly one capture attempt: a failed/blank window capture is recorded
+        # honestly and is never retried through a desktop fallback.
+        result = self.capturer.capture(scope=resolved_scope, workdir=task.workspace_path)
         now = self.clock.now_ms()
         screenshot_id = new_id("shot")
         record = ScreenshotRecord(
             screenshot_id=screenshot_id,
             task_id=task_id,
-            worker_id=worker.worker_id if worker else task.worker_id,
+            worker_id=owner_worker_id,
             step_id=step_id,
-            session_id=task.acp_session_id,
-            scope=scope,
+            session_id=owner_session_id,
+            scope=resolved_scope,
             captured_at=result.captured_at or now,
             status=result.status,
             width=result.width or None,
@@ -1881,21 +1935,30 @@ class ManagerService(ManagerControl):
             except Exception as exc:  # noqa: BLE001 - screenshot metadata is already in the store
                 self._event_errors.append(f"screenshot record: {exc}")
         event_type = "screenshot_captured" if result.status is CaptureStatus.OK else "screenshot_failed"
+        capture_method = str(result.method or getattr(self.capturer, "name", "") or "")
+        target_pid = getattr(self.capturer, "target_pid", None)
+        if isinstance(target_pid, bool) or not isinstance(target_pid, int) or target_pid <= 0:
+            target_pid = None
         self._emit(
             task_id,
             event_type,
             {
                 "screenshot_id": screenshot_id,
-                "sha256": record.sha256,
+                "capture_method": capture_method,
+                "target_pid": target_pid,
+                "scope": resolved_scope,
+                "status": record.status.value,
+                "session_id": owner_session_id,
+                "worker_id": owner_worker_id,
+                "step_id": step_id,
                 "width": record.width,
                 "height": record.height,
-                "scope": scope,
-                "status": record.status.value,
+                "sha256": record.sha256,
+                "captured_at": record.captured_at,
                 "failure_reason": record.failure_reason,
-                "step_id": step_id,
             },
-            worker_id=record.worker_id,
-            session_id=record.session_id,
+            worker_id=owner_worker_id,
+            session_id=owner_session_id,
         )
         return record
 

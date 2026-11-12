@@ -699,13 +699,25 @@ class EvidenceStore(AbstractContextManager["EvidenceStore"]):
 
     # -- deterministic export ------------------------------------------
 
-    def export_events_jsonl(self, *, task_id: str, out_path: str | os.PathLike[str]) -> ExportInfo:
+    def export_events_jsonl(
+        self,
+        *,
+        task_id: str,
+        out_path: str | os.PathLike[str],
+        privacy_filtered: bool = True,
+    ) -> ExportInfo:
         """Write a deterministic ``events.jsonl`` export for one task.
 
         Rows are read from committed SQLite state only, rendered as canonical
         JSON (sorted keys, compact separators) in ``seq`` order with a trailing
         LF. The same database state always produces byte-identical output, and
         this method performs **no SQLite writes**.
+
+        By default the export is the delivery privacy projection
+        (:func:`ctf_solver.delivery.privacy.filter_events`): model reasoning,
+        passthrough payloads and Skill bodies never reach the file. Passing
+        ``privacy_filtered=False`` exports the raw committed rows and is reserved
+        for internal tests/tooling; it is not a delivery surface.
         """
 
         if not isinstance(task_id, str) or not task_id:
@@ -713,6 +725,12 @@ class EvidenceStore(AbstractContextManager["EvidenceStore"]):
         target = Path(os.path.abspath(os.fspath(out_path)))
         target.parent.mkdir(parents=True, exist_ok=True)
         rows = self.list_events(task_id=task_id)
+        if privacy_filtered:
+            # Lazy import: ``delivery`` imports the evidence types, so a
+            # module-level import would create an import cycle.
+            from ..delivery.privacy import filter_events
+
+            rows = filter_events(rows)
         chunks: list[str] = []
         for row in rows:
             chunks.append(canonical_json(row))

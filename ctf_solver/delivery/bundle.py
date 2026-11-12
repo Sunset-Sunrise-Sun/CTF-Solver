@@ -4,12 +4,16 @@ The ZIP is deterministic: fixed member order (sorted paths), fixed timestamps
 (1980-01-01 00:00:00), normalized permissions and deflate compression. The same
 committed evidence therefore produces byte-identical archives, and every member
 is covered by ``manifest.sha256`` inside the archive.
+
+The archive contains only the delivery-safe derived view: ``writeup.md``, the
+privacy-filtered ``events.jsonl``, successful screenshots and selected
+``ctf-exec`` output previews. Raw ingested session logs are never copied into the
+ZIP (the raw object stays in the local evidence CAS, untouched).
 """
 
 from __future__ import annotations
 
 import hashlib
-import json
 import shutil
 import tempfile
 import zipfile
@@ -178,36 +182,6 @@ class EvidenceBundleBuilder:
                 )
         return included
 
-    def _collect_raw_sources(self, task: TaskRecord, staging: Path) -> list[dict[str, Any]]:
-        """Copy raw ingested session logs referenced by ingestion sources, when exposed."""
-
-        included: list[dict[str, Any]] = []
-        sources = getattr(self.evidence, "ingestion_sources", None)
-        if not callable(sources):
-            return included
-        try:
-            rows = sources(task.task_id)
-        except Exception:  # noqa: BLE001
-            return included
-        for row in rows or []:
-            raw_sha = None
-            if isinstance(row, dict):
-                raw_sha = row.get("raw_sha256")
-            else:
-                raw_sha = getattr(row, "raw_sha256", None)
-            if not raw_sha:
-                continue
-            try:
-                data = self._read_artifact(self.evidence, raw_sha)
-            except Exception:  # noqa: BLE001
-                continue
-            raw_dir = staging / "raw"
-            raw_dir.mkdir(parents=True, exist_ok=True)
-            member = f"raw/session-{raw_sha[:16]}.jsonl.zstd"
-            (staging / member).write_bytes(data)
-            included.append({"member": member, "sha256": raw_sha})
-        return included
-
     # -- build --------------------------------------------------------
 
     def build(self, task: TaskRecord) -> ExportInfo:
@@ -231,7 +205,9 @@ class EvidenceBundleBuilder:
 
         screenshots = self._collect_screenshots(task, staging)
         outputs = self._collect_outputs(task, staging)
-        raw_sources = self._collect_raw_sources(task, staging)
+        # Raw ingested session logs are deliberately NOT part of the delivery
+        # ZIP: the raw log stays in the local CAS and is never shipped. The
+        # delivered event view is the privacy-filtered ``events.jsonl`` only.
 
         manifest_entries: list[tuple[str, str]] = []
         for path in sorted(staging.rglob("*")):

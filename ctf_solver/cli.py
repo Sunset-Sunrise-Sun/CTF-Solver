@@ -33,6 +33,8 @@ def _cmd_manager(args: argparse.Namespace) -> int:
         print(f"unknown manager action: {args.action}", file=sys.stderr)
         return 2
     argv = ["--root", args.root, "--capture-mode", args.capture_mode]
+    if getattr(args, "target_window_pid", 0):
+        argv += ["--target-window-pid", str(args.target_window_pid)]
     if getattr(args, "lead_sessions_root", ""):
         argv += ["--lead-sessions-root", args.lead_sessions_root]
     if getattr(args, "session_log_root", ""):
@@ -276,7 +278,24 @@ def build_parser() -> argparse.ArgumentParser:
     manager = sub.add_parser("manager", help="Manager control MCP server (stdio)")
     manager.add_argument("action", choices=["serve"])
     manager.add_argument("--root", default=".")
-    manager.add_argument("--capture-mode", default="desktop", choices=["desktop", "fake"])
+    manager.add_argument(
+        "--capture-mode",
+        default="real-window",
+        choices=["real-window", "desktop", "fake", "fake-blank"],
+        help=(
+            "Screenshot capture mode: real-window (default; requires --target-window-pid), "
+            "desktop (Worker legacy compatibility) or fake/fake-blank (deterministic tests)."
+        ),
+    )
+    manager.add_argument(
+        "--target-window-pid",
+        type=int,
+        default=0,
+        help=(
+            "Explicit target window PID for real-window capture (required unless "
+            "--capture-mode is desktop/fake)."
+        ),
+    )
     manager.add_argument(
         "--lead-sessions-root",
         default="",

@@ -65,3 +65,18 @@ def test_default_isolated_dsh_home_never_uses_live_home(tmp_path: Path) -> None:
     assert home.is_dir()
     assert Path.home() / ".dsh" != home
     assert ".dsh" not in [part for part in home.parts if part == ".dsh"]
+
+
+def test_cli_reports_domain_errors_without_traceback(tmp_path: Path) -> None:
+    result = run_module(
+        "ctf_solver",
+        "manager",
+        "serve",
+        "--root",
+        str(tmp_path),
+        "--capture-mode",
+        "real-window",
+    )
+    assert result.returncode == 1
+    assert "ctf-solver error:" in result.stderr
+    assert "Traceback" not in result.stderr

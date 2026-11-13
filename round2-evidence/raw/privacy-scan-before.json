@@ -1,8 +1,0 @@
-{
-  "scope": "all tracked and untracked non-binary text files at the start of final hardening delivery cleanup",
-  "text_files_scanned": 256,
-  "files_with_personal_home": 47,
-  "personal_home_occurrences": 343,
-  "secret_findings": [],
-  "note": "counts captured before redaction; detailed file hits were split across the redaction pass logs"
-}

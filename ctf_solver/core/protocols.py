@@ -200,7 +200,7 @@ class ManagerControl(Protocol):
         task_id: str,
         *,
         step_id: str | None = None,
-        scope: str = "desktop",
+        scope: str | None = None,
     ) -> ScreenshotRecord: ...
 
     def ingest_session_log(

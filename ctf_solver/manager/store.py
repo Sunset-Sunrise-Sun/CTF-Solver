@@ -10,6 +10,7 @@ import json
 import sqlite3
 import threading
 from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import Any, Iterator, Mapping, Sequence
 
 from ..core.canonical import canonical_json, file_sha256
@@ -32,6 +33,31 @@ from ..core.types import (
     can_transition,
 )
 from ..storage.db import open_database, transaction
+
+
+@dataclass(frozen=True)
+class SessionBinding:
+    """The one-time binding between a Task and a Lead Harness session.
+
+    ``session_id`` is a verified Lead-supplied id: the Manager only persists it
+    after the resolver proved the log path, its header id and its header cwd
+    (see :class:`ctf_solver.manager.session_logs.SessionLogResolver`).
+    """
+
+    session_id: str
+    task_id: str
+    bound_at: int
+    bound_by: str
+    log_sha256: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "session_id": self.session_id,
+            "task_id": self.task_id,
+            "bound_at": self.bound_at,
+            "bound_by": self.bound_by,
+            "log_sha256": self.log_sha256,
+        }
 
 
 class ManagerStore:
@@ -66,8 +92,9 @@ class ManagerStore:
             self.conn.execute(
                 "INSERT INTO tasks(task_id, conversation_id, title, category, source, scope_profile,"
                 " workspace_path, acp_session_id, worker_id, status, result_state, flag_state,"
-                " flag_value, created_at, updated_at, started_at, ended_at, evidence_head, notes)"
-                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                " flag_value, created_at, updated_at, started_at, ended_at, evidence_head, notes,"
+                " completion_note)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     record.task_id,
                     record.conversation_id,
@@ -88,6 +115,7 @@ class ManagerStore:
                     record.ended_at,
                     record.evidence_head,
                     record.notes,
+                    record.completion_note,
                 ),
             )
         return self.get_task(record.task_id)  # type: ignore[return-value]
@@ -134,6 +162,7 @@ class ManagerStore:
         started_at: int | None = None,
         ended_at: int | None = None,
         notes: str | None = None,
+        completion_note: str | None = None,
     ) -> TaskRecord:
         with self._tx():
             task = self.require_task(task_id)
@@ -149,7 +178,8 @@ class ManagerStore:
                 " result_state = COALESCE(?, result_state),"
                 " started_at = COALESCE(?, started_at),"
                 " ended_at = COALESCE(?, ended_at),"
-                " notes = COALESCE(?, notes)"
+                " notes = COALESCE(?, notes),"
+                " completion_note = COALESCE(?, completion_note)"
                 " WHERE task_id = ?",
                 (
                     target.value,
@@ -158,6 +188,7 @@ class ManagerStore:
                     started_at,
                     ended_at,
                     notes,
+                    completion_note,
                     task_id,
                 ),
             )
@@ -221,8 +252,8 @@ class ManagerStore:
                 )
             now = self.clock.now_ms()
             cursor = self.conn.execute(
-                "UPDATE tasks SET status = ?, result_state = ?, ended_at = ?, notes = ?,"
-                " updated_at = ? WHERE task_id = ? AND status = ?",
+                "UPDATE tasks SET status = ?, result_state = ?, ended_at = ?,"
+                " completion_note = ?, updated_at = ? WHERE task_id = ? AND status = ?",
                 (
                     TaskStatus.COMPLETED.value,
                     result_state,
@@ -306,8 +337,8 @@ class ManagerStore:
                     f"{task.status.value}; refusing interruption"
                 )
             cursor = self.conn.execute(
-                "UPDATE tasks SET status = ?, result_state = ?, ended_at = ?, notes = ?,"
-                " updated_at = ? WHERE task_id = ? AND status = ?",
+                "UPDATE tasks SET status = ?, result_state = ?, ended_at = ?,"
+                " completion_note = ?, updated_at = ? WHERE task_id = ? AND status = ?",
                 (
                     TaskStatus.INTERRUPTED.value,
                     result_state,
@@ -421,6 +452,110 @@ class ManagerStore:
                 tuple(status.value for status in _SLOT_WORKER_STATUSES),
             ).fetchone()
         return int(row["n"])
+
+    # ------------------------------------------------------------------
+    # Lead session bindings (one-time, Manager-verified)
+    # ------------------------------------------------------------------
+
+    def bind_lead_session(
+        self,
+        *,
+        task_id: str,
+        session_id: str,
+        bound_by: str = "lead",
+        log_sha256: str | None = None,
+    ) -> SessionBinding:
+        """Persist the one-time Lead-session binding for a Task.
+
+        Both uniqueness directions are hard errors: a Task can have at most one
+        Lead session and a Lead session can be bound to at most one Task. The
+        caller persists a session id only after the resolver validated the log
+        path and its content identity; this method is the durable guard that
+        makes the binding single-assignment.
+        """
+
+        if not isinstance(session_id, str) or not session_id.strip():
+            raise StateError("a Lead session binding requires a non-empty session id")
+        if not isinstance(bound_by, str) or not bound_by.strip():
+            raise StateError("a Lead session binding requires a non-empty bound_by")
+        with self._tx():
+            self.require_task(task_id)
+            existing_task_binding = self.get_lead_binding(task_id)
+            if existing_task_binding is not None:
+                raise StateError(
+                    f"Task {task_id} is already bound to Lead session "
+                    f"{existing_task_binding.session_id!r}; a binding is created once"
+                )
+            other_task = self.get_task_for_lead_session(session_id)
+            if other_task is not None:
+                raise StateError(
+                    f"Lead session {session_id!r} is already bound to Task {other_task}"
+                )
+            try:
+                self.conn.execute(
+                    "INSERT INTO session_bindings(session_id, task_id, bound_at, bound_by,"
+                    " log_sha256) VALUES(?,?,?,?,?)",
+                    (
+                        session_id,
+                        task_id,
+                        self.clock.now_ms(),
+                        bound_by,
+                        log_sha256,
+                    ),
+                )
+            except sqlite3.IntegrityError as exc:  # pragma: no cover - compare-and-set lost
+                raise StateError(
+                    f"Lead session {session_id!r} could not be bound to Task {task_id}"
+                ) from exc
+            binding = self.get_lead_binding(task_id)
+        if binding is None:  # pragma: no cover - the insert above just committed
+            raise StorageError("Lead session binding was not persisted")
+        return binding
+
+    def get_lead_binding(self, task_id: str) -> SessionBinding | None:
+        if not isinstance(task_id, str) or not task_id:
+            return None
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT * FROM session_bindings WHERE task_id = ?", (task_id,)
+            ).fetchone()
+        return _session_binding_from_row(row) if row is not None else None
+
+    def get_task_for_lead_session(self, session_id: str) -> str | None:
+        if not isinstance(session_id, str) or not session_id:
+            return None
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT task_id FROM session_bindings WHERE session_id = ?", (session_id,)
+            ).fetchone()
+        return str(row["task_id"]) if row is not None else None
+
+    def get_lead_session_boundary(self, task_id: str) -> dict[str, Any] | None:
+        """Return the Task-creation byte boundary recorded with the Lead binding.
+
+        Release-UAT remediation F2: the boundary is part of the immutable
+        ``lead_session_bound`` evidence event, so it is committed before any
+        Lead-session evidence is ingested and remains auditable in the chain.
+        ``None`` means the Task predates the boundary feature (or is Worker-only);
+        callers must not ingest a bound Lead log without it.
+        """
+
+        if not isinstance(task_id, str) or not task_id:
+            return None
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT payload_json FROM events WHERE task_id = ? "
+                "AND event_type = 'lead_session_bound' ORDER BY seq DESC LIMIT 1",
+                (task_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            payload = json.loads(row["payload_json"] or "{}")
+        except (TypeError, ValueError):
+            return None
+        boundary = payload.get("boundary") if isinstance(payload, dict) else None
+        return boundary if isinstance(boundary, dict) else None
 
     # ------------------------------------------------------------------
     # Workers
@@ -1085,6 +1220,16 @@ class ManagerStore:
     def workspace_for_worker(self, worker_id: str) -> str | None:
         worker = self.get_worker(worker_id)
         return worker.workspace_path if worker is not None else None
+
+
+def _session_binding_from_row(row: Any) -> SessionBinding:
+    return SessionBinding(
+        session_id=row["session_id"],
+        task_id=row["task_id"],
+        bound_at=int(row["bound_at"]),
+        bound_by=row["bound_by"],
+        log_sha256=row["log_sha256"],
+    )
 
 
 def _approval_from_row(row: Any) -> ApprovalRecord:

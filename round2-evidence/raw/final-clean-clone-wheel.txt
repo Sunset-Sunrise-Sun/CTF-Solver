@@ -1,9 +1,0 @@
-﻿clean_clone_head=bab577004e296b9eb8fefc37f670c1bf84041f6c
-branch=fix/final-acceptance-final-patch
-python=3.14.7
-build_command=python scripts/build_wheel.py
-wheel=ctf_solver-0.1.0-py3-none-any.whl
-size=223346
-sha256=84249381FFA058B2273B7E062E3A10ACE0DC1451A44541357F02D44C34952705
-role=independent rebuild for final acceptance report commit
-

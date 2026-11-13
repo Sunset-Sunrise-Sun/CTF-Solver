@@ -13,7 +13,7 @@ edit the live global Harness profile.
 
 Python: `>=3.11`; accepted/tested on Python 3.14.7 Windows. Python 3.14+ has standard-library
 `compression.zstd`; Python 3.11–3.13 requires the optional `zstandard` package for multi-frame
-session-log ingestion (otherwise evidence ingestion fails closed). See `INSTALLATION_GUIDE.md`.
+session-log ingestion (otherwise evidence ingestion fails closed). See `INSTALL.md`.
 
 ## 1. Read-only preflight / doctor
 
@@ -37,8 +37,9 @@ with an honest `ok:false` report.
 python -m ctf_solver manager serve --root . --capture-mode desktop
 ```
 
-The public `manager serve` CLI accepts only `--root` and `--capture-mode`. There is no public
-`--acp-command`, `--max-workers`, `--dsh-home` or `--session-log-root` flag on this wrapper.
+The public `manager serve` CLI accepts `--root`, `--capture-mode`, `--target-window-pid`,
+`--lead-sessions-root` and `--session-log-root`. There is no public `--acp-command`,
+`--max-workers` or `--dsh-home` flag on this wrapper.
 For advanced/test deployment, the module entry point
 `python -m ctf_solver.mcp.manager_server` exposes its own arguments (`--root`,
 `--capture-mode`, `--max-workers`, `--dsh-home`, `--session-log-root`, `--intake-dir`), but
@@ -182,12 +183,26 @@ under the zero-model-call gate.
 
 ## 9. Current boundaries
 
-- Main-conversation `/ctf-solver` → Manager MCP project-level entrypoint: **NOT IMPLEMENTED /
-  BLOCKED**.
+- Main-conversation `/ctf-solver` → Manager MCP project-level entrypoint: **CONNECTED** in the
+  tested environment via the project-scoped Workspace MCP Bridge (`.dsh/mcp.servers.yml`)
+  plus `--lead-sessions-root`; see `docs/LEAD_SESSION_EVIDENCE.md`.
 - Model-driven Workers / `session/prompt`: **BLOCKED** by ADR-020.
 - Tier 2 OS isolation, real targets and challenge-code execution: **BLOCKED / NOT VERIFIED**.
 - Real physical-console TTY approval: **NOT VERIFIED**.
 - Same-child ACP-spawned `tools/call`: **NOT VERIFIED** under the zero-model-call gate.
 - Skills being discovered by Harness is **not** registration of the Manager MCP.
-- Manager MCP is profile-entry-only where supported; there is no supported project-level MCP
-  registration. Do not edit global profiles to fake one.
+- Manager MCP registration is project-scoped (`<workspace>/.dsh/mcp.servers.yml`), loaded by
+  the Workspace MCP Bridge for sessions whose cwd is that workspace. Do not edit global
+  profiles to fake a registration; report BLOCKED when the bridge is absent.
+- Lead-session evidence: a Task may bind one Lead session (`lead_session_id`, verified by the
+  Manager) and ingest that session log from the configured live `lead_sessions_root`; the
+  evidence window is the whole bound session. `ctf_session_ingest` never accepts a path or an
+  arbitrary session id. `notes` (intake) and `completion_note` (outcome) are separate fields.
+- Lead-bound process screenshots use the configured target window only
+  (`--capture-mode real-window --target-window-pid <TARGET_WINDOW_PID>`); `desktop` scope is
+  refused for Lead Tasks, capture failure never falls back to the desktop, and screenshots
+  are attributed to the Lead session (`worker_id` null). There is no automatic window
+  discovery.
+- Delivery is a privacy-filtered view: the Writeup, `events.jsonl` and evidence ZIP exclude
+  model reasoning, raw passthrough prompts, full Skill bodies and raw session logs. The
+  append-only evidence chain and raw CAS bytes remain local and unmodified.

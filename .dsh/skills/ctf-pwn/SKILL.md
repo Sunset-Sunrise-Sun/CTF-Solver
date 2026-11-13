@@ -47,3 +47,9 @@ description: Pwn challenge reasoning for CTF-Solver; local static analysis and s
 - No real target contact in this development cycle; no Flag submission by the Agent.
 - A candidate Flag is recorded as `candidate`; the user confirms and submits.
 - Do not fabricate a shell, a leak, a crash or a Flag.
+
+## Evidence recording (native tools)
+
+- Native Lead tool calls are recorded automatically from the Lead session log; never hand-write or copy evidence.
+- Capture screenshots only at real checkpoints, with `step_id` = `turn{N}-step{S}`.
+- Distinguish 未执行 / 执行失败 / 未记录 honestly; never state an unrecorded step as a fact.

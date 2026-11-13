@@ -1,5 +1,0 @@
-﻿exit_code=0
-command=dsh --profile acp --patch config/acp/cordis.patch.yml --dump-config
-dsh_home=<USER_HOME>\AppData\Local\Temp\dsh-privacy-gate-a54077e06c3740228b750a5bc408ea55
-dsh_home_file_count=4
-stderr_file=round1-evidence/raw/privacy-gate-stderr.txt

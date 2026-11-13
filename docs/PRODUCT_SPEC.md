@@ -1,4 +1,4 @@
-# Product Specification
+﻿# Product Specification
 
 **Status:** approved baseline  
 **Date:** 2026-11-10
@@ -17,10 +17,10 @@ The user explicitly enters /ctf-solver. The command is not auto-triggered by a b
 
 After activation, CTF mode persists for the current conversation:
 - challenge descriptions, archives, binaries, screenshots, URLs, hints, and environment details do not require repeating the command;
-- “continue” and follow-up evidence refer to the active Task unless a clearly new challenge is introduced;
+- 鈥渃ontinue鈥?and follow-up evidence refer to the active Task unless a clearly new challenge is introduced;
 - a new challenge creates a new Task and does not overwrite the previous one;
 - ambiguous continuation/task switching prompts one concise clarification;
-- the user can exit with a natural-language request such as “退出 CTF 模式”.
+- the user can exit with a natural-language request such as 鈥滈€€鍑?CTF 妯″紡鈥?
 
 A new conversation requires explicit entry again. Durable Task records may be resumed explicitly, but a new chat must not silently assume an old Task is active.
 
@@ -48,7 +48,7 @@ Minimum Task fields: task_id, conversation_id, title, category, source, competit
 One challenge per Task. Multiple files forming one challenge belong to the same Task; distinct challenges must not share workspaces, session IDs, or evidence.
 
 Task lifecycle:
-- created → queued → starting → running;
+- created 鈫?queued 鈫?starting 鈫?running;
 - running may transition to awaiting_approval or blocked;
 - terminal states include completed, partial, failed, and blocked;
 - cancellation first becomes cancel_requested and only becomes cancelled after process/job quiescence is confirmed.
@@ -97,7 +97,7 @@ The agreed policy distinguishes public research from competition targets:
 - Runtime exposes a typed ctf-exec interface through MCP.
 - Workers do not receive arbitrary host Shell access or Docker Socket access.
 - Runtime/Broker validates Task, workspace, tool permissions, and network authorization.
-- Environment/toolchain setup is separate from product development. Product performs preflight and reports missing tools; it must not silently install software or alter the existing D:/CTF project or Harness profile/config.
+- Environment/toolchain setup is separate from product development. Product performs preflight and reports missing tools; it must not silently install software or alter the legacy local CTF workbench project or Harness profile/config.
 
 ## 9. Evidence and Writeup
 

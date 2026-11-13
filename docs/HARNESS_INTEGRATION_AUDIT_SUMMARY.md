@@ -1,6 +1,6 @@
 # Harness Integration Capability Audit — Summary
 
-**Full report (local):** `D:\CTFworker\docs\HARNESS_INTEGRATION_CAPABILITY_AUDIT.md`  
+**Full report:** internal Harness capability audit (not part of this release).  
 **Size:** 46,444 bytes  
 **SHA-256:** `955136d156a878fc932243081cc42d72575bc4f65510dc03163cb689d7fe5373`  
 **Audit status:** read-only; no commit/push was performed by the audit.
@@ -91,4 +91,4 @@ Do not report these as working until independently tested.
 
 The audit was read-only. It did not modify source, configuration, profiles, plugins, MCP servers, or Skills; did not install software; did not start WSL/Docker; and did not access a CTF target. Temporary artifacts remained under `%TEMP%\ctf-solver-harness-audit\`.
 
-The separate A0-2 migration state in `D:\CTFworker` contains **110 uncommitted imported files** and was not touched by this audit. The new local audit report is an additional untracked file. Do not clean, reset, stage, or overwrite those local files as part of this documentation initialization.
+The separate A0-2 migration state in the legacy local workbench contains **110 uncommitted imported files** and was not touched by this audit. The new local audit report is an additional untracked file. Do not clean, reset, stage, or overwrite those local files as part of this documentation initialization.

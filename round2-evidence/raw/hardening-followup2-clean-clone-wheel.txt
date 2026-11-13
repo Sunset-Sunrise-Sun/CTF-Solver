@@ -1,9 +1,0 @@
-﻿clean_clone_head=a598ade3f6d54e32b5fdf549c1d0565f87e41939
-branch=fix/final-acceptance-followup-2
-python=3.14.7
-build_command=python scripts/build_wheel.py
-wheel=ctf_solver-0.1.0-py3-none-any.whl
-size=223327
-sha256=B8E4D112A351A633E87C1DB4C0101422EA34A6B35721D730B7DADC1D7B72BB21
-independent_bundle_clone_rebuild=verified
-

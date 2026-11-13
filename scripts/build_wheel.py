@@ -11,7 +11,7 @@ Round 2 Task §4.2:
 4. extract the wheel, import ``ctf_solver.evidence.store``,
    ``ctf_solver.manager.service`` and ``ctf_solver.intake`` with
    ``PYTHONPATH=<extract>`` and run ``python -m ctf_solver version``;
-5. write ``round2-evidence/raw/wheel-build.json`` and exit non-zero on failure.
+5. write ``dist/wheel-build.json`` and exit non-zero on failure.
 
 Only standard-library modules are used; no network, no installation.
 """
@@ -37,7 +37,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUT_DIR = REPO_ROOT / "dist"
-DEFAULT_EVIDENCE_JSON = REPO_ROOT / "round2-evidence" / "raw" / "wheel-build.json"
+DEFAULT_EVIDENCE_JSON = REPO_ROOT / "dist" / "wheel-build.json"
 
 #: Packages that must be present in every wheel regardless of later additions.
 BASELINE_PACKAGES = (

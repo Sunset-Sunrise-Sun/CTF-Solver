@@ -53,3 +53,9 @@ decoded formats is always allowed.
   and only the user confirms and submits it.
 - Do not bypass the execution boundary by using shell one-liners, installers or host
   PowerShell to run challenge code.
+
+## Evidence recording (native tools)
+
+- Native Lead tool calls are recorded automatically from the Lead session log; never hand-write or copy evidence.
+- Capture screenshots only at real checkpoints, with `step_id` = `turn{N}-step{S}`.
+- Distinguish 未执行 / 执行失败 / 未记录 honestly; never state an unrecorded step as a fact.

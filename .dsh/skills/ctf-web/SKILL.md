@@ -49,3 +49,9 @@ description: Web challenge reasoning for CTF-Solver; source/configuration and pr
 - Do not claim a working exploit, a Flag or a solved challenge without the recorded
   request/response evidence.
 - A candidate Flag is recorded as `candidate`; the user submits it.
+
+## Evidence recording (native tools)
+
+- Native Lead tool calls are recorded automatically from the Lead session log; never hand-write or copy evidence.
+- Capture screenshots only at real checkpoints, with `step_id` = `turn{N}-step{S}`.
+- Distinguish 未执行 / 执行失败 / 未记录 honestly; never state an unrecorded step as a fact.

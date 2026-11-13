@@ -1,4 +1,4 @@
-# Security Model
+﻿# Security Model
 
 **Status:** mandatory P0 constraints  
 **Date:** 2026-11-10
@@ -40,17 +40,17 @@ Flag submission is always human-controlled. No automatic submission is part of t
 
 ## 4. Execution tiers
 
-### Tier 0 — Static, non-executing inspection
+### Tier 0 鈥?Static, non-executing inspection
 
 Allowed after Task intake: record filename/size/type/hash; inspect archive metadata/listings without executing content; inspect text and safe metadata; use carefully allowlisted trusted metadata tools. Parsing untrusted files is still an attack surface.
 
-### Tier 1 — Controlled trusted tooling (temporary MVP)
+### Tier 1 鈥?Controlled trusted tooling (temporary MVP)
 
 Permitted only when the tool is trusted, action is within the Task workspace, and Manager/Broker allows it. Use typed ctf-exec; do not expose arbitrary host Shell.
 
 Tier 1 is not a sandbox. Do not run challenge-provided executables, scripts, macros, installers, shell snippets, or exploit payloads directly on the host. If a step requires executing untrusted code, block/defer until Tier 2.
 
-### Tier 2 — OS-isolated execution (separate P1 environment track)
+### Tier 2 鈥?OS-isolated execution (separate P1 environment track)
 
 Required before arbitrary untrusted challenge code or exploit payloads can run. Candidate: WSL2 Linux distribution with functioning Docker Engine and a verified isolation layer such as gVisor, or another independently reviewed disposable VM/container boundary.
 
@@ -107,7 +107,7 @@ The audited Worker has no independent desktop window; screenshot ownership canno
 
 ## 10. Environment/toolchain separation
 
-Environment setup is separate from product development. Product may perform preflight and report missing tools, but must not silently install software, alter the existing D:/CTF project, or modify Harness profile/config. Those actions require explicit authorization.
+Environment setup is separate from product development. Product may perform preflight and report missing tools, but must not silently install software, alter the legacy local CTF workbench project, or modify Harness profile/config. Those actions require explicit authorization.
 
 ## 11. Fail-closed rules
 

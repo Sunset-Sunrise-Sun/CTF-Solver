@@ -1,5 +1,0 @@
-﻿exit_code=0
-composed_config_contains_session_log_deepseek_disabled=True
-live_harness_profiles_untouched=yes
-global_config_changed=no
-negative_outbound_delivery_canary=BLOCKED (needs model call; ADR-020)

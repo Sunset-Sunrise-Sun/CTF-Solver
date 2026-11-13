@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 
 from ctf_solver.core.config import SolverConfig
-from ctf_solver.core.errors import AcpError, NotFoundError, StateError, ValidationError
-from ctf_solver.core.types import CaptureStatus, Category, TaskStatus
+from ctf_solver.core.errors import AcpError, ConfigError, NotFoundError, StateError, ValidationError
+from ctf_solver.core.types import CaptureResult, CaptureStatus, Category, TaskStatus
 from ctf_solver.manager.service import ManagerService
 from ctf_solver.manager.store import ManagerStore
 from tests.support.fakes import FakeAcp, FakeCapturer, FakeDeliverables, FakeEvidence, FakePipeline
@@ -486,9 +486,204 @@ def test_runtime_status_and_shutdown_cleanup(tmp_path) -> None:
     assert status["ipc_url"].startswith("tcp://127.0.0.1:")
     assert status["acp"]["ready"] is True
     assert status["round1_limits"]["model_calls"].startswith("blocked")
-    assert status["round1_limits"]["main_conversation_entrypoint"].startswith("BLOCKED")
+    assert "connected via project-scoped workspace MCP" in status["round1_limits"]["main_conversation_entrypoint"]
     service.shutdown()
     assert acp.alive is False
     assert service.ipc_url is None
     assert evidence.closed is True
     store.close()
+
+
+# ---------------------------------------------------------------------------
+# Round 2 A: real-window capture configuration and plumbing (P0-1)
+# ---------------------------------------------------------------------------
+
+CAPTURE_MODES = ("real-window", "desktop", "fake", "fake-blank")
+
+
+class FailingWindowCapturer:
+    """Fake real-window capturer whose single PrintWindow attempt fails."""
+
+    name = "real-window"
+    target_pid = 4321
+
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    def capture(self, *, scope: str, workdir: str | None = None) -> CaptureResult:
+        self.calls.append({"scope": scope, "workdir": workdir})
+        return CaptureResult(
+            ok=False,
+            png_bytes=b"",
+            error="PrintWindow(PW_RENDERFULLCONTENT) failed",
+            method=self.name,
+            captured_at=4321,
+        )
+
+
+def test_capture_config_validates_mode_and_target_pid(tmp_path) -> None:
+    config = SolverConfig(root=tmp_path)
+    # The public Manager default is real-window; constructing a default config
+    # must not require a PID (security service/preflight use it).
+    assert config.capture_mode == "real-window"
+    assert config.target_window_pid is None
+    for mode in CAPTURE_MODES:
+        assert SolverConfig(root=tmp_path, capture_mode=mode).capture_mode == mode
+    assert SolverConfig(root=tmp_path, target_window_pid=4321).target_window_pid == 4321
+    with pytest.raises(ConfigError):
+        SolverConfig(root=tmp_path, capture_mode="bogus")
+    for invalid in (0, -1, True, False, "4321", 4.5):
+        with pytest.raises(ConfigError):
+            SolverConfig(root=tmp_path, target_window_pid=invalid)
+
+
+def test_manager_cli_forwards_capture_plumbing(monkeypatch, tmp_path) -> None:
+    from ctf_solver import cli
+    from ctf_solver.mcp import manager_server
+
+    recorded: list[list[str]] = []
+
+    def fake_manager_main(argv: list[str]) -> int:
+        recorded.append(list(argv))
+        return 0
+
+    monkeypatch.setattr(manager_server, "main", fake_manager_main)
+    parser = cli.build_parser()
+
+    # Default: real-window, no PID forwarded, --capture-mode still explicit.
+    args = parser.parse_args(["manager", "serve", "--root", str(tmp_path)])
+    assert args.capture_mode == "real-window"
+    assert args.target_window_pid == 0
+    assert args.func(args) == 0
+    assert recorded[-1] == ["--root", str(tmp_path), "--capture-mode", "real-window"]
+
+    # Explicit mode + PID are forwarded verbatim; fake-blank stays accepted.
+    args = parser.parse_args(
+        [
+            "manager",
+            "serve",
+            "--root",
+            str(tmp_path),
+            "--capture-mode",
+            "fake-blank",
+            "--target-window-pid",
+            "4321",
+        ]
+    )
+    assert args.func(args) == 0
+    assert recorded[-1] == [
+        "--root",
+        str(tmp_path),
+        "--capture-mode",
+        "fake-blank",
+        "--target-window-pid",
+        "4321",
+    ]
+
+    # Unsupported modes are rejected by the parser instead of being forwarded.
+    with pytest.raises(SystemExit):
+        parser.parse_args(["manager", "serve", "--capture-mode", "bogus"])
+
+
+def test_manager_server_main_wires_capture_config(monkeypatch, tmp_path) -> None:
+    from ctf_solver import wiring
+    from ctf_solver.mcp import manager_server
+
+    configs: list[SolverConfig] = []
+
+    class StubService:
+        def start(self) -> dict:
+            return {"acp": {"ready": True}}
+
+        def shutdown(self) -> None:
+            pass
+
+    class StubServer:
+        def serve(self) -> int:
+            return 0
+
+    def fake_build_manager_service(config: SolverConfig) -> StubService:
+        configs.append(config)
+        return StubService()
+
+    monkeypatch.setattr(wiring, "build_manager_service", fake_build_manager_service)
+    monkeypatch.setattr(manager_server, "build_server", lambda service: StubServer())
+
+    assert manager_server.main(["--root", str(tmp_path)]) == 0
+    assert configs[-1].capture_mode == "real-window"
+    assert configs[-1].target_window_pid is None
+
+    assert (
+        manager_server.main(
+            [
+                "--root",
+                str(tmp_path),
+                "--capture-mode",
+                "real-window",
+                "--target-window-pid",
+                "4321",
+            ]
+        )
+        == 0
+    )
+    assert configs[-1].capture_mode == "real-window"
+    assert configs[-1].target_window_pid == 4321
+
+
+def test_wiring_passes_capture_mode_and_target_pid(monkeypatch, tmp_path) -> None:
+    from ctf_solver import wiring
+    from ctf_solver.delivery import screenshot as screenshot_module
+
+    calls: list[tuple[str, int | None]] = []
+    sentinel = object()
+
+    def fake_build_capturer(mode: str = "real-window", *, target_pid: int | None = None):
+        calls.append((mode, target_pid))
+        return sentinel
+
+    monkeypatch.setattr(screenshot_module, "build_capturer", fake_build_capturer)
+    config = SolverConfig(
+        root=tmp_path, capture_mode="real-window", target_window_pid=4321
+    )
+    service = wiring.build_manager_service(config)
+    try:
+        assert calls == [("real-window", 4321)]
+        assert service.capturer is sentinel
+    finally:
+        service.shutdown()
+        try:
+            service.store.close()
+        finally:
+            service.evidence.close()
+
+
+def test_failed_window_capture_is_recorded_once_without_desktop_fallback(tmp_path) -> None:
+    capturer = FailingWindowCapturer()
+    service, _acp, evidence, _pipeline, _deliverables, store = build_service(
+        tmp_path, capturer=capturer
+    )
+    try:
+        service.start()
+        task = service.create_task(title="t", category="misc", conversation_id="conv")
+        record = service.take_screenshot(task.task_id)
+        assert record.status is CaptureStatus.FAILED
+        assert record.sha256 is None
+        assert "PrintWindow" in record.failure_reason
+        # Exactly one capture attempt, aimed at the window target: a failed
+        # PrintWindow must never be retried against the desktop.
+        assert len(capturer.calls) == 1
+        assert capturer.calls[0] == {"scope": "window", "workdir": task.workspace_path}
+        assert all(call["scope"] != "desktop" for call in capturer.calls)
+        failed = [event for event in evidence.events if event["event_type"] == "screenshot_failed"]
+        assert len(failed) == 1
+        assert failed[0]["payload"]["capture_method"] == "real-window"
+        assert failed[0]["payload"]["target_pid"] == 4321
+        assert failed[0]["payload"]["scope"] == "window"
+        assert failed[0]["payload"]["status"] == "failed"
+        assert failed[0]["payload"]["sha256"] is None
+        assert failed[0]["payload"]["failure_reason"] == record.failure_reason
+        assert failed[0]["worker_id"] == record.worker_id
+        assert failed[0]["session_id"] == record.session_id
+    finally:
+        service.shutdown()
+        store.close()

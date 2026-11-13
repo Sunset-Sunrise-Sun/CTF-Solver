@@ -33,6 +33,12 @@ def _cmd_manager(args: argparse.Namespace) -> int:
         print(f"unknown manager action: {args.action}", file=sys.stderr)
         return 2
     argv = ["--root", args.root, "--capture-mode", args.capture_mode]
+    if getattr(args, "target_window_pid", 0):
+        argv += ["--target-window-pid", str(args.target_window_pid)]
+    if getattr(args, "lead_sessions_root", ""):
+        argv += ["--lead-sessions-root", args.lead_sessions_root]
+    if getattr(args, "session_log_root", ""):
+        argv += ["--session-log-root", args.session_log_root]
     return manager_main(argv)
 
 
@@ -112,6 +118,8 @@ def _cmd_task(args: argparse.Namespace) -> int:
     extra: dict[str, str] = {"dsh_home": str(dsh_home)}
     if args.intake_dir:
         extra["intake_dir"] = str(args.intake_dir)
+    if getattr(args, "lead_sessions_root", ""):
+        extra["lead_sessions_root"] = str(args.lead_sessions_root)
     config = SolverConfig(root=args.root, capture_mode="fake", extra=extra)
     service = build_manager_service(config)
     try:
@@ -134,6 +142,7 @@ def _cmd_task(args: argparse.Namespace) -> int:
                     scope_profile=args.scope_profile or "",
                     notes=args.notes or "",
                     supplied_files=list(args.supplied_file or []),
+                    lead_session_id=getattr(args, "lead_session_id", "") or None,
                 )
                 print(json.dumps(task.to_dict(), ensure_ascii=False, indent=2))
                 return 0
@@ -269,7 +278,37 @@ def build_parser() -> argparse.ArgumentParser:
     manager = sub.add_parser("manager", help="Manager control MCP server (stdio)")
     manager.add_argument("action", choices=["serve"])
     manager.add_argument("--root", default=".")
-    manager.add_argument("--capture-mode", default="desktop", choices=["desktop", "fake"])
+    manager.add_argument(
+        "--capture-mode",
+        default="real-window",
+        choices=["real-window", "desktop", "fake", "fake-blank"],
+        help=(
+            "Screenshot capture mode: real-window (default; requires --target-window-pid), "
+            "desktop (Worker legacy compatibility) or fake/fake-blank (deterministic tests)."
+        ),
+    )
+    manager.add_argument(
+        "--target-window-pid",
+        type=int,
+        default=0,
+        help=(
+            "Explicit target window PID for real-window capture (required unless "
+            "--capture-mode is desktop/fake)."
+        ),
+    )
+    manager.add_argument(
+        "--lead-sessions-root",
+        default="",
+        help=(
+            "Live DSH sessions root used only for Lead-session evidence (e.g. the Lead's "
+            "real ~/.dsh/sessions). Never derived from --dsh-home."
+        ),
+    )
+    manager.add_argument(
+        "--session-log-root",
+        default="",
+        help="Override the managed Worker Harness session-log root (default <dsh-home>/sessions).",
+    )
     manager.set_defaults(func=_cmd_manager)
 
     worker = sub.add_parser("worker-mcp", help="Worker-scoped ctf-exec MCP server (stdio)")
@@ -319,6 +358,23 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Explicit Harness DSH_HOME for the managed ACP server. Default: project-local "
             "isolated .ctf-solver-data/dsh-home (never the live ~/.dsh unless explicitly given)."
+        ),
+    )
+    task.add_argument(
+        "--lead-session-id",
+        default="",
+        help=(
+            "Lead Harness session id to bound to the new Task (read from $env:DSH_SESSION_ID "
+            "by the Lead conversation). The Manager verifies the id, its log header and cwd "
+            "before binding; evidence is ingested from that Lead session log."
+        ),
+    )
+    task.add_argument(
+        "--lead-sessions-root",
+        default="",
+        help=(
+            "Live DSH sessions root used to verify the Lead session id (e.g. "
+            "C:/Users/<user>/.dsh/sessions). Never derived from --dsh-home."
         ),
     )
     task.set_defaults(func=_cmd_task)
@@ -372,7 +428,15 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    return int(args.func(args))
+    # Release-UAT remediation F4: domain failures (e.g. a missing screenshot
+    # target PID) are reported as a concise CLI error instead of a raw traceback.
+    from .core.errors import CtfSolverError
+
+    try:
+        return int(args.func(args))
+    except CtfSolverError as exc:
+        print(f"ctf-solver error: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":  # pragma: no cover

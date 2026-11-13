@@ -87,7 +87,7 @@ A test is not passed because code exists or an agent says it should work. Record
 
 - [ ] Product preflight reports missing tools and versions.
 - [ ] Product does not silently install software.
-- [ ] Existing D:/CTF project and protected D:/CTFworker imported files are untouched.
+- [ ] Legacy local CTF workbench projects and their protected imported files are untouched.
 - [ ] Harness global profile/config/plugin/MCP/Skill state is unchanged.
 - [ ] No software/package installation or upgrade occurs.
 - [ ] WSL/Ubuntu/Docker/containerd/gVisor are not deployed, started, or configured in either round.
@@ -120,7 +120,7 @@ Before running arbitrary challenge-provided code:
 ## J. Two-round execution and release gates
 
 ### Clean-room boundary
-- [ ] No old CTF Workbench / D:/CTF / D:/CTFworker code, database, API, UI, service, or runtime components are reused.
+- [ ] No legacy local CTF workbench code, database, API, UI, service, or runtime components are reused.
 - [ ] No reference-repository source is copied without license/provenance review and explicit owner approval.
 
 ### Round 1 — Complete Product Core

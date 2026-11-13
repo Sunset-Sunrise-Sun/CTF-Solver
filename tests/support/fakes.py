@@ -242,7 +242,15 @@ class FakeEvidence:
         payload = text.encode("utf-8")
         return ExportInfo(kind="events_jsonl", path=str(target), sha256=sha256_hex(payload), size=len(payload), entries=len(self.events))
 
-    def ingest_session_log_file(self, *, task_id: str, worker_id: str | None, session_id: str | None, path: str):
+    def ingest_session_log_file(
+        self,
+        *,
+        task_id: str,
+        worker_id: str | None,
+        session_id: str | None,
+        path: str,
+        boundary: dict[str, Any] | None = None,
+    ):
         return {
             "task_id": task_id,
             "worker_id": worker_id,
@@ -255,6 +263,8 @@ class FakeEvidence:
             "gaps": [],
             "raw_sha256": "a" * 64,
             "complete": True,
+            "pre_boundary_excluded": 0,
+            "boundary_applied": boundary is not None,
         }
 
     def record_export(self, info: ExportInfo) -> None:

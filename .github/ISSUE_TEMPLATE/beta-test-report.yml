@@ -1,0 +1,81 @@
+name: Beta test report
+description: Report an install or run result for the CTF-Solver public Beta
+title: "[Beta] <short summary>"
+labels: ["beta-test"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing the CTF-Solver public Beta. This is a proprietary public Beta,
+        not open source. **Do not paste flags, credentials, tokens, session logs,
+        databases, private challenge material or unredacted personal paths.**
+        Prefer the checklist in `docs/release/COMMUNITY_TEST_TEMPLATE.md`.
+  - type: input
+    id: os
+    attributes:
+      label: OS and architecture
+      placeholder: Windows 11 23H2 x64 / Ubuntu 24.04 x64
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: 3.14.7
+    validations:
+      required: true
+  - type: input
+    id: harness
+    attributes:
+      label: Harness build and MCP bridge plugin
+      placeholder: Harness version/commit; is the Workspace MCP Bridge plugin installed?
+    validations:
+      required: true
+  - type: input
+    id: install
+    attributes:
+      label: Install method
+      placeholder: clone + scripts/setup_windows.ps1 / source pip install / wheel
+    validations:
+      required: true
+  - type: dropdown
+    id: tools
+    attributes:
+      label: Manager MCP tool count in the Harness conversation
+      options:
+        - "18 (expected)"
+        - "0 (no tools visible)"
+        - "Other count"
+    validations:
+      required: true
+  - type: dropdown
+    id: suite
+    attributes:
+      label: Offline test suite result
+      options:
+        - PASS
+        - FAIL
+        - Not run
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Checklist results
+      description: Results for the checks in docs/release/COMMUNITY_TEST_TEMPLATE.md
+      placeholder: |
+        1. venv creation: PASS
+        2. offline install: PASS
+        ...
+  - type: textarea
+    id: problems
+    attributes:
+      label: Problems and observations
+      description: Exact commands and output excerpts, with paths redacted.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I included no flags, credentials, logs, databases, private challenge material or unredacted personal paths.
+          required: true

@@ -1,5 +1,0 @@
-CTF-SOLVER ROUND 2 SYNTHETIC CHALLENGE
-Category: misc
-This is a synthetic local challenge used for evidence only.
-Clue: search this file for the marker prefix and recover the candidate flag.
-candidate: flag{synthetic_round2_e2e}

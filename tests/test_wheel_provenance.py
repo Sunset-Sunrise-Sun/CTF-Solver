@@ -171,5 +171,5 @@ def test_current_formal_wheel_all_members_validate(tmp_path) -> None:
         names = archive.namelist()
     report = provenance.verify_record(wheel)
     assert report["ok"] is True, report["problems"]
-    assert len(names) == 65
-    assert report["members_checked"] == 64
+    assert len(names) == 66
+    assert report["members_checked"] == 65

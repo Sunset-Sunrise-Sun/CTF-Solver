@@ -703,3 +703,112 @@ def test_confirmation_without_console_channel_is_impossible(tmp_path) -> None:
         assert isinstance(env.service, ApprovalGrantService)
     finally:
         env.store.close()
+
+# ---------------------------------------------------------------------------
+# Release-UAT remediation F1: non-network (tool_action) approvals are valid
+# human decisions, but can never mint a network grant.
+# ---------------------------------------------------------------------------
+
+
+def _request_tool_action(env: SecurityEnvironment, *, ttl_s: int | None = 600):
+    return env.service.request_approval(
+        env.task.task_id,
+        action_kind="tool_action",
+        details={"tool": "strings", "argv": ["challenge.txt"]},
+        ttl_s=ttl_s,
+    )
+
+
+def test_tool_action_approval_can_be_confirmed_and_never_mints_grant(tmp_path) -> None:
+    env = build_environment(tmp_path)
+    try:
+        approval = _request_tool_action(env)
+        assert approval.status is ApprovalStatus.PENDING
+        decided = confirm_approval(env, approval.approval_id)
+        assert decided.status is ApprovalStatus.APPROVED
+        assert decided.approver == "human-owner"
+        assert decided.confirmation_channel == "local_console"
+        assert decided.confirmation_id
+        assert decided.confirmation_os_user == "human-owner"
+        assert env.evidence.of_type("approval_decided")
+        # A tool_action approval is not a network authorization: the grant path
+        # must refuse it even though it is APPROVED by a human.
+        with pytest.raises(StateError):
+            env.service.create_grant_from_approval(
+                approval.approval_id,
+                competition_profile=SYNTHETIC_PROFILE,
+                host=SYNTHETIC_HOST,
+                port=8443,
+            )
+        assert env.service.list_grants(task_id=env.task.task_id) == []
+        stored = env.store.get_approval(approval.approval_id)
+        assert stored is not None and stored.consumed_at is None
+        # Decisions are one-shot.
+        with pytest.raises(StateError):
+            confirm_approval(env, approval.approval_id)
+    finally:
+        env.store.close()
+
+
+def test_tool_action_approval_can_be_rejected_by_human_console(tmp_path) -> None:
+    env = build_environment(tmp_path)
+    try:
+        approval = _request_tool_action(env)
+        decided = env.service.confirm_approval(
+            approval.approval_id,
+            channel=rejecting_channel(env.clock),
+            reject=True,
+            note="UAT synthetic rejection",
+        )
+        assert decided.status is ApprovalStatus.REJECTED
+        assert decided.approver == "human-owner"
+        assert decided.confirmation_note == "UAT synthetic rejection"
+        with pytest.raises(StateError):
+            confirm_approval(env, approval.approval_id)
+        with pytest.raises(StateError):
+            env.service.create_grant_from_approval(
+                approval.approval_id,
+                competition_profile=SYNTHETIC_PROFILE,
+                host=SYNTHETIC_HOST,
+                port=8443,
+            )
+    finally:
+        env.store.close()
+
+
+def test_expired_tool_action_approval_cannot_be_confirmed(tmp_path) -> None:
+    env = build_environment(tmp_path)
+    try:
+        approval = _request_tool_action(env, ttl_s=10)
+        env.clock.advance(11_000)
+        with pytest.raises(StateError):
+            confirm_approval(env, approval.approval_id)
+        stored = env.store.get_approval(approval.approval_id)
+        assert stored is not None and stored.status is ApprovalStatus.EXPIRED
+        assert stored.approver is None
+    finally:
+        env.store.close()
+
+
+def test_tool_action_approval_is_task_scoped(tmp_path) -> None:
+    other = "t-uat-other-task"
+    env = build_environment(tmp_path, extra_task_ids=(other,))
+    try:
+        approval = _request_tool_action(env)
+        assert approval.task_id == env.task.task_id
+        assert env.service.list_approvals(task_id=other) == []
+        assert [item.approval_id for item in env.service.list_approvals(task_id=env.task.task_id)] == [
+            approval.approval_id
+        ]
+        # A tampered approval digest still fails closed before a decision.
+        tampered = env.store.get_approval(approval.approval_id)
+        assert tampered is not None
+        env.store.conn.execute(
+            "UPDATE approvals SET action_digest = ? WHERE approval_id = ?",
+            ("b" * 64, approval.approval_id),
+        )
+        env.store.conn.commit()
+        with pytest.raises(StateError):
+            confirm_approval(env, approval.approval_id)
+    finally:
+        env.store.close()

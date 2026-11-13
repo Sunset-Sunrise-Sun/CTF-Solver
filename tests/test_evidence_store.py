@@ -485,12 +485,37 @@ def test_export_events_jsonl_is_deterministic(tmp_path: Path) -> None:
     assert first.kind == "events_jsonl"
     lines = bytes_one.decode("utf-8").splitlines()
     assert len(lines) == 3
+    # The default export is the delivery privacy projection: identity keys plus
+    # payload only, never hash-chain internals.
+    identity_keys = {
+        "seq",
+        "record_id",
+        "task_id",
+        "worker_id",
+        "session_id",
+        "source",
+        "source_id",
+        "source_seq",
+        "event_type",
+        "timestamp",
+        "payload",
+    }
     for line in lines:
         parsed = json.loads(line)
         assert canonical_json(parsed) == line
         assert isinstance(parsed["payload"], dict)
-        assert parsed["record_hash"]
+        assert set(parsed) == identity_keys
     assert [json.loads(line)["seq"] for line in lines] == [1, 2, 3]
+    # The raw committed view (internal/test use only) keeps the hash-chain fields.
+    raw_out = tmp_path / "exports" / "events-raw.jsonl"
+    raw_info = store.export_events_jsonl(
+        task_id=DEFAULT_TASK_ID, out_path=raw_out, privacy_filtered=False
+    )
+    raw_lines = raw_out.read_text(encoding="utf-8").splitlines()
+    assert raw_info.entries == 3
+    assert [json.loads(line)["seq"] for line in raw_lines] == [1, 2, 3]
+    assert all(json.loads(line)["record_hash"] for line in raw_lines)
+    assert all(json.loads(line)["prev_hash"] for line in raw_lines)
     # Re-exporting after no change stays byte-identical.
     third = store.export_events_jsonl(task_id=DEFAULT_TASK_ID, out_path=out_one)
     assert third.sha256 == first.sha256

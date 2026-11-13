@@ -1,8 +1,8 @@
-# Round 1 Module Interfaces (Frozen Contract)
+# Module Interfaces (Frozen Contract)
 
-**Status:** frozen for Round 1 implementation on branch `feat/round1-complete-product-core`
-**Authority:** `docs/ROUND_1_IMPLEMENTATION_TASK.md` and the accepted product docs. This file
-only fixes module boundaries so parallel work composes; it does not change product scope.
+**Status:** frozen interface contract for the current release.
+**Authority:** the accepted product docs. This file only fixes module boundaries so
+parallel work composes; it does not change product scope.
 
 Every module imports the frozen contracts from `ctf_solver.core` and `ctf_solver.storage.db`.
 Do not redefine them. If a contract is genuinely insufficient, report it to the Lead instead

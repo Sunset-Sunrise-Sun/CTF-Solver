@@ -681,39 +681,58 @@ class ApprovalGrantService:
         canonicalized again (including Task, target, TTL and call budget) and
         must reproduce the recorded digest. A tampered SQLite row therefore can
         neither be displayed to a human nor mint a grant.
+
+        Release-UAT remediation F1: non-network actions (``tool_action`` and the
+        other approval kinds) are valid human decisions too. They are verified
+        the same way (canonical payload + recorded digest) but can never mint a
+        network grant: only ``remote_target`` approvals reach the grant path.
         """
 
-        if record.action_kind != _REMOTE_TARGET:
+        kind = str(record.action_kind or "")
+        try:
+            ApprovalAction(kind)
+        except ValueError as exc:
             raise StateError(
-                f"approval {record.approval_id} is {record.action_kind!r}; only a "
-                "remote_target approval can authorize a network grant"
-            )
+                f"approval {record.approval_id} has unknown action kind {kind!r}; "
+                "refusing to use it"
+            ) from exc
         try:
             payload = canonical_approval_details(
-                _REMOTE_TARGET, record.payload or {}, task_id=record.task_id
+                kind, record.payload or {}, task_id=record.task_id
             )
         except ValidationError as exc:
+            if kind == _REMOTE_TARGET:
+                raise StateError(
+                    "the stored approval payload is not a valid remote_target action; "
+                    f"refusing to use a tampered approval ({exc.message})"
+                ) from exc
             raise StateError(
-                "the stored approval payload is not a valid remote_target action; "
+                "the stored approval payload is not valid for its action kind; "
                 f"refusing to use a tampered approval ({exc.message})"
             ) from exc
-        recomputed = action_digest(_REMOTE_TARGET, payload)
+        recomputed = action_digest(kind, payload)
         stored_digest = str(record.action_digest or "").strip().lower()
         if not stored_digest or recomputed != stored_digest:
             raise StateError(
                 "approval payload does not match its recorded digest; refusing to "
                 "use a tampered approval"
             )
-        if str(payload.get("task_id")) != str(record.task_id):
+        if kind == _REMOTE_TARGET and str(payload.get("task_id")) != str(record.task_id):
             raise StateError(
                 "approval payload Task does not match the approval Task; refusing to "
                 "use a cross-Task approval"
             )
-        if require_approved and record.status is not ApprovalStatus.APPROVED:
-            raise StateError(
-                f"approval {record.approval_id} is {record.status.value}; a network "
-                "grant requires an APPROVED human-confirmed approval"
-            )
+        if require_approved:
+            if kind != _REMOTE_TARGET:
+                raise StateError(
+                    f"approval {record.approval_id} is {kind!r}; only a "
+                    "remote_target approval can authorize a network grant"
+                )
+            if record.status is not ApprovalStatus.APPROVED:
+                raise StateError(
+                    f"approval {record.approval_id} is {record.status.value}; a network "
+                    "grant requires an APPROVED human-confirmed approval"
+                )
         return payload
 
     def create_grant_from_approval(

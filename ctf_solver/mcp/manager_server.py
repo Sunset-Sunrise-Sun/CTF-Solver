@@ -95,6 +95,19 @@ def build_manager_tools(manager: ManagerControl) -> list[McpTool]:
                         "description": "Competition/scope profile name, e.g. synthetic-local.",
                     },
                     "notes": {"type": "string"},
+                    "lead_session_id": {
+                        "type": "string",
+                        "maxLength": 128,
+                        "description": (
+                            "Optional Lead Harness session id (the Lead reads it from "
+                            "$env:DSH_SESSION_ID and passes it explicitly). The Manager "
+                            "verifies it: safe single path component, exactly one log under "
+                            "its configured Lead sessions root, header id match, header cwd "
+                            "equal to the Manager root, not bound to another Task. It is "
+                            "bound to this Task once; evidence is then ingested from that "
+                            "Lead session log."
+                        ),
+                    },
                     "supplied_files": {
                         "type": "array",
                         "items": {"type": "string"},
@@ -278,19 +291,28 @@ def build_manager_tools(manager: ManagerControl) -> list[McpTool]:
             name="ctf_screenshot_capture",
             description=(
                 "Explicitly capture a screenshot for a Task/Step and bind it to "
-                "Task/Worker/Step/session/time. Blank or failed captures are recorded honestly."
+                "Task/Worker/Step/session/time. Omit scope for a Lead-bound Task: it "
+                "captures the configured real-window target ('window'). 'desktop' is "
+                "refused for Lead-bound Tasks (no silent desktop fallback). Blank or "
+                "failed captures are recorded honestly."
             ),
             input_schema=_schema(
                 {
                     "task_id": {"type": "string"},
                     "step_id": {"type": "string"},
-                    "scope": {"type": "string", "description": "Capture scope, e.g. desktop."},
+                    "scope": {
+                        "type": "string",
+                        "description": (
+                            "Optional capture scope. Omit for the real-window target "
+                            "('window'). 'desktop' is refused for a Lead-bound Task."
+                        ),
+                    },
                 },
                 ["task_id"],
                 "Capture one explicit screenshot.",
             ),
             handler=_wrap(
-                lambda task_id, step_id=None, scope="desktop": manager.take_screenshot(
+                lambda task_id, step_id=None, scope=None: manager.take_screenshot(
                     task_id, step_id=step_id, scope=scope
                 )
             ),
@@ -309,13 +331,24 @@ def build_manager_tools(manager: ManagerControl) -> list[McpTool]:
                         "type": "string",
                         "description": "Optional expected Worker id; must match the Task's Worker.",
                     },
+                    "source": {
+                        "type": "string",
+                        "enum": ["auto", "worker", "lead"],
+                        "default": "auto",
+                        "description": (
+                            "Log registry to ingest: auto = the Task's bound Lead session "
+                            "when present, else the registered Worker log; worker = the "
+                            "registered Worker log only; lead = the Task's bound Lead "
+                            "session only."
+                        ),
+                    },
                 },
                 ["task_id"],
                 "Ingest the Task's registered session log.",
             ),
             handler=_wrap(
-                lambda task_id, worker_id=None: manager.ingest_session_log(
-                    task_id, worker_id=worker_id
+                lambda task_id, worker_id=None, source="auto": manager.ingest_session_log(
+                    task_id, worker_id=worker_id, source=source
                 )
             ),
         ),
@@ -389,7 +422,24 @@ def _test_launcher_from_env() -> list[str] | None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CTF-Solver Manager control MCP server")
     parser.add_argument("--root", default=".", help="Project root (runtime data stays here, outside Git)")
-    parser.add_argument("--capture-mode", default="desktop", choices=["desktop", "real-window", "fake"])
+    parser.add_argument(
+        "--capture-mode",
+        default="real-window",
+        choices=["real-window", "desktop", "fake", "fake-blank"],
+        help=(
+            "Screenshot capture mode: real-window (default; requires --target-window-pid), "
+            "desktop (Worker legacy compatibility) or fake/fake-blank (deterministic tests)."
+        ),
+    )
+    parser.add_argument(
+        "--target-window-pid",
+        type=int,
+        default=0,
+        help=(
+            "Explicit target window PID for real-window capture (required unless "
+            "--capture-mode is desktop/fake)."
+        ),
+    )
     parser.add_argument("--max-workers", type=int, default=2)
     parser.add_argument(
         "--dsh-home",
@@ -409,6 +459,15 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--lead-sessions-root",
+        default="",
+        help=(
+            "Live DSH sessions root used ONLY for one-time Lead-session evidence "
+            "(the Lead's real ~/.dsh/sessions when explicitly configured). Never derived "
+            "from --dsh-home and never created by the Manager."
+        ),
+    )
+    parser.add_argument(
         "--intake-dir",
         default="",
         help=(
@@ -424,6 +483,8 @@ def main(argv: list[str] | None = None) -> int:
     extra: dict[str, str] = {"dsh_home": str(dsh_home)}
     if args.session_log_root:
         extra["session_log_root"] = str(args.session_log_root)
+    if args.lead_sessions_root:
+        extra["lead_sessions_root"] = str(args.lead_sessions_root)
     if args.intake_dir:
         extra["intake_dir"] = str(args.intake_dir)
     test_launcher = _test_launcher_from_env()
@@ -433,6 +494,7 @@ def main(argv: list[str] | None = None) -> int:
         root=args.root,
         max_active_workers=max(1, min(2, args.max_workers)),
         capture_mode=args.capture_mode,
+        target_window_pid=args.target_window_pid or None,
         extra=extra,
     )
     from ..wiring import build_manager_service  # deferred: other modules may still be in progress

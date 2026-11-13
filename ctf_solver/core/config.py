@@ -19,6 +19,11 @@ DEFAULT_STARTUP_TIMEOUT_S = 20.0
 DEFAULT_STOP_TIMEOUT_S = 10.0
 DEFAULT_MAX_OUTPUT_BYTES = 4 * 1024 * 1024
 
+#: Screenshot capture modes accepted by :class:`SolverConfig` and
+#: ``ctf_solver.delivery.screenshot.build_capturer``.
+#: ``fake``/``fake-blank`` are deterministic test modes only.
+CAPTURE_MODES = frozenset({"real-window", "desktop", "fake", "fake-blank"})
+
 
 @dataclass(frozen=True)
 class SolverPaths:
@@ -103,7 +108,8 @@ class SolverConfig:
     acp_command: list[str] | None = None
     acp_env: dict[str, str] = field(default_factory=dict)
     acp_cwd: str | None = None
-    capture_mode: str = "desktop"  # "desktop" | "fake" (fake only for deterministic tests)
+    capture_mode: str = "real-window"  # "real-window" | "desktop" | "fake" | "fake-blank"
+    target_window_pid: int | None = None  # explicit target window PID for real-window capture
     extra: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -117,6 +123,21 @@ class SolverConfig:
             raise ConfigError(
                 "Round 1 does not authorize session/prompt or any model call (ADR-020)"
             )
+        if self.capture_mode not in CAPTURE_MODES:
+            raise ConfigError(
+                f"unsupported capture_mode {self.capture_mode!r}; expected one of "
+                f"{', '.join(sorted(CAPTURE_MODES))}"
+            )
+        if self.target_window_pid is not None:
+            # A bool is an int subclass; reject it explicitly instead of treating
+            # True/False as a PID. The "real-window requires a PID" rule itself is
+            # enforced when the capturer is built, so constructing a default
+            # config (security service/preflight) still works.
+            pid = self.target_window_pid
+            if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0:
+                raise ConfigError(
+                    "target_window_pid must be a positive integer when provided"
+                )
 
     @property
     def paths(self) -> SolverPaths:
@@ -146,6 +167,25 @@ class SolverConfig:
         return self.dsh_home / "sessions"
 
     @property
+    def lead_sessions_root(self) -> Path:
+        """Live DSH sessions root used only for Lead-session evidence.
+
+        Priority: ``extra["lead_sessions_root"]`` -> environment variable
+        ``CTF_SOLVER_LEAD_SESSIONS_ROOT`` -> ``~/.dsh/sessions``. It is never
+        derived from :attr:`dsh_home`: that managed home only ever contains
+        Worker sessions. The live directory must already exist, so
+        :meth:`ensure_runtime_dirs` deliberately does not create it.
+        """
+
+        configured = (self.extra.get("lead_sessions_root") or "").strip()
+        if configured:
+            return Path(os.path.abspath(os.path.expanduser(configured)))
+        from_env = (os.environ.get("CTF_SOLVER_LEAD_SESSIONS_ROOT") or "").strip()
+        if from_env:
+            return Path(os.path.abspath(os.path.expanduser(from_env)))
+        return Path.home() / ".dsh" / "sessions"
+
+    @property
     def intake_root(self) -> Path:
         """Project-scoped challenge-file intake area (never arbitrary host paths)."""
 
@@ -172,7 +212,12 @@ class SolverConfig:
         return Path(__file__).resolve().parents[1] / "resources" / "acp" / "cordis.patch.yml"
 
     def ensure_runtime_dirs(self) -> None:
-        """Create runtime directories needed by the Manager (all git-ignored)."""
+        """Create runtime directories needed by the Manager (all git-ignored).
+
+        ``lead_sessions_root`` is intentionally absent: it is an existing live
+        Harness directory, and a missing one must surface as a resolver error
+        rather than being silently created.
+        """
 
         self.ensure_layout()
         self.intake_root.mkdir(parents=True, exist_ok=True)

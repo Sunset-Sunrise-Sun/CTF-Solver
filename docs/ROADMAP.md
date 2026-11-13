@@ -25,7 +25,7 @@ CTF-Solver is a clean-room independent implementation. Do not reuse old CTF Work
 
 ## Round 1 — Complete Product Core
 
-**Canonical task:** [ROUND_1_IMPLEMENTATION_TASK.md](ROUND_1_IMPLEMENTATION_TASK.md)
+**Canonical task:** the internal Round 1 implementation record (not part of this release).
 
 Implement the complete first-version product structure in one concentrated round:
 
@@ -48,7 +48,7 @@ Implement the complete first-version product structure in one concentrated round
 
 ## Round 2 — Harness Integration and End-to-End Closure
 
-**Canonical task:** [ROUND_2_INTEGRATION_TASK.md](ROUND_2_INTEGRATION_TASK.md)
+**Canonical task:** the internal Round 2 integration record (not part of this release).
 
 Integrate the Round 1 candidate with the existing Harness installation and fix Round 1 defects:
 
@@ -76,8 +76,9 @@ The owner explicitly selected the existing-environment-only boundary:
 - Do not install, uninstall, upgrade, or configure software/packages.
 - Do not modify Harness global profiles, configuration, plugins, MCP registrations, or Skills.
 - Do not deploy, install, start, or configure WSL/Ubuntu/Docker/containerd/gVisor.
-- Do not modify the old `D:\CTF` project or old CTF Workbench.
-- Do not modify, stage, stash, clean, reset, delete, rename, or overwrite the 110 pre-existing uncommitted imported files or local audit report in `D:\CTFworker`.
+- Do not modify the legacy local CTF workbench projects.
+- Do not modify, stage, stash, clean, reset, delete, rename, or overwrite the legacy workbench's
+  pre-existing uncommitted imported files or its local audit report.
 - Use existing dependencies and trusted local tools only.
 - Use synthetic fixtures only; do not access real CTF targets or submit Flags.
 - Do not execute challenge-provided binaries, scripts, macros, installers, or exploit payloads on the host.

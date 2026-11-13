@@ -274,6 +274,7 @@ class TaskRecord:
     ended_at: int | None = None
     evidence_head: str | None = None
     notes: str = ""
+    completion_note: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -296,6 +297,7 @@ class TaskRecord:
             "ended_at": self.ended_at,
             "evidence_head": self.evidence_head,
             "notes": self.notes,
+            "completion_note": self.completion_note,
         }
 
     @classmethod
@@ -320,6 +322,9 @@ class TaskRecord:
             ended_at=row["ended_at"],
             evidence_head=row["evidence_head"],
             notes=row["notes"] or "",
+            completion_note=(
+                row["completion_note"] if "completion_note" in row.keys() else ""
+            ),
         )
 
 
